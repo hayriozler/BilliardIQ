@@ -1,25 +1,23 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using BilliardIQ.Mobile.ViewModels;
+using CommunityToolkit.Maui;
+using Microsoft.Extensions.Logging;
+namespace BilliardIQ.Mobile;
 
-namespace BilliardIQ.Mobile
+public static class MauiProgram
 {
-    public static class MauiProgram
+    public static MauiApp CreateMauiApp()
     {
-        public static MauiApp CreateMauiApp()
-        {
-            var builder = MauiApp.CreateBuilder();
-            builder
-                .UseMauiApp<App>()
-                .ConfigureFonts(fonts =>
-                {
-                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-                });
+        var builder = MauiApp.CreateBuilder();
+        builder.Services.AddSingleton<MainViewModel>();
+        builder.Services.AddSingleton<MainPage>();
+
+        builder.UseMauiApp<App>()
+            .UseMauiCommunityToolkit();
 
 #if DEBUG
-    		builder.Logging.AddDebug();
+        builder.Logging.AddDebug();
 #endif
 
-            return builder.Build();
-        }
+        return builder.Build();
     }
 }

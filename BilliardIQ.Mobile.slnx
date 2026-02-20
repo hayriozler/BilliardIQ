@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="BilliardIQ.Mobile/BilliardIQ.Mobile.csproj" />
+  <Project Path="BilliardIQ.Core/BilliardIQ.Core.csproj" Id="e4235379-728d-4837-9405-320a394dc28e" />
+  <Project Path="BilliardIQ.Mobile/BilliardIQ.Mobile.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
 </Solution>
