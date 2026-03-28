@@ -35,6 +35,12 @@ public partial class PhotoAnalyzerViewPage : BasePage
             debugText.Text = $"Saved: {fileName}";
         });
     }
+    private async void OnCaptureClicked(object? sender, EventArgs e)
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await Camera.CaptureImage(cts.Token);
+    }
+
     private async void OnCloseClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync("..");
 
     protected override async void OnAppearing()

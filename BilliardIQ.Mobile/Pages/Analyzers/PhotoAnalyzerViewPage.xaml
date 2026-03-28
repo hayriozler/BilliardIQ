@@ -50,7 +50,7 @@
                 HorizontalOptions="Center"
                 VerticalOptions="Center">
                 <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding CaptureImageCommand, Source={x:Reference Camera}, x:DataType=toolkit:CameraView}"/>
+                    <TapGestureRecognizer Tapped="OnCaptureClicked"/>
                 </Border.GestureRecognizers>
 
                 <Ellipse Fill="White" 
