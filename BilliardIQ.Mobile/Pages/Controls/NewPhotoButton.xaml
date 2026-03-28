@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Button xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="BilliardIQ.Mobile.Pages.Controls.NewPhotoButton"
+    ImageSource="{StaticResource Camera}" 
+    BackgroundColor="{StaticResource Primary}" 
+    CornerRadius="30" 
+    HeightRequest="60" 
+    WidthRequest="60" 
+    VerticalOptions="End" 
+    HorizontalOptions="End"
+    Margin="30" 
+    SemanticProperties.Description="New Photo"/>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePage:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" 
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:basePage="clr-namespace:BilliardIQ.Mobile.Pages.BasePages" 
+             xmlns:pages="clr-namespace:BilliardIQ.Mobile.Pages.Players" 
+             xmlns:pagemodels="clr-namespace:BilliardIQ.Mobile.PageModels.PlayerPageModels" 
+             x:DataType="pagemodels:PlayerProfilePageModel"
+             x:Class="BilliardIQ.Mobile.Pages.Players.PlayerProfileViewPage"
+             x:Name="PlayerProfilePage"
+             Title="Player Profile">
+   
+        <basePage:BasePage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            x:Name="AppearingBehavior"    
+            BindingContext="{Binding Source={x:Reference Name=PlayerProfilePage}, Path=BindingContext}"
+            EventName="Appearing"                
+            Command="{Binding AppearingCommand}" />
+     </basePage:BasePage.Behaviors>
+
+    <VerticalStackLayout Padding="20" Spacing="15">
+
+        <Label
+        Text="{Binding HeaderText, Mode=TwoWay}"
+        FontSize="24"
+        FontAttributes="Bold"
+        HorizontalOptions="Center"/>
+
+        <!-- Name Entry -->
+        <Entry
+        Text="{Binding FirstName, Mode=TwoWay}"
+        Placeholder="Enter name" />
+
+        <Label
+            Text="{Binding FirstNameError}"
+            TextColor="Red"
+            IsVisible="{Binding HasFirstNameError}"
+            FontSize="12"/>
+
+        <!-- Surname Entry -->
+        <Entry
+        Text="{Binding Surname, Mode=TwoWay}"
+        Placeholder="Enter surname" />
+
+
+        <Label
+            Text="{Binding LastNameError}"
+            TextColor="Red"
+            IsVisible="{Binding HasLastNameError}"
+            FontSize="12"/>
+
+        <!-- Level Picker -->
+        <Picker
+        Title="Select Level"
+        ItemsSource="{Binding Levels}"
+        SelectedItem="{Binding SelectedLevel}" />
+
+        <!-- Save Button -->
+        <Button
+        Text="{Binding ButtonText}"
+        Command="{Binding UpsertCommand}"
+        CommandParameter="{Binding ActivePlayer}"
+        Style="{StaticResource PlayerSaveButtonStyle}" />
+
+    </VerticalStackLayout>
+
+
+
+</basePage:BasePage>

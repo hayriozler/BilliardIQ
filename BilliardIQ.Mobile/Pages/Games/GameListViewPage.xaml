@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages" 
+    xmlns:pages="clr-namespace:BilliardIQ.Mobile.Pages.Games" 
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.GamePageModels"
+    xmlns:models="clr-namespace:BilliardIQ.Mobile.Models"
+    xmlns:controls="clr-namespace:BilliardIQ.Mobile.Pages.Controls"
+    x:DataType="pageModels:GameListPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Games.GameListViewPage"
+    x:Name="GameList"
+    Title="Game List">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            x:Name="AppearingBehavior"
+            BindingContext="{Binding Source={x:Reference Name=GameList}, Path=BindingContext}"
+            EventName="Appearing"                
+            Command="{Binding AppearingCommand}"
+            CommandParameter="15"/>
+    </ContentPage.Behaviors>
+
+    <Grid RowDefinitions="Auto, *, Auto, Auto" Padding="10" RowSpacing="10">
+
+        <!-- Başlık -->
+        <Label Text="Last 15 Games" FontAttributes="Bold" Grid.Row="0" />
+
+        <!-- CollectionView -->
+        <CollectionView x:Name="GamesCollectionView"
+                        ItemsSource="{Binding Games}"
+                        SelectionMode="None"
+                        Grid.Row="1">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:Game">
+                    <SwipeView>
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem 
+                                    Text="Delete"
+                                    BackgroundColor="Red"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+                        <Border Stroke="LightGray"
+                                StrokeThickness="1"
+                                Padding="10"
+                                Margin="5">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.NavigateToGameCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+
+                            <!-- Visual Feedback -->
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup Name="CommonStates">
+                                    <VisualState Name="Normal">
+                                        <VisualState.Setters>
+                                            <Setter Property="BackgroundColor" Value="White"/>
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Property="BackgroundColor" Value="#E0E0E0"/>
+                                            <Setter Property="Opacity" Value="0.8"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10"/>
+                            </Border.StrokeShape>
+
+                            <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto" RowSpacing="4">
+                                <Label Grid.Row="0" Grid.Column="0"
+                                       Text="{Binding OpponentName}"
+                                       FontAttributes="Bold" />
+                                <Label Grid.Row="0" Grid.Column="1"
+                                       FontAttributes="Bold"
+                                       HorizontalOptions="End">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="{Binding PlayerScore}" TextColor="Green" FontAttributes="Bold" />
+                                            <Span Text=" – " />
+                                            <Span Text="{Binding OpponentScore}" TextColor="Red" FontAttributes="Bold" />
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Text="{Binding Location}"
+                                       TextColor="Gray" FontSize="13" />
+                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Text="{Binding Date, StringFormat='{0:dd.MM.yyyy}'}"
+                                       TextColor="Gray" FontSize="12" />
+                            </Grid>
+                        </Border>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <!-- New Game Button -->
+        <controls:NewGameButton
+                Command="{Binding NavigateToGameCommand}"
+                ToolTipProperties.Text="New Game"
+                SemanticProperties.Description="New Game"
+                Grid.Row="2" /> 
+
+
+        <!-- Full Games Button -->
+        <Button BackgroundColor="{StaticResource Primary}"                
+                Text="Full Games"
+                Command="{Binding AppearingCommand}"
+                CommandParameter="100000"
+                SemanticProperties.Description="Full Games"
+                Grid.Row="3" />
+    </Grid>
+</basePages:BasePage>

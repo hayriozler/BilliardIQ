@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build:*)",
+      "Bash(cmd.exe /c \"dir /s C:\\\\Users\\\\hozl\\\\AppData\\\\Local\\\\Android\\\\adb.exe 2>&1 | head -5\")",
+      "Bash(cmd.exe /c \"dir C:\\\\Users\\\\hozl\\\\AppData\\\\Local\")",
+      "Bash(cmd.exe /c \"dir C:\\\\Users\\\\hozl\\\\AppData\\\\Local\\\\Android Open Source Project\" 2>&1)",
+      "Bash(cmd.exe /c \"dir \\\\\"C:\\\\Users\\\\hozl\\\\AppData\\\\Local\\\\Android Open Source Project\\\\\"\" 2>&1)",
+      "Bash(cmd.exe /c \"dir C:\\\\Program Files\\\\dotnet\\\\tools\")",
+      "Bash(cmd.exe /c \"dotnet workload list\")",
+      "Bash(cmd.exe /c 'where adb.exe')",
+      "Read(//c//**)",
+      "Bash(cmd.exe /c \"dir C:\\\\Users\\\\hozl\\\\.android\")",
+      "Bash(adb devices:*)",
+      "Bash(cmd.exe /c \"adb devices\" 2>&1)",
+      "Bash(cmd.exe /c \"echo %ANDROID_HOME% && echo %ANDROID_SDK_ROOT% && echo %PATH%\" 2>&1)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

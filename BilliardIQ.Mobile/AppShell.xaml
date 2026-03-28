@@ -3,12 +3,25 @@
     x:Class="BilliardIQ.Mobile.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:BilliardIQ.Mobile"
-    Title="BilliardIQ.Mobile">
+    xmlns:games="clr-namespace:BilliardIQ.Mobile.Pages.Games"
+    xmlns:players="clr-namespace:BilliardIQ.Mobile.Pages.Players"
+    xmlns:pages="clr-namespace:BilliardIQ.Mobile.Pages"
+    Shell.FlyoutBehavior="Flyout"
+    Title="BilliardIQ">
 
     <ShellContent
         Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+        ContentTemplate="{DataTemplate pages:MainViewPage}"
+        Route="home" />
+    
+    
+    <ShellContent
+    Title="Game"
+    ContentTemplate="{DataTemplate games:GameListViewPage}"
+    Route="gamelist" />
 
+    <ShellContent
+        Title="Profile"
+        ContentTemplate="{DataTemplate players:PlayerProfileViewPage}"
+        Route="profile" />
 </Shell>
