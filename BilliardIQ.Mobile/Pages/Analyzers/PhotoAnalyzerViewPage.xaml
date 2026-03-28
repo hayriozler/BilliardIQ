@@ -1,9 +1,11 @@
-<basePages:BasePage   
+<basePages:BasePage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
-    x:Class="BilliardIQ.Mobile.Pages.Analyzers.PhotoAnalyzerViewPage">
+    xmlns:vm="clr-namespace:BilliardIQ.Mobile.PageModels.Analyzers"
+    x:Class="BilliardIQ.Mobile.Pages.Analyzers.PhotoAnalyzerViewPage"
+    x:DataType="vm:PhotoAnalyzerPageModel">
     <Grid ColumnDefinitions="80, *, 120" RowDefinitions="*" BackgroundColor="Black">
 
         <VerticalStackLayout Grid.Column="0"
@@ -20,7 +22,8 @@
         <Grid Grid.Column="1" HorizontalOptions="Fill" VerticalOptions="Fill">
             <toolkit:CameraView x:Name="Camera"
                             HorizontalOptions="Fill"
-                            VerticalOptions="Fill" />
+                            VerticalOptions="Fill"
+                            SelectedCamera="{Binding SelectedCamera}" />
             <Image x:Name="image"
                    HorizontalOptions="Fill"
                    VerticalOptions="Fill"
@@ -58,11 +61,62 @@
             </Border>
 
             <VerticalStackLayout Grid.Row="2" VerticalOptions="End" Spacing="10" Padding="0,0,0,20">
-                <Label Text="Video" TextColor="White" Opacity="0.5" HorizontalOptions="Center" FontSize="11"/>
-                <Border BackgroundColor="#40FFFFFF" Padding="12,4" StrokeShape="RoundRectangle 15" HorizontalOptions="Center">
-                    <Label Text="Photo" TextColor="White" FontAttributes="Bold" FontSize="13"/>
+                <Border Padding="12,4" StrokeShape="RoundRectangle 15" HorizontalOptions="Center"
+                        BackgroundColor="{Binding IsBackCameraSelected, Converter={toolkit:IsNotNullConverter}}">
+                    <Border.Triggers>
+                        <DataTrigger TargetType="Border" Binding="{Binding IsBackCameraSelected}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#40FFFFFF"/>
+                        </DataTrigger>
+                        <DataTrigger TargetType="Border" Binding="{Binding IsBackCameraSelected}" Value="False">
+                            <Setter Property="BackgroundColor" Value="Transparent"/>
+                        </DataTrigger>
+                    </Border.Triggers>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SelectBackCameraCommand}"/>
+                    </Border.GestureRecognizers>
+                    <Label TextColor="White" FontSize="12" HorizontalOptions="Center">
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding IsBackCameraSelected}" Value="True">
+                                <Setter Property="Text" Value="Back Camera"/>
+                                <Setter Property="FontAttributes" Value="Bold"/>
+                                <Setter Property="Opacity" Value="1"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Label" Binding="{Binding IsBackCameraSelected}" Value="False">
+                                <Setter Property="Text" Value="Back Camera"/>
+                                <Setter Property="FontAttributes" Value="None"/>
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
                 </Border>
-                <Label Text="Video note" TextColor="White" Opacity="0.5" HorizontalOptions="Center" FontSize="11"/>
+                <Border Padding="12,4" StrokeShape="RoundRectangle 15" HorizontalOptions="Center"
+                        BackgroundColor="Transparent">
+                    <Border.Triggers>
+                        <DataTrigger TargetType="Border" Binding="{Binding IsBackCameraSelected}" Value="False">
+                            <Setter Property="BackgroundColor" Value="#40FFFFFF"/>
+                        </DataTrigger>
+                        <DataTrigger TargetType="Border" Binding="{Binding IsBackCameraSelected}" Value="True">
+                            <Setter Property="BackgroundColor" Value="Transparent"/>
+                        </DataTrigger>
+                    </Border.Triggers>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SelectFrontCameraCommand}"/>
+                    </Border.GestureRecognizers>
+                    <Label TextColor="White" FontSize="12" HorizontalOptions="Center">
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding IsBackCameraSelected}" Value="False">
+                                <Setter Property="Text" Value="Front Camera"/>
+                                <Setter Property="FontAttributes" Value="Bold"/>
+                                <Setter Property="Opacity" Value="1"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Label" Binding="{Binding IsBackCameraSelected}" Value="True">
+                                <Setter Property="Text" Value="Front Camera"/>
+                                <Setter Property="FontAttributes" Value="None"/>
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
+                </Border>
             </VerticalStackLayout>
 
         </Grid>
