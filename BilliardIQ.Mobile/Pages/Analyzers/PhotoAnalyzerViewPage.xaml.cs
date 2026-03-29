@@ -1,6 +1,27 @@
 using BilliardIQ.Mobile.PageModels.Analyzers;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 
 namespace BilliardIQ.Mobile.Pages.Analyzers;
+
+public sealed class CapturedPhoto : INotifyPropertyChanged
+{
+    private bool _isSelected;
+    public required string FilePath { get; init; }
+    public required ImageSource Source { get; init; }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            _isSelected = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+}
 
 file sealed class GridDrawable : IDrawable
 {
@@ -22,6 +43,8 @@ public partial class PhotoAnalyzerViewPage : BasePage
     private double _zoomAtPinchStart = 1.0;
     private readonly string _photosFolder;
     private readonly PhotoAnalyzerPageModel _pageModel;
+    private readonly ObservableCollection<CapturedPhoto> _photos = [];
+    private CapturedPhoto? _selectedPhoto;
 
     public PhotoAnalyzerViewPage(PhotoAnalyzerPageModel analyzerPageModel,
         IFileSystem fileSystem) : base(analyzerPageModel)
@@ -32,10 +55,11 @@ public partial class PhotoAnalyzerViewPage : BasePage
         Shell.SetTabBarIsVisible(this, false);
         InitializeComponent();
         gridOverlay.Drawable = new GridDrawable();
-        _photosFolder = Path.Combine(fileSystem.AppDataDirectory, "Photos");
+        _photosFolder = Path.Combine(fileSystem.AppDataDirectory, "BilliardIQ", "Photos");
         Directory.CreateDirectory(_photosFolder);
         Camera.MediaCaptured += OnMediaCaptured;
         _pageModel.CaptureRequested += OnCaptureRequested;
+        photoStrip.ItemsSource = _photos;
     }
 
     private void OnMediaCaptured(object? sender, CommunityToolkit.Maui.Core.MediaCapturedEventArgs e)
@@ -53,13 +77,57 @@ public partial class PhotoAnalyzerViewPage : BasePage
         Dispatcher.Dispatch(() =>
         {
 #if ANDROID
-            thumbnail.Source = ImageSource.FromStream(() => File.OpenRead(savedPath));
+            var source = ImageSource.FromStream(() => File.OpenRead(savedPath));
 #else
-            thumbnail.Source = ImageSource.FromFile(savedPath);
+            var source = ImageSource.FromFile(savedPath);
 #endif
-            thumbnailBorder.IsVisible = true;
+            _photos.Add(new CapturedPhoto { FilePath = savedPath, Source = source });
             debugText.Text = $"Saved: {fileName}";
         });
+    }
+
+    private void OnPhotoSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_selectedPhoto is not null)
+            _selectedPhoto.IsSelected = false;
+
+        _selectedPhoto = e.CurrentSelection.FirstOrDefault() as CapturedPhoto;
+        if (_selectedPhoto is not null)
+            _selectedPhoto.IsSelected = true;
+
+        photoActions.IsVisible = _selectedPhoto is not null;
+    }
+
+    private void OnDeletePhoto(object? sender, EventArgs e)
+    {
+        if (_selectedPhoto is null) return;
+
+        var photo = _selectedPhoto;
+        _selectedPhoto = null;
+        photoActions.IsVisible = false;
+        photoStrip.SelectedItem = null;
+        _photos.Remove(photo);
+
+        var fileName = Path.GetFileName(photo.FilePath);
+        if (File.Exists(photo.FilePath))
+            File.Delete(photo.FilePath);
+
+#if ANDROID
+        DeleteFromMediaStore(fileName);
+#endif
+    }
+
+    private void OnConfirmPhoto(object? sender, EventArgs e)
+    {
+        if (_selectedPhoto is null) return;
+        fullPhoto.Source = _selectedPhoto.Source;
+        photoViewer.IsVisible = true;
+    }
+
+    private void OnPhotoViewerClose(object? sender, EventArgs e)
+    {
+        photoViewer.IsVisible = false;
+        fullPhoto.Source = null;
     }
 
 #if ANDROID
@@ -93,6 +161,17 @@ public partial class PhotoAnalyzerViewPage : BasePage
 
         using var inStream = File.OpenRead(filePath);
         inStream.CopyTo(outStream);
+    }
+
+    private static void DeleteFromMediaStore(string fileName)
+    {
+        var resolver = Android.App.Application.Context.ContentResolver;
+        if (resolver is null) return;
+
+        var uri = Android.Provider.MediaStore.Images.Media.ExternalContentUri;
+        resolver.Delete(uri,
+            Android.Provider.MediaStore.IMediaColumns.DisplayName + " = ?",
+            [fileName]);
     }
 #endif
 
@@ -159,8 +238,10 @@ public partial class PhotoAnalyzerViewPage : BasePage
 #endif
         captureButton.IsEnabled = false;
         captureButton.Opacity = 0.4;
-        thumbnail.Source = null;
-        thumbnailBorder.IsVisible = false;
+        _photos.Clear();
+        _selectedPhoto = null;
+        photoActions.IsVisible = false;
+        photoViewer.IsVisible = false;
         Camera.HandlerChanged -= OnCameraHandlerChanged;
         _cameraCts?.Cancel();
         _cameraCts?.Dispose();

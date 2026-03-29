@@ -11,7 +11,8 @@ using BilliardIQ.Mobile.Pages.Players;
 using BilliardIQ.Mobile.Services;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
-using Microsoft.Maui.Storage;
+
+
 
 namespace BilliardIQ.Mobile;
 
@@ -34,9 +35,9 @@ public static class MauiProgram
             });
 
         #if DEBUG
-		        builder.Logging.AddDebug();
-		        builder.Services.AddLogging(configure => configure.AddDebug());
-#endif
+            builder.Logging.AddDebug();
+            builder.Services.AddLogging(configure => configure.AddDebug());
+        #endif
         builder.Services.AddSingleton<PlayerRepository>();
         builder.Services.AddSingleton<GameRepository>();
         builder.Services.AddSingleton<ModalErrorHandler>();
@@ -48,10 +49,12 @@ public static class MauiProgram
         builder.Services.AddSingleton<GameListViewPage>();
         builder.Services.AddSingleton<NewGamePageModel>();
         builder.Services.AddSingleton<NewGameViewPage>();
-        builder.Services.AddSingleton<IFileSystem>(FileSystem.Current);
+        builder.Services.AddSingleton(FileSystem.Current);
         builder.Services.AddTransientWithShellRoute<NewGameViewPage, NewGamePageModel>("newgame");
         builder.Services.AddTransientWithShellRoute<PhotoAnalyzerViewPage, PhotoAnalyzerPageModel>("camera");
-        //DatabaseService.InitializeDatabaseAsync().GetAwaiter().GetResult();
+        if (AppSettings.DropDatabaseOnStartup)
+            DatabaseService.DropDatabaseAsync().GetAwaiter().GetResult();
+        DatabaseService.InitializeDatabaseAsync().GetAwaiter().GetResult();
 
         return builder.Build();
     }

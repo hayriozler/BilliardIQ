@@ -4,6 +4,7 @@
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
     xmlns:vm="clr-namespace:BilliardIQ.Mobile.PageModels.Analyzers"
+    xmlns:local="clr-namespace:BilliardIQ.Mobile.Pages.Analyzers"
     x:Class="BilliardIQ.Mobile.Pages.Analyzers.PhotoAnalyzerViewPage"
     x:DataType="vm:PhotoAnalyzerPageModel">
 
@@ -25,23 +26,6 @@
                       HorizontalOptions="Fill"
                       VerticalOptions="Fill"
                       InputTransparent="True"/>
-
-        <!-- Captured photo thumbnail (bottom-left) -->
-        <Border x:Name="thumbnailBorder"
-                IsVisible="False"
-                WidthRequest="88"
-                HeightRequest="88"
-                StrokeShape="RoundRectangle 10"
-                Stroke="White"
-                StrokeThickness="2"
-                HorizontalOptions="Start"
-                VerticalOptions="End"
-                Margin="16,0,0,96">
-            <Image x:Name="thumbnail"
-                   Aspect="AspectFill"
-                   WidthRequest="88"
-                   HeightRequest="88"/>
-        </Border>
 
         <!-- Debug label -->
         <Label x:Name="debugText"
@@ -140,6 +124,96 @@
 
         </Grid>
 
+        <!-- Photo strip + action buttons (bottom, leaves space for right controls) -->
+        <VerticalStackLayout VerticalOptions="End"
+                             HorizontalOptions="Fill"
+                             Margin="0,0,80,20"
+                             Spacing="0">
+
+            <!-- Delete / OK actions (visible when a photo is selected) -->
+            <Grid x:Name="photoActions"
+                  IsVisible="False"
+                  ColumnDefinitions="Auto,Auto"
+                  ColumnSpacing="6"
+                  Padding="8,4,8,6"
+                  HorizontalOptions="Start">
+                <Button Grid.Column="0"
+                        Text="🗑"
+                        BackgroundColor="#CC3333"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="30"
+                        WidthRequest="48"
+                        FontSize="14"
+                        Padding="0"
+                        HorizontalOptions="Center"
+                        Clicked="OnDeletePhoto"/>
+                <Button Grid.Column="1"
+                        Text="✔"
+                        BackgroundColor="#22AA44"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="30"
+                        WidthRequest="48"
+                        FontSize="14"
+                        Padding="0"
+                        HorizontalOptions="Center"
+                        Clicked="OnConfirmPhoto"/>
+            </Grid>
+
+            <!-- Horizontal thumbnail strip -->
+            <CollectionView x:Name="photoStrip"
+                            HeightRequest="96"
+                            SelectionMode="Single"
+                            SelectionChanged="OnPhotoSelected"
+                            Margin="8,0,0,0">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8"/>
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="local:CapturedPhoto">
+                        <Border WidthRequest="82"
+                                HeightRequest="82"
+                                StrokeShape="RoundRectangle 8"
+                                StrokeThickness="2"
+                                Stroke="White"
+                                BackgroundColor="Transparent">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border"
+                                             Binding="{Binding IsSelected}"
+                                             Value="True">
+                                    <Setter Property="Stroke" Value="LimeGreen"/>
+                                    <Setter Property="BackgroundColor" Value="#1AFFFFFF"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Image Source="{Binding Source}"
+                                   Aspect="AspectFill"
+                                   WidthRequest="82"
+                                   HeightRequest="82"/>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+        </VerticalStackLayout>
+
+        <!-- Full-screen photo viewer (overlays everything) -->
+        <Grid x:Name="photoViewer"
+              IsVisible="False"
+              BackgroundColor="Black">
+            <Image x:Name="fullPhoto"
+                   Aspect="AspectFit"
+                   HorizontalOptions="Fill"
+                   VerticalOptions="Fill"/>
+            <Button Text="✕"
+                    FontSize="28"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    HorizontalOptions="Start"
+                    VerticalOptions="Start"
+                    Margin="8,20,0,0"
+                    Clicked="OnPhotoViewerClose"/>
+        </Grid>
 
     </Grid>
 
