@@ -51,7 +51,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IFileSystem>(FileSystem.Current);
         builder.Services.AddTransientWithShellRoute<NewGameViewPage, NewGamePageModel>("newgame");
         builder.Services.AddTransientWithShellRoute<PhotoAnalyzerViewPage, PhotoAnalyzerPageModel>("camera");
-        DatabaseService.InitializeDatabaseAsync().GetAwaiter().GetResult();
+        //DatabaseService.InitializeDatabaseAsync().GetAwaiter().GetResult();
 
         return builder.Build();
     }
