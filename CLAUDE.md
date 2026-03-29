@@ -37,20 +37,24 @@ The app follows Clean Architecture with MVVM, structured inside `BilliardIQ.Mobi
 | Infrastructure | `Data/`, `Services/` | SQLite repositories, database service, error handling |
 
 ### MVVM Pattern
+
 - **PageModels** use CommunityToolkit.Mvvm: `[ObservableProperty]`, `[RelayCommand]`, `[NotifyDataErrorInfo]` with DataAnnotations for validation.
 - **Pages** receive their PageModel via constructor injection; `BasePage` sets `BindingContext = viewModel`.
 - All Pages and PageModels are registered as **Singletons** in `MauiProgram.cs`, except shell-routable pages which use `AddTransientWithShellRoute<TPage, TPageModel>("route")`.
 
 ### Data Access
+
 - `DatabaseService` manages SQLite connections (static utility, path from `Constants`).
 - `BaseRepo` provides abstract CRUD; `PlayerRepository` and `GameRepository` inherit it.
 - `GameRepository.DeleteGame` uses a transaction to cascade-delete `GameStats` and `GamePhotos` before deleting the `Games` row — SQLite foreign keys are not relied upon here.
 - Database is initialized synchronously at startup: `DatabaseService.InitializeDatabaseAsync().GetAwaiter().GetResult()` in `MauiProgram.cs`.
 
 ### Navigation
+
 Shell-based with three tab routes: `ondemand` (camera/analyzer), `gamelist`, `profile`. The `newgame` route is registered as a transient shell route and navigated to with query parameters (game ID).
 
 ### Error Handling
+
 `ModalErrorHandler` (implements `IErrorHandler`) shows alerts via `Application.Current.MainPage.DisplayAlert`. A semaphore prevents concurrent dialogs. Async fire-and-forget is handled through `TaskUtilities.FireAndForgetSafeAsync(IErrorHandler)`.
 
 ## Key Conventions

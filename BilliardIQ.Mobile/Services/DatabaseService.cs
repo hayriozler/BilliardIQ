@@ -49,7 +49,7 @@ internal static class DatabaseService
 
     internal static async Task InitializeDatabaseAsync()
     {
-        await DropDatabaseAsync();
+        
         var connection = GetNewDbConnection();
         await connection.OpenAsync();
         await connection.CloseAsync();
