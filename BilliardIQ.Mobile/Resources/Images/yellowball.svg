@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <radialGradient id="yball" cx="36%" cy="30%" r="62%">
+      <stop offset="0%" stop-color="#FFF0A0"/>
+      <stop offset="40%" stop-color="#F5C800"/>
+      <stop offset="80%" stop-color="#C89000"/>
+      <stop offset="100%" stop-color="#8A6000"/>
+    </radialGradient>
+    <radialGradient id="yshadow" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.2)"/>
+    </radialGradient>
+  </defs>
+  <!-- Drop shadow -->
+  <ellipse cx="62" cy="108" rx="42" ry="8" fill="rgba(0,0,0,0.18)"/>
+  <!-- Ball -->
+  <circle cx="60" cy="60" r="52" fill="url(#yball)"/>
+  <circle cx="60" cy="60" r="52" fill="url(#yshadow)"/>
+  <!-- Specular highlight -->
+  <ellipse cx="40" cy="38" rx="14" ry="9" fill="white" opacity="0.65"/>
+  <ellipse cx="36" cy="34" rx="6" ry="4" fill="white" opacity="0.85"/>
+</svg>

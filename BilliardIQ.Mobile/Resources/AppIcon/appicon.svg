@@ -1,4 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg width="456" height="456" viewBox="0 0 456 456" version="1.1" xmlns="http://www.w3.org/2000/svg">
-    <rect x="0" y="0" width="456" height="456" fill="#512BD4" />
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="456" height="456" viewBox="0 0 456 456" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark background -->
+  <rect width="456" height="456" fill="#0F1923"/>
+  <!-- Billiard table felt - subtle green center -->
+  <rect x="40" y="40" width="376" height="376" rx="32" fill="#1A2E1A"/>
+  <!-- Table border / cushion -->
+  <rect x="40" y="40" width="376" height="376" rx="32" fill="none" stroke="#4A3728" stroke-width="24"/>
+  <!-- Inner cushion highlight -->
+  <rect x="52" y="52" width="352" height="352" rx="24" fill="none" stroke="#6B5040" stroke-width="4"/>
 </svg>

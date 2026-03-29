@@ -39,8 +39,8 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     [ObservableProperty]
     private ObservableCollection<ImageData> _balls =
     [
-        new() { Name = "White", Image = ImageSource.FromFile("whiteball.png"), IsBallSelected = false },
-        new() { Name = "Yellow", Image = ImageSource.FromFile("yellowball.png"), IsBallSelected = false }
+        new() { Name = "White", Image = ImageSource.FromFile("whiteball.svg"), IsBallSelected = false },
+        new() { Name = "Yellow", Image = ImageSource.FromFile("yellowball.svg"), IsBallSelected = false }
     ];
 
     [RelayCommand]
