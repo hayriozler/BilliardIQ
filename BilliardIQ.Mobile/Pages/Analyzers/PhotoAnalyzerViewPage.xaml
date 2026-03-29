@@ -6,120 +6,130 @@
     xmlns:vm="clr-namespace:BilliardIQ.Mobile.PageModels.Analyzers"
     x:Class="BilliardIQ.Mobile.Pages.Analyzers.PhotoAnalyzerViewPage"
     x:DataType="vm:PhotoAnalyzerPageModel">
-    <Grid ColumnDefinitions="80, *, 120" RowDefinitions="*" BackgroundColor="Black">
 
-        <VerticalStackLayout Grid.Column="0"
-                         VerticalOptions="Start"
-                         HorizontalOptions="Center"
-                         Padding="0,20">
-            <Button Text="✕"
+    <Grid BackgroundColor="Black" IgnoreSafeArea="True">
+
+        <!-- Full-screen camera preview -->
+        <toolkit:CameraView x:Name="Camera"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill"
+                        SelectedCamera="{Binding SelectedCamera}"
+                        CameraFlashMode="{Binding FlashMode}">
+            <toolkit:CameraView.GestureRecognizers>
+                <PinchGestureRecognizer PinchUpdated="OnPinchUpdated"/>
+            </toolkit:CameraView.GestureRecognizers>
+        </toolkit:CameraView>
+
+        <!-- Rule-of-thirds grid overlay -->
+        <GraphicsView x:Name="gridOverlay"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill"
+                      InputTransparent="True"/>
+
+        <!-- Captured photo overlay -->
+        <Image x:Name="image"
+               HorizontalOptions="Fill"
+               VerticalOptions="Fill"
+               Aspect="AspectFill"
+               IsVisible="{Binding Source={x:Reference image}, Path=Source, Converter={toolkit:IsNotNullConverter}}" />
+
+        <!-- Debug label -->
+        <Label x:Name="debugText"
+               VerticalOptions="End"
+               HorizontalOptions="Center"
+               TextColor="White"
+               FontSize="11"
+               Margin="0,0,0,8" />
+
+        <!-- Close button — top left -->
+        <Button Text="✕"
                 FontSize="28"
                 BackgroundColor="Transparent"
                 TextColor="White"
+                HorizontalOptions="Start"
+                VerticalOptions="Start"
+                Margin="8,20,0,0"
                 Clicked="OnCloseClicked" />
-        </VerticalStackLayout>
 
-        <Grid Grid.Column="1" HorizontalOptions="Fill" VerticalOptions="Fill">
-            <toolkit:CameraView x:Name="Camera"
-                            HorizontalOptions="Fill"
-                            VerticalOptions="Fill"
-                            SelectedCamera="{Binding SelectedCamera}" />
-            <Image x:Name="image"
-                   HorizontalOptions="Fill"
-                   VerticalOptions="Fill"
-                   Aspect="AspectFit"
-                   IsVisible="{Binding Source={x:Reference image}, Path=Source, Converter={toolkit:IsNotNullConverter}}" />
-            <Label x:Name="debugText"
-                   VerticalOptions="End"
-                   HorizontalOptions="Center"
-                   TextColor="White"
-                   FontSize="11"
-                   Margin="0,0,0,8" />
-        </Grid>
+        <!-- Right-side controls overlay -->
+        <Grid RowDefinitions="Auto,Auto,*"
+              HorizontalOptions="End"
+              VerticalOptions="Fill"
+              WidthRequest="72"
+              Padding="0,20,8,24">
 
-        <Grid Grid.Column="2" RowDefinitions="Auto, *, Auto" Padding="10">
+            <!-- Flash toggle (top) -->
+            <Border Grid.Row="0"
+                    Padding="14,10"
+                    StrokeShape="RoundRectangle 20"
+                    Stroke="Transparent"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Start">
+                <Border.Triggers>
+                    <DataTrigger TargetType="Border" Binding="{Binding IsFlashOn}" Value="True">
+                        <Setter Property="BackgroundColor" Value="#60FFD700"/>
+                    </DataTrigger>
+                    <DataTrigger TargetType="Border" Binding="{Binding IsFlashOn}" Value="False">
+                        <Setter Property="BackgroundColor" Value="#40000000"/>
+                    </DataTrigger>
+                </Border.Triggers>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ToggleFlashCommand}"/>
+                </Border.GestureRecognizers>
+                <Label FontSize="22" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Label.Triggers>
+                        <DataTrigger TargetType="Label" Binding="{Binding IsFlashOn}" Value="True">
+                            <Setter Property="Text" Value="⚡"/>
+                            <Setter Property="Opacity" Value="1"/>
+                        </DataTrigger>
+                        <DataTrigger TargetType="Label" Binding="{Binding IsFlashOn}" Value="False">
+                            <Setter Property="Text" Value="⚡"/>
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </DataTrigger>
+                    </Label.Triggers>
+                </Label>
+            </Border>
 
-
+            <!-- Flip camera button (below flash) -->
             <Border Grid.Row="1"
-                WidthRequest="80" 
-                HeightRequest="80"
-                StrokeShape="RoundRectangle 40"
+                    Padding="14,10"
+                    Margin="0,8,0,0"
+                    StrokeShape="RoundRectangle 20"
+                    Stroke="Transparent"
+                    BackgroundColor="#40000000"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Start">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ToggleCameraCommand}"/>
+                </Border.GestureRecognizers>
+                <Label Text="🔄" FontSize="22" HorizontalOptions="Center" VerticalOptions="Center"/>
+            </Border>
+
+            <!-- Capture button (center) -->
+            <Border x:Name="captureButton"
+                Grid.Row="2"
+                IsEnabled="False"
+                Opacity="0.4"
+                WidthRequest="70"
+                HeightRequest="70"
+                StrokeShape="RoundRectangle 35"
                 Stroke="White"
                 StrokeThickness="4"
                 BackgroundColor="Transparent"
                 HorizontalOptions="Center"
                 VerticalOptions="Center">
                 <Border.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnCaptureClicked"/>
+                    <TapGestureRecognizer Command="{Binding StartCaptureCommand}"/>
                 </Border.GestureRecognizers>
-
-                <Ellipse Fill="White" 
-                     WidthRequest="60" 
-                     HeightRequest="60" 
-                     HorizontalOptions="Center" 
+                <Ellipse Fill="White"
+                     WidthRequest="52"
+                     HeightRequest="52"
+                     HorizontalOptions="Center"
                      VerticalOptions="Center"/>
             </Border>
 
-            <VerticalStackLayout Grid.Row="2" VerticalOptions="End" Spacing="10" Padding="0,0,0,20">
-                <Border Padding="12,4" StrokeShape="RoundRectangle 15" HorizontalOptions="Center"
-                        BackgroundColor="{Binding IsBackCameraSelected, Converter={toolkit:IsNotNullConverter}}">
-                    <Border.Triggers>
-                        <DataTrigger TargetType="Border" Binding="{Binding IsBackCameraSelected}" Value="True">
-                            <Setter Property="BackgroundColor" Value="#40FFFFFF"/>
-                        </DataTrigger>
-                        <DataTrigger TargetType="Border" Binding="{Binding IsBackCameraSelected}" Value="False">
-                            <Setter Property="BackgroundColor" Value="Transparent"/>
-                        </DataTrigger>
-                    </Border.Triggers>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding SelectBackCameraCommand}"/>
-                    </Border.GestureRecognizers>
-                    <Label TextColor="White" FontSize="12" HorizontalOptions="Center">
-                        <Label.Triggers>
-                            <DataTrigger TargetType="Label" Binding="{Binding IsBackCameraSelected}" Value="True">
-                                <Setter Property="Text" Value="Back Camera"/>
-                                <Setter Property="FontAttributes" Value="Bold"/>
-                                <Setter Property="Opacity" Value="1"/>
-                            </DataTrigger>
-                            <DataTrigger TargetType="Label" Binding="{Binding IsBackCameraSelected}" Value="False">
-                                <Setter Property="Text" Value="Back Camera"/>
-                                <Setter Property="FontAttributes" Value="None"/>
-                                <Setter Property="Opacity" Value="0.5"/>
-                            </DataTrigger>
-                        </Label.Triggers>
-                    </Label>
-                </Border>
-                <Border Padding="12,4" StrokeShape="RoundRectangle 15" HorizontalOptions="Center"
-                        BackgroundColor="Transparent">
-                    <Border.Triggers>
-                        <DataTrigger TargetType="Border" Binding="{Binding IsBackCameraSelected}" Value="False">
-                            <Setter Property="BackgroundColor" Value="#40FFFFFF"/>
-                        </DataTrigger>
-                        <DataTrigger TargetType="Border" Binding="{Binding IsBackCameraSelected}" Value="True">
-                            <Setter Property="BackgroundColor" Value="Transparent"/>
-                        </DataTrigger>
-                    </Border.Triggers>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding SelectFrontCameraCommand}"/>
-                    </Border.GestureRecognizers>
-                    <Label TextColor="White" FontSize="12" HorizontalOptions="Center">
-                        <Label.Triggers>
-                            <DataTrigger TargetType="Label" Binding="{Binding IsBackCameraSelected}" Value="False">
-                                <Setter Property="Text" Value="Front Camera"/>
-                                <Setter Property="FontAttributes" Value="Bold"/>
-                                <Setter Property="Opacity" Value="1"/>
-                            </DataTrigger>
-                            <DataTrigger TargetType="Label" Binding="{Binding IsBackCameraSelected}" Value="True">
-                                <Setter Property="Text" Value="Front Camera"/>
-                                <Setter Property="FontAttributes" Value="None"/>
-                                <Setter Property="Opacity" Value="0.5"/>
-                            </DataTrigger>
-                        </Label.Triggers>
-                    </Label>
-                </Border>
-            </VerticalStackLayout>
-
         </Grid>
+
 
     </Grid>
 

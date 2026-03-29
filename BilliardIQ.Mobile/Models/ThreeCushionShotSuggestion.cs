@@ -8,7 +8,7 @@ public class ThreeCushionShotSuggestion
 
     public SpinType Spin { get; set; }
 
-    public List<CushionType> CushionPath { get; set; }
+    public List<CushionType> CushionPath { get; set; } = [];
 
     public double SuccessProbability { get; set; }
 }

@@ -1,4 +1,4 @@
-﻿
+
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -30,12 +30,13 @@ public partial class PhotoAnalyzerPageModel : BasePageModel
     public partial Size SelectedResolution { get; set; }
 
     [ObservableProperty]
-    public partial CameraFlashMode FlashMode { get; set; }
+    [NotifyPropertyChangedFor(nameof(IsFlashOn))]
+    public partial CameraFlashMode FlashMode { get; set; } = CameraFlashMode.Off;
 
     [ObservableProperty]
     public partial bool IsBackCameraSelected { get; set; } = true;
 
-    public ICollection<CameraFlashMode> FlashModes { get; } = Enum.GetValues<CameraFlashMode>();
+    public bool IsFlashOn => FlashMode == CameraFlashMode.On;
 
     [RelayCommand]
     void SelectBackCamera()
@@ -50,4 +51,24 @@ public partial class PhotoAnalyzerPageModel : BasePageModel
         SelectedCamera = Cameras.FirstOrDefault(c => c.Position == CameraPosition.Front) ?? Cameras.FirstOrDefault();
         IsBackCameraSelected = false;
     }
+
+    [RelayCommand]
+    void ToggleCamera()
+    {
+        if (IsBackCameraSelected)
+            SelectFrontCamera();
+        else
+            SelectBackCamera();
+    }
+
+    [RelayCommand]
+    void ToggleFlash()
+    {
+        FlashMode = FlashMode == CameraFlashMode.Off ? CameraFlashMode.On : CameraFlashMode.Off;
+    }
+
+    public event EventHandler? CaptureRequested;
+
+    [RelayCommand]
+    void StartCapture() => CaptureRequested?.Invoke(this, EventArgs.Empty);
 }

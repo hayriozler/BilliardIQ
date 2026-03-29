@@ -35,7 +35,7 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 
-		<NoWarn>IL2026</NoWarn>
+		<NoWarn>IL2026;CS0618</NoWarn>
 		<LangVersion>preview</LangVersion>
 
 		<!-- Versions -->
@@ -71,12 +71,12 @@
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Maui.Camera" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.50" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.5" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
 		<PackageReference Include="CommunityToolkit.Maui" Version="14.0.1" />
 	</ItemGroup>
 

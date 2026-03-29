@@ -1,20 +1,41 @@
-using BilliardIQ.Mobile.Models;
 using BilliardIQ.Mobile.PageModels.Analyzers;
 
 namespace BilliardIQ.Mobile.Pages.Analyzers;
+
+file sealed class GridDrawable : IDrawable
+{
+    public void Draw(ICanvas canvas, RectF rect)
+    {
+        canvas.StrokeColor = Color.FromRgba(255, 255, 255, 64);
+        canvas.StrokeSize = 1;
+
+        canvas.DrawLine(rect.Width / 3, 0, rect.Width / 3, rect.Height);
+        canvas.DrawLine(rect.Width * 2 / 3, 0, rect.Width * 2 / 3, rect.Height);
+        canvas.DrawLine(0, rect.Height / 3, rect.Width, rect.Height / 3);
+        canvas.DrawLine(0, rect.Height * 2 / 3, rect.Width, rect.Height * 2 / 3);
+    }
+}
+
 public partial class PhotoAnalyzerViewPage : BasePage
 {
     private CancellationTokenSource? _cameraCts;
-
+    private double _zoomAtPinchStart = 1.0;
     private readonly string _photosFolder;
+    private readonly PhotoAnalyzerPageModel _pageModel;
 
     public PhotoAnalyzerViewPage(PhotoAnalyzerPageModel analyzerPageModel,
         IFileSystem fileSystem) : base(analyzerPageModel)
     {
+        _pageModel = analyzerPageModel;
+        Padding = 0;
+        Shell.SetNavBarIsVisible(this, false);
+        Shell.SetTabBarIsVisible(this, false);
         InitializeComponent();
+        gridOverlay.Drawable = new GridDrawable();
         _photosFolder = Path.Combine(fileSystem.AppDataDirectory, "Photos");
         Directory.CreateDirectory(_photosFolder);
         Camera.MediaCaptured += OnMediaCaptured;
+        _pageModel.CaptureRequested += OnCaptureRequested;
     }
 
     private void OnMediaCaptured(object? sender, CommunityToolkit.Maui.Core.MediaCapturedEventArgs e)
@@ -35,10 +56,30 @@ public partial class PhotoAnalyzerViewPage : BasePage
             debugText.Text = $"Saved: {fileName}";
         });
     }
-    private async void OnCaptureClicked(object? sender, EventArgs e)
+
+    private async void OnCaptureRequested(object? sender, EventArgs e)
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await Camera.CaptureImage(cts.Token);
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            await Camera.CaptureImage(cts.Token);
+        }
+        catch (Exception ex)
+        {
+            Dispatcher.Dispatch(() => debugText.Text = $"Capture failed: {ex.Message}");
+        }
+    }
+
+    private void OnPinchUpdated(object? sender, PinchGestureUpdatedEventArgs e)
+    {
+        if (e.Status == GestureStatus.Started)
+            _zoomAtPinchStart = Camera.ZoomFactor;
+
+        if (e.Status == GestureStatus.Running)
+        {
+            var newZoom = _zoomAtPinchStart * e.Scale;
+            Camera.ZoomFactor = (float)Math.Max(1.0, Math.Min(8.0, newZoom));
+        }
     }
 
     private async void OnCloseClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync("..");
@@ -66,33 +107,23 @@ public partial class PhotoAnalyzerViewPage : BasePage
     {
         _cameraCts = new CancellationTokenSource();
         Camera.StartCameraPreview(_cameraCts.Token);
+        captureButton.IsEnabled = true;
+        captureButton.Opacity = 1;
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+#if ANDROID
+        ((Android.App.Activity)Microsoft.Maui.ApplicationModel.Platform.CurrentActivity!)
+            .RequestedOrientation = Android.Content.PM.ScreenOrientation.Unspecified;
+#endif
+        captureButton.IsEnabled = false;
+        captureButton.Opacity = 0.4;
         Camera.HandlerChanged -= OnCameraHandlerChanged;
         _cameraCts?.Cancel();
         _cameraCts?.Dispose();
         _cameraCts = null;
         Camera.StopCameraPreview();
     }
-
-    //private async Task Capture()
-    //{
-    //    try
-    //    {
-    //        var captureImageCTS = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-    //        var stream = await camera.CaptureImage(captureImageCTS.Token);
-    //        if (stream is not null)
-    //        {
-    //            await stream.DisposeAsync();
-    //            await Shell.Current.DisplayAlertAsync("Başarılı", "Fotoğraf simülatörde yakalandı!", "Tamam");
-    //        }
-    //    }
-    //    catch (Exception ex)
-    //    {
-
-    //    }
-    //}
 }
