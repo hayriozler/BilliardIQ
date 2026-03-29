@@ -43,19 +43,58 @@ public partial class PhotoAnalyzerViewPage : BasePage
         var fileName = $"billiardiq_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
         var savedPath = Path.Combine(_photosFolder, fileName);
 
-        using var localFileStream = File.Create(savedPath);
-        e.Media.CopyTo(localFileStream);
+        using (var localFileStream = File.Create(savedPath))
+            e.Media.CopyTo(localFileStream);
+
+#if ANDROID
+        SaveToMediaStore(savedPath, fileName);
+#endif
 
         Dispatcher.Dispatch(() =>
         {
 #if ANDROID
-            image.Source = ImageSource.FromStream(() => File.OpenRead(savedPath));
+            thumbnail.Source = ImageSource.FromStream(() => File.OpenRead(savedPath));
 #else
-            image.Source = ImageSource.FromFile(savedPath);
+            thumbnail.Source = ImageSource.FromFile(savedPath);
 #endif
+            thumbnailBorder.IsVisible = true;
             debugText.Text = $"Saved: {fileName}";
         });
     }
+
+#if ANDROID
+    private static void SaveToMediaStore(string filePath, string fileName)
+    {
+        var resolver = Android.App.Application.Context.ContentResolver;
+        if (resolver is null) return;
+
+        var values = new Android.Content.ContentValues();
+        values.Put(Android.Provider.MediaStore.IMediaColumns.DisplayName, fileName);
+        values.Put(Android.Provider.MediaStore.IMediaColumns.MimeType, "image/jpeg");
+
+        if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Q)
+        {
+            values.Put(Android.Provider.MediaStore.IMediaColumns.RelativePath, "Pictures/BilliardIQ");
+        }
+        else
+        {
+            var picturesPath = Android.OS.Environment.GetExternalStoragePublicDirectory(
+                Android.OS.Environment.DirectoryPictures)!.AbsolutePath;
+            var destDir = Path.Combine(picturesPath, "BilliardIQ");
+            Directory.CreateDirectory(destDir);
+            values.Put(Android.Provider.MediaStore.IMediaColumns.Data, Path.Combine(destDir, fileName));
+        }
+
+        var uri = resolver.Insert(Android.Provider.MediaStore.Images.Media.ExternalContentUri, values);
+        if (uri is null) return;
+
+        using var outStream = resolver.OpenOutputStream(uri);
+        if (outStream is null) return;
+
+        using var inStream = File.OpenRead(filePath);
+        inStream.CopyTo(outStream);
+    }
+#endif
 
     private async void OnCaptureRequested(object? sender, EventArgs e)
     {
@@ -120,6 +159,8 @@ public partial class PhotoAnalyzerViewPage : BasePage
 #endif
         captureButton.IsEnabled = false;
         captureButton.Opacity = 0.4;
+        thumbnail.Source = null;
+        thumbnailBorder.IsVisible = false;
         Camera.HandlerChanged -= OnCameraHandlerChanged;
         _cameraCts?.Cancel();
         _cameraCts?.Dispose();

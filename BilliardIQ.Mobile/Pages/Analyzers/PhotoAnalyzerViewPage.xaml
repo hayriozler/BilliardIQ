@@ -7,7 +7,7 @@
     x:Class="BilliardIQ.Mobile.Pages.Analyzers.PhotoAnalyzerViewPage"
     x:DataType="vm:PhotoAnalyzerPageModel">
 
-    <Grid BackgroundColor="Black" IgnoreSafeArea="True">
+    <Grid BackgroundColor="Black">
 
         <!-- Full-screen camera preview -->
         <toolkit:CameraView x:Name="Camera"
@@ -26,12 +26,22 @@
                       VerticalOptions="Fill"
                       InputTransparent="True"/>
 
-        <!-- Captured photo overlay -->
-        <Image x:Name="image"
-               HorizontalOptions="Fill"
-               VerticalOptions="Fill"
-               Aspect="AspectFill"
-               IsVisible="{Binding Source={x:Reference image}, Path=Source, Converter={toolkit:IsNotNullConverter}}" />
+        <!-- Captured photo thumbnail (bottom-left) -->
+        <Border x:Name="thumbnailBorder"
+                IsVisible="False"
+                WidthRequest="88"
+                HeightRequest="88"
+                StrokeShape="RoundRectangle 10"
+                Stroke="White"
+                StrokeThickness="2"
+                HorizontalOptions="Start"
+                VerticalOptions="End"
+                Margin="16,0,0,96">
+            <Image x:Name="thumbnail"
+                   Aspect="AspectFill"
+                   WidthRequest="88"
+                   HeightRequest="88"/>
+        </Border>
 
         <!-- Debug label -->
         <Label x:Name="debugText"
