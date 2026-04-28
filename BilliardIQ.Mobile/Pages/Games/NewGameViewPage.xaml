@@ -9,7 +9,7 @@
     x:DataType="pagemodels:NewGamePageModel"
     x:Class="BilliardIQ.Mobile.Pages.Games.NewGameViewPage"
     x:Name="NewGame"
-    Title="Add New Game">
+    Title="{Binding PageTitle}">
 
     <basePages:BasePage.Behaviors>
         <toolkit:EventToCommandBehavior
@@ -19,83 +19,185 @@
             Command="{Binding AppearingCommand}" />
     </basePages:BasePage.Behaviors>
 
-    <VerticalStackLayout Padding="15" Spacing="10">
+    <Grid>
+    <ScrollView>
+        <VerticalStackLayout Padding="15" Spacing="10">
 
-        <!-- Opponent Name -->
-        <Entry Text="{Binding OpponentName}" Placeholder="Enter Opponent Name" />
-        <Label Text="{Binding OpponentNameError}"
-               TextColor="Red"
-               IsVisible="{Binding HasOpponentNameError}"
-               FontSize="12"
-               Margin="4,-6,0,0" />
+            <!-- Opponent Name -->
+            <Entry Text="{Binding OpponentName}" Placeholder="{Binding L[NewGame_OpponentName]}" />
+            <Label Text="{Binding OpponentNameError}" TextColor="Red"
+                   IsVisible="{Binding HasOpponentNameError}" FontSize="12" Margin="4,-6,0,0" />
 
-        <!-- Location -->
-        <Entry Text="{Binding Location}" Placeholder="Enter Location" />
-        <Label Text="{Binding LocationError}"
-               TextColor="Red"
-               IsVisible="{Binding HasLocationError}"
-               FontSize="12"
-               Margin="4,-6,0,0" />
+            <!-- Location (optional) -->
+            <Entry Text="{Binding Location}" Placeholder="{Binding L[NewGame_Location]}" />
+            <Label Text="{Binding LocationError}" TextColor="Red"
+                   IsVisible="{Binding HasLocationError}" FontSize="12" Margin="4,-6,0,0" />
 
-        <!-- Date -->
-        <DatePicker Date="{Binding Date}"
-                    MinimumDate="{Binding MinimumDate}"
-                    MaximumDate="{Binding MaximumDate}"
-                    Format="dd.MM.yyyy" />
+            <!-- Recent location chips -->
+            <FlexLayout IsVisible="{Binding HasRecentLocations}"
+                        Wrap="Wrap" Direction="Row" JustifyContent="Start"
+                        Margin="0,2,0,0">
+                <BindableLayout.ItemsSource>
+                    <Binding Path="RecentLocations"/>
+                </BindableLayout.ItemsSource>
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <Border Padding="10,5"
+                                Margin="0,3,6,3"
+                                BackgroundColor="{StaticResource Secondary}"
+                                StrokeThickness="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16"/>
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectLocationCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="{Binding .}" FontSize="13" TextColor="{StaticResource Primary}" />
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
 
-        <!-- Score -->
-        <Label Text="Score" FontAttributes="Bold" />
-        <Grid ColumnDefinitions="*, Auto, *" ColumnSpacing="10">
-            <VerticalStackLayout Grid.Column="0">
-                <Label Text="My Score" HorizontalOptions="Center" FontSize="12" />
-                <Entry Text="{Binding PlayerScore}"
-                       Keyboard="Numeric"
-                       HorizontalTextAlignment="Center" />
-            </VerticalStackLayout>
-            <Label Grid.Column="1" Text="–" FontSize="24" VerticalOptions="End" HorizontalOptions="Center" Margin="0,0,0,8" />
-            <VerticalStackLayout Grid.Column="2">
-                <Label Text="Opponent Score" HorizontalOptions="Center" FontSize="12" />
-                <Entry Text="{Binding OpponentScore}"
-                       Keyboard="Numeric"
-                       HorizontalTextAlignment="Center" />
-            </VerticalStackLayout>
-        </Grid>
+            <!-- Date -->
+            <DatePicker Date="{Binding Date}"
+                        MinimumDate="{Binding MinimumDate}"
+                        MaximumDate="{Binding MaximumDate}"
+                        Format="dd.MM.yyyy" />
 
-        <!-- Ball Selection -->
-        <Label Text="Select Ball" FontAttributes="Bold" />
-        <CollectionView ItemsSource="{Binding Balls}"
-                SelectionMode="Single"
-                SelectedItem="{Binding Ball}"
-                HeightRequest="100">
-            <CollectionView.ItemsLayout>
-                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="20"/>
-            </CollectionView.ItemsLayout>
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="images:ImageData">
-                    <Border Padding="8" StrokeThickness="2">
-                        <Border.Triggers>
-                            <DataTrigger TargetType="Border"
-                                 Binding="{Binding IsBallSelected}"
-                                 Value="True">
-                                <Setter Property="Stroke" Value="Green"/>
-                                <Setter Property="BackgroundColor" Value="#E8F5E9"/>
-                            </DataTrigger>
-                        </Border.Triggers>
-                        <Image Source="{Binding Image}" WidthRequest="70" HeightRequest="70"/>
-                    </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-        <Label Text="{Binding BallError}"
-               TextColor="Red"
-               IsVisible="{Binding HasBallError}"
-               FontSize="12"
-               Margin="4,-6,0,0" />
+            <!-- Score -->
+            <Label Text="{Binding L[NewGame_Score]}" FontAttributes="Bold" />
+            <Grid ColumnDefinitions="*, Auto, *" ColumnSpacing="10">
+                <VerticalStackLayout Grid.Column="0">
+                    <Label Text="{Binding L[NewGame_MyScore]}" HorizontalOptions="Center" FontSize="12" />
+                    <Entry Text="{Binding PlayerScore}" Keyboard="Numeric" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+                <Label Grid.Column="1" Text="–" FontSize="24" VerticalOptions="End"
+                       HorizontalOptions="Center" Margin="0,0,0,8" />
+                <VerticalStackLayout Grid.Column="2">
+                    <Label Text="{Binding L[NewGame_OpponentScore]}" HorizontalOptions="Center" FontSize="12" />
+                    <Entry Text="{Binding OpponentScore}" Keyboard="Numeric" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Grid>
 
-        <Button Text="{Binding ButtonText}"
-                Command="{Binding SaveCommand}"
-                Style="{StaticResource PlayerSaveButtonStyle}" />
+            <!-- Score + Innings row -->
+            <Grid ColumnDefinitions="*, Auto, *" ColumnSpacing="12">
+                <VerticalStackLayout Grid.Column="0">
+                    <Label Text="{Binding L[NewGame_HighestRun]}" FontSize="13" TextColor="Gray"/>
+                    <Entry Text="{Binding HighestRun}" Keyboard="Numeric"
+                           HorizontalTextAlignment="Center" Placeholder="0"/>
+                </VerticalStackLayout>
+                <BoxView Grid.Column="1" WidthRequest="1" BackgroundColor="LightGray"
+                         VerticalOptions="Fill" Margin="0,8"/>
+                <VerticalStackLayout Grid.Column="2">
+                    <Label Text="{Binding L[NewGame_Innings]}" FontSize="13" TextColor="Gray"/>
+                    <Entry Text="{Binding Innings}" Keyboard="Numeric"
+                           HorizontalTextAlignment="Center" Placeholder="1"/>
+                </VerticalStackLayout>
+            </Grid>
 
-    </VerticalStackLayout>
+            <!-- Ball Selection -->
+            <Label Text="{Binding L[NewGame_SelectBall]}" FontAttributes="Bold" />
+            <CollectionView ItemsSource="{Binding Balls}"
+                    SelectionMode="Single"
+                    SelectedItem="{Binding Ball}"
+                    HeightRequest="100">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="20"/>
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="images:ImageData">
+                        <Border Padding="8" StrokeThickness="2">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsBallSelected}" Value="True">
+                                    <Setter Property="Stroke" Value="Green"/>
+                                    <Setter Property="BackgroundColor" Value="#E8F5E9"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Image Source="{Binding Image}" WidthRequest="70" HeightRequest="70"/>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+            <Label Text="{Binding BallError}" TextColor="Red"
+                   IsVisible="{Binding HasBallError}" FontSize="12" Margin="4,-6,0,0" />
 
+            <!-- Notes -->
+            <Label Text="{Binding L[NewGame_Notes]}" FontAttributes="Bold" />
+            <Editor Text="{Binding Notes}" Placeholder="{Binding L[NewGame_NotesPlaceholder]}"
+                    AutoSize="TextChanges" MinimumHeightRequest="80" />
+
+            <!-- Scoreboard Photo -->
+            <Label Text="{Binding L[NewGame_ScoreboardPhoto]}" FontAttributes="Bold" />
+            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="8">
+                <!-- Camera icon button -->
+                <Button Grid.Column="0"
+                        ImageSource="{StaticResource IconCameraAdd}"
+                        Command="{Binding TakeScoreboardPhotoCommand}"
+                        BackgroundColor="{StaticResource Primary}"
+                        CornerRadius="30"
+                        HeightRequest="56"
+                        WidthRequest="56"
+                        Padding="0" />
+                <!-- Remove button (visible only when photo exists) -->
+                <Button Grid.Column="2"
+                        Text="{Binding L[NewGame_Remove]}"
+                        Command="{Binding RemoveScoreboardPhotoCommand}"
+                        IsVisible="{Binding HasScoreboardPhoto}"
+                        BackgroundColor="Red"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="56" />
+            </Grid>
+            <Image Source="{Binding ScoreboardPhotoSource}"
+                   IsVisible="{Binding HasScoreboardPhoto}"
+                   HeightRequest="200"
+                   Aspect="AspectFit"
+                   Margin="0,5,0,0" />
+
+            <!-- OCR result summary -->
+            <Border IsVisible="{Binding HasOcrStatus}"
+                    BackgroundColor="#1E3A5F"
+                    StrokeThickness="0"
+                    Padding="12,8">
+                <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
+                <Label Text="{Binding OcrStatusText}"
+                       TextColor="White"
+                       FontSize="13"
+                       HorizontalOptions="Center" />
+            </Border>
+
+            <!-- Save button (new game) -->
+            <Button Text="{Binding L[Action_Save]}"
+                    ImageSource="{StaticResource IconSave}"
+                    ContentLayout="Left,10"
+                    Command="{Binding SaveCommand}"
+                    Style="{StaticResource PlayerSaveButtonStyle}"
+                    IsVisible="{Binding IsNewGame}" />
+
+            <!-- Update button (existing game) -->
+            <Button Text="{Binding L[Action_Update]}"
+                    ImageSource="{StaticResource IconEdit}"
+                    ContentLayout="Left,10"
+                    Command="{Binding SaveCommand}"
+                    Style="{StaticResource PlayerSaveButtonStyle}"
+                    IsVisible="{Binding IsExistingGame}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+    <!-- OCR loading overlay -->
+    <Grid IsVisible="{Binding IsOcrRunning}"
+          BackgroundColor="#80000000">
+        <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="16">
+            <ActivityIndicator IsRunning="{Binding IsOcrRunning}"
+                               Color="White"
+                               WidthRequest="48" HeightRequest="48" />
+            <Label Text="{Binding L[Ocr_Reading]}" TextColor="White" FontSize="16"
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
+    </Grid>
+
+    </Grid>
 </basePages:BasePage>

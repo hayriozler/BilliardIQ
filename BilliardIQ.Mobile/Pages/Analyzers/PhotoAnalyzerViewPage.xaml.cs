@@ -23,20 +23,6 @@ public sealed class CapturedPhoto : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 }
 
-file sealed class GridDrawable : IDrawable
-{
-    public void Draw(ICanvas canvas, RectF rect)
-    {
-        canvas.StrokeColor = Color.FromRgba(255, 255, 255, 64);
-        canvas.StrokeSize = 1;
-
-        canvas.DrawLine(rect.Width / 3, 0, rect.Width / 3, rect.Height);
-        canvas.DrawLine(rect.Width * 2 / 3, 0, rect.Width * 2 / 3, rect.Height);
-        canvas.DrawLine(0, rect.Height / 3, rect.Width, rect.Height / 3);
-        canvas.DrawLine(0, rect.Height * 2 / 3, rect.Width, rect.Height * 2 / 3);
-    }
-}
-
 public partial class PhotoAnalyzerViewPage : BasePage
 {
     private CancellationTokenSource? _cameraCts;
@@ -54,7 +40,6 @@ public partial class PhotoAnalyzerViewPage : BasePage
         Shell.SetNavBarIsVisible(this, false);
         Shell.SetTabBarIsVisible(this, false);
         InitializeComponent();
-        gridOverlay.Drawable = new GridDrawable();
         _photosFolder = Path.Combine(fileSystem.AppDataDirectory, "BilliardIQ", "Photos");
         Directory.CreateDirectory(_photosFolder);
         Camera.MediaCaptured += OnMediaCaptured;
@@ -81,8 +66,12 @@ public partial class PhotoAnalyzerViewPage : BasePage
 #else
             var source = ImageSource.FromFile(savedPath);
 #endif
-            _photos.Add(new CapturedPhoto { FilePath = savedPath, Source = source });
-            debugText.Text = $"Saved: {fileName}";
+            var photo = new CapturedPhoto { FilePath = savedPath, Source = source };
+            _photos.Add(photo);
+
+            // Show captured photo full screen immediately
+            fullPhoto.Source = photo.Source;
+            photoViewer.IsVisible = true;
         });
     }
 
@@ -108,20 +97,12 @@ public partial class PhotoAnalyzerViewPage : BasePage
         photoStrip.SelectedItem = null;
         _photos.Remove(photo);
 
-        var fileName = Path.GetFileName(photo.FilePath);
         if (File.Exists(photo.FilePath))
             File.Delete(photo.FilePath);
 
 #if ANDROID
-        DeleteFromMediaStore(fileName);
+        DeleteFromMediaStore(Path.GetFileName(photo.FilePath));
 #endif
-    }
-
-    private void OnConfirmPhoto(object? sender, EventArgs e)
-    {
-        if (_selectedPhoto is null) return;
-        fullPhoto.Source = _selectedPhoto.Source;
-        photoViewer.IsVisible = true;
     }
 
     private void OnPhotoViewerClose(object? sender, EventArgs e)
@@ -130,50 +111,66 @@ public partial class PhotoAnalyzerViewPage : BasePage
         fullPhoto.Source = null;
     }
 
-#if ANDROID
-    private static void SaveToMediaStore(string filePath, string fileName)
+    // ── Gestures ──────────────────────────────────────────────────────────────
+
+    private void OnPinchUpdated(object? sender, PinchGestureUpdatedEventArgs e)
     {
-        var resolver = Android.App.Application.Context.ContentResolver;
-        if (resolver is null) return;
+        if (e.Status == GestureStatus.Started)
+            _zoomAtPinchStart = Camera.ZoomFactor;
 
-        var values = new Android.Content.ContentValues();
-        values.Put(Android.Provider.MediaStore.IMediaColumns.DisplayName, fileName);
-        values.Put(Android.Provider.MediaStore.IMediaColumns.MimeType, "image/jpeg");
-
-        if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Q)
-        {
-            values.Put(Android.Provider.MediaStore.IMediaColumns.RelativePath, "Pictures/BilliardIQ");
-        }
-        else
-        {
-            var picturesPath = Android.OS.Environment.GetExternalStoragePublicDirectory(
-                Android.OS.Environment.DirectoryPictures)!.AbsolutePath;
-            var destDir = Path.Combine(picturesPath, "BilliardIQ");
-            Directory.CreateDirectory(destDir);
-            values.Put(Android.Provider.MediaStore.IMediaColumns.Data, Path.Combine(destDir, fileName));
-        }
-
-        var uri = resolver.Insert(Android.Provider.MediaStore.Images.Media.ExternalContentUri, values);
-        if (uri is null) return;
-
-        using var outStream = resolver.OpenOutputStream(uri);
-        if (outStream is null) return;
-
-        using var inStream = File.OpenRead(filePath);
-        inStream.CopyTo(outStream);
+        if (e.Status == GestureStatus.Running)
+            Camera.ZoomFactor = (float)Math.Clamp(_zoomAtPinchStart * e.Scale, 1.0, 8.0);
     }
 
-    private static void DeleteFromMediaStore(string fileName)
+    private async void OnCameraViewTapped(object? sender, TappedEventArgs e)
     {
-        var resolver = Android.App.Application.Context.ContentResolver;
-        if (resolver is null) return;
+        var pos = e.GetPosition(cameraOverlay);
+        if (pos is null) return;
 
-        var uri = Android.Provider.MediaStore.Images.Media.ExternalContentUri;
-        resolver.Delete(uri,
-            Android.Provider.MediaStore.IMediaColumns.DisplayName + " = ?",
-            [fileName]);
+        // Position focus indicator at tap point and animate
+        focusIndicator.TranslationX = pos.Value.X - cameraOverlay.Width / 2;
+        focusIndicator.TranslationY = pos.Value.Y - cameraOverlay.Height / 2;
+        focusIndicator.Opacity = 1;
+        focusIndicator.IsVisible = true;
+
+#if ANDROID
+        TryFocusAt((float)pos.Value.X, (float)pos.Value.Y);
+#endif
+
+        await focusIndicator.FadeTo(0, 900);
+        focusIndicator.IsVisible = false;
+    }
+
+#if ANDROID
+    // Dispatch a synthetic tap to the native CameraX PreviewView so that its
+    // built-in tap-to-focus handler fires at the requested coordinates.
+    private void TryFocusAt(float xDp, float yDp)
+    {
+        try
+        {
+            if (Camera.Handler?.PlatformView is not Android.Views.View nativeView) return;
+
+            var density = (float)DeviceDisplay.Current.MainDisplayInfo.Density;
+            var xPx = xDp * density;
+            var yPx = yDp * density;
+            var now = Java.Lang.JavaSystem.CurrentTimeMillis();
+
+            var down = Android.Views.MotionEvent.Obtain(
+                now, now, Android.Views.MotionEventActions.Down, xPx, yPx, 0);
+            var up = Android.Views.MotionEvent.Obtain(
+                now, now + 80, Android.Views.MotionEventActions.Up, xPx, yPx, 0);
+
+            nativeView.DispatchTouchEvent(down);
+            nativeView.DispatchTouchEvent(up);
+
+            down?.Recycle();
+            up?.Recycle();
+        }
+        catch { }
     }
 #endif
+
+    // ── Camera lifecycle ──────────────────────────────────────────────────────
 
     private async void OnCaptureRequested(object? sender, EventArgs e)
     {
@@ -182,29 +179,17 @@ public partial class PhotoAnalyzerViewPage : BasePage
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             await Camera.CaptureImage(cts.Token);
         }
-        catch (Exception ex)
-        {
-            Dispatcher.Dispatch(() => debugText.Text = $"Capture failed: {ex.Message}");
-        }
+        catch { }
     }
 
-    private void OnPinchUpdated(object? sender, PinchGestureUpdatedEventArgs e)
-    {
-        if (e.Status == GestureStatus.Started)
-            _zoomAtPinchStart = Camera.ZoomFactor;
-
-        if (e.Status == GestureStatus.Running)
-        {
-            var newZoom = _zoomAtPinchStart * e.Scale;
-            Camera.ZoomFactor = (float)Math.Max(1.0, Math.Min(8.0, newZoom));
-        }
-    }
-
-    private async void OnCloseClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync("..");
+    private async void OnCloseClicked(object? sender, EventArgs e) => await Navigation.PopModalAsync(animated: false);
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+#if ANDROID
+        SetFullScreen(true);
+#endif
         var status = await Permissions.RequestAsync<Permissions.Camera>();
         if (status != PermissionStatus.Granted) return;
 
@@ -233,6 +218,7 @@ public partial class PhotoAnalyzerViewPage : BasePage
     {
         base.OnDisappearing();
 #if ANDROID
+        SetFullScreen(false);
         ((Android.App.Activity)Microsoft.Maui.ApplicationModel.Platform.CurrentActivity!)
             .RequestedOrientation = Android.Content.PM.ScreenOrientation.Unspecified;
 #endif
@@ -248,4 +234,91 @@ public partial class PhotoAnalyzerViewPage : BasePage
         _cameraCts = null;
         Camera.StopCameraPreview();
     }
+
+#if ANDROID
+    private static void SetFullScreen(bool enable)
+    {
+        var window = ((Android.App.Activity)Microsoft.Maui.ApplicationModel.Platform.CurrentActivity!).Window!;
+        var contentView = window.DecorView.FindViewById(Android.Resource.Id.Content);
+        if (enable)
+        {
+            // Stop Android from adding status-bar/nav-bar insets to the content area
+            contentView?.SetFitsSystemWindows(false);
+#pragma warning disable CA1422
+            window.DecorView.SystemUiVisibility = (Android.Views.StatusBarVisibility)(
+                (int)Android.Views.SystemUiFlags.LayoutStable |
+                (int)Android.Views.SystemUiFlags.LayoutFullscreen |
+                (int)Android.Views.SystemUiFlags.LayoutHideNavigation |
+                (int)Android.Views.SystemUiFlags.Fullscreen |
+                (int)Android.Views.SystemUiFlags.HideNavigation |
+                (int)Android.Views.SystemUiFlags.ImmersiveSticky);
+#pragma warning restore CA1422
+            if (OperatingSystem.IsAndroidVersionAtLeast(30))
+            {
+                var controller = window.InsetsController;
+                if (controller is not null)
+                {
+                    controller.SystemBarsBehavior = (int)Android.Views.WindowInsetsControllerBehavior.ShowTransientBarsBySwipe;
+                    controller.Hide(Android.Views.WindowInsets.Type.SystemBars());
+                }
+            }
+        }
+        else
+        {
+            contentView?.SetFitsSystemWindows(true);
+#pragma warning disable CA1422
+            window.DecorView.SystemUiVisibility = Android.Views.StatusBarVisibility.Visible;
+#pragma warning restore CA1422
+            if (OperatingSystem.IsAndroidVersionAtLeast(30))
+                window.InsetsController?.Show(Android.Views.WindowInsets.Type.SystemBars());
+        }
+    }
+#endif
+
+#if ANDROID
+    private static void SaveToMediaStore(string filePath, string fileName)
+    {
+        var resolver = Android.App.Application.Context.ContentResolver;
+        if (resolver is null) return;
+
+        var values = new Android.Content.ContentValues();
+        values.Put(Android.Provider.MediaStore.IMediaColumns.DisplayName, fileName);
+        values.Put(Android.Provider.MediaStore.IMediaColumns.MimeType, "image/jpeg");
+
+        if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Q)
+        {
+#pragma warning disable CA1416
+            values.Put(Android.Provider.MediaStore.IMediaColumns.RelativePath, "Pictures/BilliardIQ");
+#pragma warning restore CA1416
+        }
+        else
+        {
+            var picturesPath = Android.OS.Environment.GetExternalStoragePublicDirectory(
+                Android.OS.Environment.DirectoryPictures)!.AbsolutePath;
+            var destDir = Path.Combine(picturesPath, "BilliardIQ");
+            Directory.CreateDirectory(destDir);
+            values.Put(Android.Provider.MediaStore.IMediaColumns.Data, Path.Combine(destDir, fileName));
+        }
+
+        var uri = resolver.Insert(Android.Provider.MediaStore.Images.Media.ExternalContentUri!, values);
+        if (uri is null) return;
+
+        using var outStream = resolver.OpenOutputStream(uri);
+        if (outStream is null) return;
+
+        using var inStream = File.OpenRead(filePath);
+        inStream.CopyTo(outStream);
+    }
+
+    private static void DeleteFromMediaStore(string fileName)
+    {
+        var resolver = Android.App.Application.Context.ContentResolver;
+        if (resolver is null) return;
+
+        resolver.Delete(
+            Android.Provider.MediaStore.Images.Media.ExternalContentUri!,
+            Android.Provider.MediaStore.IMediaColumns.DisplayName + " = ?",
+            [fileName]);
+    }
+#endif
 }

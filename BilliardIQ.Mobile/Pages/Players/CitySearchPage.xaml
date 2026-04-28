@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:pagemodels="clr-namespace:BilliardIQ.Mobile.PageModels.PlayerPageModels"
+    xmlns:models="clr-namespace:BilliardIQ.Mobile.Models"
+    x:DataType="pagemodels:CitySearchPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Players.CitySearchPage"
+    x:Name="CitySearchPageRoot"
+    Title="{Binding L[Profile_SelectCity]}">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            EventName="Appearing"
+            BindingContext="{Binding Source={x:Reference CitySearchPageRoot}, Path=BindingContext}"
+            Command="{Binding AppearingCommand}" />
+    </ContentPage.Behaviors>
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="{Binding L[Action_Cancel]}"
+                     Command="{Binding CancelCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto, *" RowSpacing="0">
+
+        <!-- Search Bar -->
+        <SearchBar Grid.Row="0"
+                   Text="{Binding SearchText, Mode=TwoWay}"
+                   Placeholder="{Binding L[Search_Placeholder]}"
+                   Margin="8,8,8,4" />
+
+        <!-- City List -->
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding FilteredCities}"
+                        SelectionMode="None">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="0"/>
+            </CollectionView.ItemsLayout>
+            <CollectionView.EmptyView>
+                <Label Text="{Binding L[Search_NoResults]}"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"
+                       TextColor="Gray"
+                       Margin="0,40,0,0" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:CityItem">
+                    <Grid Padding="16,14" ColumnDefinitions="*, Auto">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectCityCommand}"
+                                CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+                        <Label Grid.Column="0"
+                               Text="{Binding Name}"
+                               FontSize="16"
+                               VerticalOptions="Center" />
+                        <BoxView Grid.Row="0" Grid.ColumnSpan="2"
+                                 HeightRequest="1"
+                                 BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+                                 VerticalOptions="End" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+
+</ContentPage>

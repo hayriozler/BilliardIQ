@@ -14,6 +14,24 @@ public class Player
 
     public Level Level { get; set; } = Level.Intermidiate;
 
+    [MaxLength(100)]
+    public string Country { get; set; } = string.Empty;
+
+    [MaxLength(100)]
+    public string City { get; set; } = string.Empty;
+
+    [MaxLength(200)]
+    public string? Club { get; set; }
+
+    [MaxLength(200)]
+    public string? Association { get; set; }
+
+    [MaxLength(200)]
+    public string Email { get; set; } = string.Empty;
+
+    [MaxLength(50)]
+    public string? Phone { get; set; }
+
     public IReadOnlyCollection<Game> Games { get; set; } = [];
 
     public PlayerStatistics Statistics { get; set; } = new();

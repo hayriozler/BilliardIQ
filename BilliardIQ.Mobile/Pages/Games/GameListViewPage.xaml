@@ -1,125 +1,130 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<basePages:BasePage 
+<basePages:BasePage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages" 
-    xmlns:pages="clr-namespace:BilliardIQ.Mobile.Pages.Games" 
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pages="clr-namespace:BilliardIQ.Mobile.Pages.Games"
     xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.GamePageModels"
     xmlns:models="clr-namespace:BilliardIQ.Mobile.Models"
     xmlns:controls="clr-namespace:BilliardIQ.Mobile.Pages.Controls"
     x:DataType="pageModels:GameListPageModel"
     x:Class="BilliardIQ.Mobile.Pages.Games.GameListViewPage"
     x:Name="GameList"
-    Title="Game List">
+    Title="BilliardIQ">
 
     <ContentPage.Behaviors>
         <toolkit:EventToCommandBehavior
             x:Name="AppearingBehavior"
             BindingContext="{Binding Source={x:Reference Name=GameList}, Path=BindingContext}"
-            EventName="Appearing"                
+            EventName="Appearing"
             Command="{Binding AppearingCommand}"
             CommandParameter="15"/>
     </ContentPage.Behaviors>
 
-    <Grid RowDefinitions="Auto, *, Auto, Auto" Padding="10" RowSpacing="10">
+    <Grid RowDefinitions="Auto, *, Auto" Padding="10" RowSpacing="8">
 
-        <!-- Başlık -->
-        <Label Text="Last 15 Games" FontAttributes="Bold" Grid.Row="0" />
+        <!-- Stats Card -->
+        <Border Grid.Row="0"
+                BackgroundColor="#1E3A5F"
+                StrokeThickness="0"
+                Padding="15,12">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="12"/>
+            </Border.StrokeShape>
+            <Grid ColumnDefinitions="*, *, *, *">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label Text="{Binding L[Stats_Matches]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center"/>
+                    <Label Text="{Binding Stats.TotalMatches}" FontSize="20" FontAttributes="Bold"
+                           TextColor="White" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                    <Label Text="{Binding L[Stats_Average]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center"/>
+                    <Label Text="{Binding Stats.Average, StringFormat='{0:F3}'}" FontSize="20" FontAttributes="Bold"
+                           TextColor="White" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                    <Label Text="{Binding L[Stats_BestAverage]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center"/>
+                    <Label Text="{Binding Stats.BestAverage, StringFormat='{0:F3}'}" FontSize="20" FontAttributes="Bold"
+                           TextColor="#FFD54F" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="3" Spacing="2">
+                    <Label Text="{Binding L[Stats_HighRun]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center"/>
+                    <Label Text="{Binding Stats.HighestRun}" FontSize="20" FontAttributes="Bold"
+                           TextColor="White" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
 
-        <!-- CollectionView -->
+        <!-- Game List -->
         <CollectionView x:Name="GamesCollectionView"
                         ItemsSource="{Binding Games}"
                         SelectionMode="None"
                         Grid.Row="1">
             <CollectionView.ItemsLayout>
-                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="8"/>
             </CollectionView.ItemsLayout>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Game">
                     <SwipeView>
                         <SwipeView.RightItems>
                             <SwipeItems>
-                                <SwipeItem 
-                                    Text="Delete"
+                                <SwipeItem
+                                    Text="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.L[GameList_Delete]}"
                                     BackgroundColor="Red"
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteCommand}"
                                     CommandParameter="{Binding .}" />
                             </SwipeItems>
                         </SwipeView.RightItems>
-                        <Border Stroke="LightGray"
-                                StrokeThickness="1"
-                                Padding="10"
-                                Margin="5">
+                        <Border Stroke="LightGray" StrokeThickness="1" Padding="10" Margin="2,0">
                             <Border.GestureRecognizers>
-                                <TapGestureRecognizer 
+                                <TapGestureRecognizer
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.NavigateToGameCommand}"
                                     CommandParameter="{Binding .}" />
                             </Border.GestureRecognizers>
-
-                            <!-- Visual Feedback -->
-                            <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup Name="CommonStates">
-                                    <VisualState Name="Normal">
-                                        <VisualState.Setters>
-                                            <Setter Property="BackgroundColor" Value="White"/>
-                                            <Setter Property="Opacity" Value="1"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                    <VisualState Name="Pressed">
-                                        <VisualState.Setters>
-                                            <Setter Property="BackgroundColor" Value="#E0E0E0"/>
-                                            <Setter Property="Opacity" Value="0.8"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                </VisualStateGroup>
-                            </VisualStateManager.VisualStateGroups>
-
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="10"/>
                             </Border.StrokeShape>
-
-                            <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto" RowSpacing="4">
+                            <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto" RowSpacing="3">
                                 <Label Grid.Row="0" Grid.Column="0"
-                                       Text="{Binding OpponentName}"
-                                       FontAttributes="Bold" />
-                                <Label Grid.Row="0" Grid.Column="1"
-                                       FontAttributes="Bold"
-                                       HorizontalOptions="End">
+                                       Text="{Binding OpponentName}" FontAttributes="Bold" />
+                                <Label Grid.Row="0" Grid.Column="1" FontAttributes="Bold" HorizontalOptions="End">
                                     <Label.FormattedText>
                                         <FormattedString>
-                                            <Span Text="{Binding PlayerScore}" TextColor="Green" FontAttributes="Bold" />
-                                            <Span Text=" – " />
-                                            <Span Text="{Binding OpponentScore}" TextColor="Red" FontAttributes="Bold" />
+                                            <Span Text="{Binding PlayerScore}" TextColor="Green" FontAttributes="Bold"/>
+                                            <Span Text=" – "/>
+                                            <Span Text="{Binding OpponentScore}" TextColor="Red" FontAttributes="Bold"/>
                                         </FormattedString>
                                     </Label.FormattedText>
                                 </Label>
                                 <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                       Text="{Binding Location}"
-                                       TextColor="Gray" FontSize="13" />
-                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Text="{Binding Location}" TextColor="Gray" FontSize="13" />
+                                <Label Grid.Row="2" Grid.Column="0"
                                        Text="{Binding Date, StringFormat='{0:dd.MM.yyyy}'}"
                                        TextColor="Gray" FontSize="12" />
+                                <Label Grid.Row="2" Grid.Column="1"
+                                       Text="{Binding HighestRun, StringFormat='Serie: {0}'}"
+                                       TextColor="Gray" FontSize="12" HorizontalOptions="End"/>
                             </Grid>
                         </Border>
                     </SwipeView>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-        <!-- New Game Button -->
-        <controls:NewGameButton
+
+        <!-- Bottom Action Buttons -->
+        <Grid Grid.Row="2" ColumnDefinitions="Auto, *" Padding="10,0">
+            <controls:NewPhotoButton
+                Grid.Column="0"
+                Command="{Binding NavigateToPhotoCommand}"
+                HorizontalOptions="Start"
+                Margin="0" />
+            <controls:NewGameButton
+                Grid.Column="1"
                 Command="{Binding NavigateToGameCommand}"
-                ToolTipProperties.Text="New Game"
-                SemanticProperties.Description="New Game"
-                Grid.Row="2" /> 
+                HorizontalOptions="End"
+                Margin="0" />
+        </Grid>
 
-
-        <!-- Full Games Button -->
-        <Button BackgroundColor="{StaticResource Primary}"                
-                Text="Full Games"
-                Command="{Binding AppearingCommand}"
-                CommandParameter="100000"
-                SemanticProperties.Description="Full Games"
-                Grid.Row="3" />
     </Grid>
 </basePages:BasePage>

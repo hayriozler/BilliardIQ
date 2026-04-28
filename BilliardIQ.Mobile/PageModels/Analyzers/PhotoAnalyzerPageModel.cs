@@ -30,13 +30,7 @@ public partial class PhotoAnalyzerPageModel : BasePageModel
     public partial Size SelectedResolution { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsFlashOn))]
-    public partial CameraFlashMode FlashMode { get; set; } = CameraFlashMode.Off;
-
-    [ObservableProperty]
     public partial bool IsBackCameraSelected { get; set; } = true;
-
-    public bool IsFlashOn => FlashMode == CameraFlashMode.On;
 
     [RelayCommand]
     void SelectBackCamera()
@@ -59,12 +53,6 @@ public partial class PhotoAnalyzerPageModel : BasePageModel
             SelectFrontCamera();
         else
             SelectBackCamera();
-    }
-
-    [RelayCommand]
-    void ToggleFlash()
-    {
-        FlashMode = FlashMode == CameraFlashMode.Off ? CameraFlashMode.On : CameraFlashMode.Off;
     }
 
     public event EventHandler? CaptureRequested;

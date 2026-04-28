@@ -10,209 +10,127 @@
 
     <Grid BackgroundColor="Black">
 
-        <!-- Full-screen camera preview -->
+        <!-- Full-screen camera preview (no gestures — handled by overlay) -->
         <toolkit:CameraView x:Name="Camera"
                         HorizontalOptions="Fill"
                         VerticalOptions="Fill"
-                        SelectedCamera="{Binding SelectedCamera}"
-                        CameraFlashMode="{Binding FlashMode}">
-            <toolkit:CameraView.GestureRecognizers>
+                        SelectedCamera="{Binding SelectedCamera}"/>
+
+        <!-- Transparent gesture overlay: pinch-to-zoom + tap-to-focus -->
+        <!-- #01000000 = nearly invisible but receives multi-touch on Android -->
+        <Grid x:Name="cameraOverlay"
+              HorizontalOptions="Fill"
+              VerticalOptions="Fill"
+              BackgroundColor="#01000000">
+            <Grid.GestureRecognizers>
                 <PinchGestureRecognizer PinchUpdated="OnPinchUpdated"/>
-            </toolkit:CameraView.GestureRecognizers>
-        </toolkit:CameraView>
+                <TapGestureRecognizer Tapped="OnCameraViewTapped"/>
+            </Grid.GestureRecognizers>
 
-        <!-- Rule-of-thirds grid overlay -->
-        <GraphicsView x:Name="gridOverlay"
-                      HorizontalOptions="Fill"
-                      VerticalOptions="Fill"
-                      InputTransparent="True"/>
-
-        <!-- Debug label -->
-        <Label x:Name="debugText"
-               VerticalOptions="End"
-               HorizontalOptions="Center"
-               TextColor="White"
-               FontSize="11"
-               Margin="0,0,0,8" />
+            <!-- Focus indicator (positioned via TranslationX/Y at tap point) -->
+            <Border x:Name="focusIndicator"
+                    IsVisible="False"
+                    WidthRequest="72"
+                    HeightRequest="72"
+                    StrokeShape="RoundRectangle 4"
+                    Stroke="White"
+                    StrokeThickness="2"
+                    BackgroundColor="Transparent"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"/>
+        </Grid>
 
         <!-- Close button — top left -->
         <Button Text="✕"
-                FontSize="28"
-                BackgroundColor="Transparent"
+                FontSize="22"
+                BackgroundColor="#60000000"
                 TextColor="White"
+                CornerRadius="24"
+                WidthRequest="48"
+                HeightRequest="48"
+                Padding="0"
                 HorizontalOptions="Start"
                 VerticalOptions="Start"
-                Margin="8,20,0,0"
-                Clicked="OnCloseClicked" />
+                Margin="12,48,0,0"
+                Clicked="OnCloseClicked"/>
 
-        <!-- Right-side controls overlay -->
-        <Grid RowDefinitions="Auto,Auto,*"
-              HorizontalOptions="End"
-              VerticalOptions="Fill"
-              WidthRequest="72"
-              Padding="0,20,8,24">
+        <!-- Bottom bar: photo strip + capture controls -->
+        <Grid VerticalOptions="End" HorizontalOptions="Fill">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>   <!-- delete action row -->
+                <RowDefinition Height="100"/>    <!-- photo strip -->
+                <RowDefinition Height="110"/>    <!-- capture controls -->
+            </Grid.RowDefinitions>
 
-            <!-- Flash toggle (top) -->
-            <Border Grid.Row="0"
-                    Padding="14,10"
-                    StrokeShape="RoundRectangle 20"
-                    Stroke="Transparent"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Start">
-                <Border.Triggers>
-                    <DataTrigger TargetType="Border" Binding="{Binding IsFlashOn}" Value="True">
-                        <Setter Property="BackgroundColor" Value="#60FFD700"/>
-                    </DataTrigger>
-                    <DataTrigger TargetType="Border" Binding="{Binding IsFlashOn}" Value="False">
-                        <Setter Property="BackgroundColor" Value="#40000000"/>
-                    </DataTrigger>
-                </Border.Triggers>
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding ToggleFlashCommand}"/>
-                </Border.GestureRecognizers>
-                <Label FontSize="22" HorizontalOptions="Center" VerticalOptions="Center">
-                    <Label.Triggers>
-                        <DataTrigger TargetType="Label" Binding="{Binding IsFlashOn}" Value="True">
-                            <Setter Property="Text" Value="⚡"/>
-                            <Setter Property="Opacity" Value="1"/>
-                        </DataTrigger>
-                        <DataTrigger TargetType="Label" Binding="{Binding IsFlashOn}" Value="False">
-                            <Setter Property="Text" Value="⚡"/>
-                            <Setter Property="Opacity" Value="0.45"/>
-                        </DataTrigger>
-                    </Label.Triggers>
-                </Label>
-            </Border>
+            <BoxView Grid.Row="1" BackgroundColor="#88000000"/>
+            <BoxView Grid.Row="2" BackgroundColor="#FF000000"/>
 
-            <!-- Flip camera button (below flash) -->
-            <Border Grid.Row="1"
-                    Padding="14,10"
-                    Margin="0,8,0,0"
-                    StrokeShape="RoundRectangle 20"
-                    Stroke="Transparent"
-                    BackgroundColor="#40000000"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Start">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding ToggleCameraCommand}"/>
-                </Border.GestureRecognizers>
-                <Label Text="🔄" FontSize="22" HorizontalOptions="Center" VerticalOptions="Center"/>
-            </Border>
-
-            <!-- Capture button (center) -->
-            <Border x:Name="captureButton"
-                Grid.Row="2"
-                IsEnabled="False"
-                Opacity="0.4"
-                WidthRequest="70"
-                HeightRequest="70"
-                StrokeShape="RoundRectangle 35"
-                Stroke="White"
-                StrokeThickness="4"
-                BackgroundColor="Transparent"
-                HorizontalOptions="Center"
-                VerticalOptions="Center">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding StartCaptureCommand}"/>
-                </Border.GestureRecognizers>
-                <Ellipse Fill="White"
-                     WidthRequest="52"
-                     HeightRequest="52"
-                     HorizontalOptions="Center"
-                     VerticalOptions="Center"/>
-            </Border>
-
-        </Grid>
-
-        <!-- Photo strip + action buttons (bottom, leaves space for right controls) -->
-        <VerticalStackLayout VerticalOptions="End"
-                             HorizontalOptions="Fill"
-                             Margin="0,0,80,20"
-                             Spacing="0">
-
-            <!-- Delete / OK actions (visible when a photo is selected) -->
-            <Grid x:Name="photoActions"
+            <!-- Delete action (visible when a photo is selected in strip) -->
+            <Grid Grid.Row="0"
+                  x:Name="photoActions"
                   IsVisible="False"
-                  ColumnDefinitions="Auto,Auto"
-                  ColumnSpacing="6"
-                  Padding="8,4,8,6"
+                  Padding="12,6"
+                  BackgroundColor="#88000000"
                   HorizontalOptions="Start">
-                <Button Grid.Column="0"
-                        Text="🗑"
-                        BackgroundColor="#CC3333"
-                        TextColor="White"
-                        CornerRadius="8"
-                        HeightRequest="30"
-                        WidthRequest="48"
-                        FontSize="14"
-                        Padding="0"
-                        HorizontalOptions="Center"
-                        Clicked="OnDeletePhoto"/>
-                <Button Grid.Column="1"
-                        Text="✔"
-                        BackgroundColor="#22AA44"
-                        TextColor="White"
-                        CornerRadius="8"
-                        HeightRequest="30"
-                        WidthRequest="48"
-                        FontSize="14"
-                        Padding="0"
-                        HorizontalOptions="Center"
-                        Clicked="OnConfirmPhoto"/>
+                <Button Text="🗑"
+                        BackgroundColor="#CC3333" TextColor="White"
+                        CornerRadius="8" HeightRequest="34" WidthRequest="52"
+                        FontSize="14" Padding="0" Clicked="OnDeletePhoto"/>
             </Grid>
 
-            <!-- Horizontal thumbnail strip -->
-            <CollectionView x:Name="photoStrip"
-                            HeightRequest="96"
+            <!-- Horizontal photo strip -->
+            <CollectionView Grid.Row="1"
+                            x:Name="photoStrip"
                             SelectionMode="Single"
                             SelectionChanged="OnPhotoSelected"
-                            Margin="8,0,0,0">
+                            Margin="8,8">
                 <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8"/>
+                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="6"/>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="local:CapturedPhoto">
-                        <Border WidthRequest="82"
-                                HeightRequest="82"
+                        <Border WidthRequest="80" HeightRequest="80"
                                 StrokeShape="RoundRectangle 8"
-                                StrokeThickness="2"
-                                Stroke="White"
+                                StrokeThickness="2" Stroke="White"
                                 BackgroundColor="Transparent">
                             <Border.Triggers>
-                                <DataTrigger TargetType="Border"
-                                             Binding="{Binding IsSelected}"
-                                             Value="True">
+                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
                                     <Setter Property="Stroke" Value="LimeGreen"/>
-                                    <Setter Property="BackgroundColor" Value="#1AFFFFFF"/>
                                 </DataTrigger>
                             </Border.Triggers>
-                            <Image Source="{Binding Source}"
-                                   Aspect="AspectFill"
-                                   WidthRequest="82"
-                                   HeightRequest="82"/>
+                            <Image Source="{Binding Source}" Aspect="AspectFill"
+                                   WidthRequest="80" HeightRequest="80"/>
                         </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-        </VerticalStackLayout>
-
-        <!-- Full-screen photo viewer (overlays everything) -->
-        <Grid x:Name="photoViewer"
-              IsVisible="False"
-              BackgroundColor="Black">
-            <Image x:Name="fullPhoto"
-                   Aspect="AspectFit"
-                   HorizontalOptions="Fill"
-                   VerticalOptions="Fill"/>
-            <Button Text="✕"
-                    FontSize="28"
+            <!-- Capture button — centered -->
+            <Border x:Name="captureButton"
+                    Grid.Row="2"
+                    IsEnabled="False" Opacity="0.4"
+                    WidthRequest="80" HeightRequest="80"
+                    StrokeShape="RoundRectangle 40"
+                    Stroke="White" StrokeThickness="4"
                     BackgroundColor="Transparent"
-                    TextColor="White"
-                    HorizontalOptions="Start"
-                    VerticalOptions="Start"
-                    Margin="8,20,0,0"
-                    Clicked="OnPhotoViewerClose"/>
+                    HorizontalOptions="Center" VerticalOptions="Center">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding StartCaptureCommand}"/>
+                </Border.GestureRecognizers>
+                <Ellipse Fill="White" WidthRequest="62" HeightRequest="62"
+                         HorizontalOptions="Center" VerticalOptions="Center"/>
+            </Border>
+        </Grid>
+
+        <!-- Full-screen photo viewer (shown after capture or from gallery) -->
+        <Grid x:Name="photoViewer" IsVisible="False" BackgroundColor="Black">
+            <Image x:Name="fullPhoto" Aspect="AspectFit"
+                   HorizontalOptions="Fill" VerticalOptions="Fill"/>
+            <Button Text="✕"
+                    FontSize="22" BackgroundColor="#60000000" TextColor="White"
+                    CornerRadius="24" WidthRequest="48" HeightRequest="48"
+                    Padding="0" HorizontalOptions="Start" VerticalOptions="Start"
+                    Margin="12,48,0,0" Clicked="OnPhotoViewerClose"/>
         </Grid>
 
     </Grid>

@@ -1,14 +1,13 @@
-﻿
+
 using BilliardIQ.Mobile.Data;
-using BilliardIQ.Mobile.PageModels;
 using BilliardIQ.Mobile.PageModels.Analyzers;
 using BilliardIQ.Mobile.PageModels.GamePageModels;
 using BilliardIQ.Mobile.PageModels.PlayerPageModels;
-using BilliardIQ.Mobile.Pages;
 using BilliardIQ.Mobile.Pages.Analyzers;
 using BilliardIQ.Mobile.Pages.Games;
 using BilliardIQ.Mobile.Pages.Players;
 using BilliardIQ.Mobile.Services;
+using Plugin.Maui.OCR;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 
@@ -25,6 +24,7 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
             .UseMauiCommunityToolkitCamera()
+            .UseOcr()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -40,18 +40,19 @@ public static class MauiProgram
         #endif
         builder.Services.AddSingleton<PlayerRepository>();
         builder.Services.AddSingleton<GameRepository>();
+        builder.Services.AddSingleton<LocationRepository>();
         builder.Services.AddSingleton<ModalErrorHandler>();
-        builder.Services.AddSingleton<MainPageModel>();
-        builder.Services.AddSingleton<MainViewPage>();
+        builder.Services.AddSingleton<ScoreboardOcrService>();
         builder.Services.AddSingleton<PlayerProfilePageModel>();
         builder.Services.AddSingleton<PlayerProfileViewPage>();
+        builder.Services.AddTransient<CitySearchPageModel>();
+        builder.Services.AddTransient<CitySearchPage>();
         builder.Services.AddSingleton<GameListPageModel>();
         builder.Services.AddSingleton<GameListViewPage>();
-        builder.Services.AddSingleton<NewGamePageModel>();
-        builder.Services.AddSingleton<NewGameViewPage>();
         builder.Services.AddSingleton(FileSystem.Current);
         builder.Services.AddTransientWithShellRoute<NewGameViewPage, NewGamePageModel>("newgame");
-        builder.Services.AddTransientWithShellRoute<PhotoAnalyzerViewPage, PhotoAnalyzerPageModel>("camera");
+        builder.Services.AddTransient<PhotoAnalyzerPageModel>();
+        builder.Services.AddTransient<PhotoAnalyzerViewPage>();
         if (AppSettings.DropDatabaseOnStartup)
             DatabaseService.DropDatabaseAsync().GetAwaiter().GetResult();
         DatabaseService.InitializeDatabaseAsync().GetAwaiter().GetResult();

@@ -91,6 +91,24 @@
                 Color="{AppThemeBinding Light={StaticResource DarkOnLightBackground}, Dark={StaticResource LightOnDarkBackground}}"
                 Size="{StaticResource IconSize}" />
 
+    <FontImageSource x:Key="IconSave"
+                Glyph="{x:Static f:FluentUI.checkmark_circle_24_regular}"
+                FontFamily="{x:Static f:FluentUI.FontFamily}"
+                Color="{StaticResource White}"
+                Size="{StaticResource IconSize}" />
+
+    <FontImageSource x:Key="IconEdit"
+                Glyph="{x:Static f:FluentUI.edit_24_regular}"
+                FontFamily="{x:Static f:FluentUI.FontFamily}"
+                Color="{StaticResource White}"
+                Size="{StaticResource IconSize}" />
+
+    <FontImageSource x:Key="IconCameraAdd"
+                Glyph="{x:Static f:FluentUI.camera_add_24_regular}"
+                FontFamily="{x:Static f:FluentUI.FontFamily}"
+                Color="{StaticResource White}"
+                Size="{StaticResource IconSize}" />
+
         <FontImageSource x:Key="IconClean"
                 Glyph="{x:Static f:FluentUI.broom_32_regular}"
                 FontFamily="{x:Static f:FluentUI.FontFamily}"

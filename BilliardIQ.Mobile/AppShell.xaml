@@ -5,23 +5,17 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:games="clr-namespace:BilliardIQ.Mobile.Pages.Games"
     xmlns:players="clr-namespace:BilliardIQ.Mobile.Pages.Players"
-    xmlns:pages="clr-namespace:BilliardIQ.Mobile.Pages"
     Shell.FlyoutBehavior="Flyout"
     Title="BilliardIQ">
 
     <ShellContent
         Title="Home"
-        ContentTemplate="{DataTemplate pages:MainViewPage}"
+        ContentTemplate="{DataTemplate games:GameListViewPage}"
         Route="home" />
-    
-    
-    <ShellContent
-    Title="Game"
-    ContentTemplate="{DataTemplate games:GameListViewPage}"
-    Route="gamelist" />
 
     <ShellContent
         Title="Profile"
         ContentTemplate="{DataTemplate players:PlayerProfileViewPage}"
         Route="profile" />
+
 </Shell>
