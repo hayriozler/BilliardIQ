@@ -14,8 +14,8 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     private readonly ScoreboardOcrService _ocrService;
     private int? _gameId = null;
 
-    private const string RecentLocationsKey = "recent_locations";
-    private const int MaxRecentLocations = 3;
+    private const string _recentLocationsKey = "recent_locations";
+    private const int _maxRecentLocations = 3;
 
     public NewGamePageModel(GameRepository GameRepo, ScoreboardOcrService OcrService)
     {
@@ -48,31 +48,28 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     private void LoadRecentLocations()
     {
         RecentLocations.Clear();
-        var stored = Preferences.Default.Get(RecentLocationsKey, string.Empty);
-        foreach (var loc in stored.Split('|', StringSplitOptions.RemoveEmptyEntries).Take(MaxRecentLocations))
+        var stored = Preferences.Default.Get(_recentLocationsKey, string.Empty);
+        foreach (var loc in stored.Split('|', StringSplitOptions.RemoveEmptyEntries).Take(_maxRecentLocations))
             RecentLocations.Add(loc);
         OnPropertyChanged(nameof(HasRecentLocations));
     }
 
-    private void SaveRecentLocation(string location)
+    private static void SaveRecentLocation(string location)
     {
         if (string.IsNullOrWhiteSpace(location)) return;
         location = location.Trim();
 
-        var existing = Preferences.Default.Get(RecentLocationsKey, string.Empty)
+        var existing = Preferences.Default.Get(_recentLocationsKey, string.Empty)
             .Split('|', StringSplitOptions.RemoveEmptyEntries)
             .Where(l => !l.Equals(location, StringComparison.OrdinalIgnoreCase))
             .Prepend(location)
-            .Take(MaxRecentLocations);
+            .Take(_maxRecentLocations);
 
-        Preferences.Default.Set(RecentLocationsKey, string.Join('|', existing));
+        Preferences.Default.Set(_recentLocationsKey, string.Join('|', existing));
     }
 
     [RelayCommand]
-    private void SelectLocation(string location)
-    {
-        Location = location;
-    }
+    private void SelectLocation(string location) => Location = location;
 
     // ── Form lifecycle ────────────────────────────────────────────────────────
     [ObservableProperty]
@@ -82,7 +79,7 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     public partial ImageData? Ball { get; set; }
 
     [ObservableProperty]
-    private ObservableCollection<ImageData> _balls =
+    public partial ObservableCollection<ImageData> Balls { get; set; } =
     [
         new() { Name = "White", Image = ImageSource.FromFile("whiteball.svg"), IsBallSelected = false },
         new() { Name = "Yellow", Image = ImageSource.FromFile("yellowball.svg"), IsBallSelected = false }
@@ -298,7 +295,7 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     public partial DateTime MaximumDate { get; set; } = DateTime.Now.AddDays(7);
 
     [RelayCommand]
-    private void ImageSelected(ImageData image) =>
+    private static void ImageSelected(ImageData image) =>
         SemanticScreenReader.Announce($"{image.Name} selected");
 
     public string? OpponentNameError => GetErrors(nameof(OpponentName)).Cast<object>().FirstOrDefault()?.ToString();

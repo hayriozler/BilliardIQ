@@ -35,7 +35,10 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 
-		<NoWarn>IL2026;CS0618</NoWarn>
+		<NoWarn>IL2026;CS0618;XA4301</NoWarn>
+		<!-- AOT compiler crashes on Windows with certain SDK versions (exit code -1073740791).
+		     Disabling AOT produces a working APK; startup is ~100ms slower but functionally identical. -->
+		<RunAOTCompilation Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">false</RunAOTCompilation>
 		<LangVersion>preview</LangVersion>
 
 		<!-- Versions -->
@@ -50,6 +53,19 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">26.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+		<AndroidSigningKeyStore>billiardiq.keystore</AndroidSigningKeyStore>
+	</PropertyGroup>
+
+	<!-- Signing passwords are read from environment variables or a local .keystore.env.props file
+	     that is listed in .gitignore. Never commit passwords to source control. -->
+	<Import Project="signing.props" Condition="Exists('signing.props')" />
+
+	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+	  <AndroidKeyStore>True</AndroidKeyStore>
+	  <AndroidSigningKeyAlias>billiardiq</AndroidSigningKeyAlias>
+	  <!-- Fallback to env vars if signing.props is not present (CI/CD) -->
+	  <AndroidSigningStorePass Condition="'$(AndroidSigningStorePass)' == ''">$(BILLIARDIQ_STORE_PASS)</AndroidSigningStorePass>
+	  <AndroidSigningKeyPass Condition="'$(AndroidSigningKeyPass)' == ''">$(BILLIARDIQ_KEY_PASS)</AndroidSigningKeyPass>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -74,6 +90,9 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.5" />
 		<PackageReference Include="Plugin.Maui.OCR" Version="1.1.1" />
+		<!-- Override the net9 transitive dependency pulled in by Plugin.Maui.OCR with the net10-compatible version
+		     to prevent "WebView2Loader.dll not found" errors on Windows builds. -->
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.51" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -119,5 +138,14 @@
 	  <MauiXaml Update="Pages\Games\GameListViewPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	</ItemGroup>	
+	</ItemGroup>
+
+	<!-- Remove copy-local items that physically don't exist (e.g. win-x86 WebView2Loader.dll
+	     from transitive net9 packages) to prevent "file not found" build errors. -->
+	<Target Name="RemoveMissingNativeCopyItems" AfterTargets="ResolvePackageDependenciesForBuild">
+		<ItemGroup>
+			<ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)"
+				Condition="!Exists('%(ReferenceCopyLocalPaths.FullPath)')" />
+		</ItemGroup>
+	</Target>
 </Project>

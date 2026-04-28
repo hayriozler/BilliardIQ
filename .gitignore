@@ -53,6 +53,10 @@ Generated\ Files/
 Keys/
 Keys/*.keystore
 
+# Android signing secrets — never commit these
+*.keystore
+signing.props
+
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*

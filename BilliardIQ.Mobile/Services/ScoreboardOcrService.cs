@@ -59,7 +59,7 @@ public partial class ScoreboardOcrService(IOcrService OcrService)
 
         // ── 4. Fallback: collect all 1-3 digit numbers ───────────────────────────
         var allNums = FallbackRegex().Matches(text)
-            .Select(m => (Value: int.Parse(m.Groups[1].Value), Index: m.Index))
+            .Select(m => (Value: int.Parse(m.Groups[1].Value), m.Index))
             .Where(n => n.Value is >= 0 and <= 999)
             .ToList();
 

@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
         return result;
     }
 
-    private static bool IsDbNull(object value) => value is DBNull || value == null;
+
 
     public async Task<IReadOnlyList<Game>> GetGamesAsync(int limit = 15)
     {
@@ -278,16 +278,16 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
         {
             await EnsureMigratedAsync();
             using var reader = await GetSqliteReaderAsync(_tableCreationSql,
-                "SELECT TotalMatches, Average, BestAverage, HighestRun FROM PlayerStats LIMIT 1",
+                "SELECT TotalMatches, Average, BestAverage, HighestRun, LastMatchResult FROM PlayerStats LIMIT 1",
                 Enumerable.Empty<SqliteParameter>().ToList());
             if (await reader.ReadAsync() && reader.HasRows)
             {
                 return new PlayerSummaryStats
                 {
-                    TotalMatches = Convert.ToInt32(reader["TotalMatches"]),
-                    Average      = Convert.ToDouble(reader["Average"]),
-                    BestAverage  = Convert.ToDouble(reader["BestAverage"]),
-                    HighestRun   = Convert.ToInt32(reader["HighestRun"]),
+                    TotalMatches    = Convert.ToInt32(reader["TotalMatches"]),
+                    Average         = Convert.ToDouble(reader["Average"]),
+                    BestAverage     = Convert.ToDouble(reader["BestAverage"]),
+                    HighestRun      = Convert.ToInt32(reader["HighestRun"])
                 };
             }
             return new PlayerSummaryStats();
@@ -412,7 +412,7 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
         }
     }
 
-    private Game MapGame(SqliteDataReader reader) => new()
+    private static Game MapGame(SqliteDataReader reader) => new()
     {
         Id = Convert.ToInt32(reader["Id"]),
         OpponentName = reader["OpponentName"].ToString(),

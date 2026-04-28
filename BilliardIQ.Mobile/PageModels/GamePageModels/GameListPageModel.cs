@@ -1,22 +1,15 @@
 using BilliardIQ.Mobile.Data;
 using BilliardIQ.Mobile.Models;
 using BilliardIQ.Mobile.Pages.Analyzers;
-using BilliardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace BilliardIQ.Mobile.PageModels.GamePageModels;
 
-public partial class GameListPageModel : BasePageModel
+public partial class GameListPageModel(GameRepository gameRepo, IServiceProvider services) : BasePageModel
 {
-    private readonly GameRepository _gameRepo;
-    private readonly IServiceProvider _services;
-
-    public GameListPageModel(GameRepository gameRepo, IServiceProvider services)
-    {
-        _gameRepo = gameRepo;
-        _services = services;
-    }
+    private readonly GameRepository _gameRepo = gameRepo;
+    private readonly IServiceProvider _services = services;
 
     [ObservableProperty]
     public partial IReadOnlyList<Game> Games { get; set; } = [];

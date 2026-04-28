@@ -1,5 +1,8 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
   <Project Path="BilliardIQ.Mobile/BilliardIQ.Mobile.csproj" Id="f1d22986-b332-45f0-b349-9603ee6971a6">
-    <Deploy Solution="Debug|*" />
+    <Deploy />
   </Project>
 </Solution>
