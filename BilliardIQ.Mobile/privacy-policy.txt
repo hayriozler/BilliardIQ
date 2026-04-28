@@ -1,6 +1,17 @@
-﻿Privacy Policy
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Privacy Policy</title>
+</head>
+<body>
+    <h1>Privacy Policy</h1>
 
-This application uses the camera only for taking photos within the app.
-We do not collect, store, or share any personal data.
+    <p>This application uses the camera only for taking photos within the app.</p>
 
-The camera is used solely for user-initiated actions.
+    <p>We do not collect, store, or share any personal data.</p>
+
+    <p>The camera is used only when the user explicitly triggers it.</p>
+
+    <p>Contact: your-email@example.com</p>
+</body>
+</html>
