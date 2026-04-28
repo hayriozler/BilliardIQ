@@ -24,7 +24,7 @@ public abstract class BaseRepo(ILogger<BaseRepo> Logger)
             Disposer.Dispose(ref cmd);
         }
     }
-
+    public static bool IsDbNull(object value) => value is DBNull || value == null;
     internal async Task<SqliteDataReader> GetSqliteReaderAsync(string tableCreationSql, string sql, List<SqliteParameter> parameters)
     {
         await InitAsync(tableCreationSql);

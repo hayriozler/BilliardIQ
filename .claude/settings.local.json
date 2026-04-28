@@ -120,7 +120,12 @@
       "Bash(grep -v \"^$\\\\|XALNS\\\\| at \\\\|^\\\\s*$\")",
       "Bash(dotnet-script)",
       "Bash(powershell -Command \"Add-Type -Path 'lib/net9.0/Plugin.Maui.OCR.dll'; [Plugin.Maui.OCR.IOcrService].GetMethods\\(\\) | Select-Object Name\")",
-      "Bash(grep -v \"XALNS\\\\| at \\\\|obj\\\\\\\\\")"
+      "Bash(grep -v \"XALNS\\\\| at \\\\|obj\\\\\\\\\")",
+      "Bash(dotnet publish *)",
+      "Bash(dotnet restore *)",
+      "Bash(grep -v \"ValidateJava\\\\|locator\\\\|path=\\\\`C:\")",
+      "Bash(grep -iv \"validate\\\\|locator\\\\|path=\\\\`\")",
+      "Bash(\"C:/Program Files \\(x86\\)/Android/openjdk/jdk-21.0.8/bin/keytool.exe\" -list -keystore billardIQ.keystore -storepass \"Key password\")"
     ]
   }
 }
