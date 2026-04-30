@@ -101,7 +101,7 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
         PlayerScore = game.PlayerScore;
         OpponentScore = game.OpponentScore;
         HighestRun = game.HighestRun;
-        Innings = game.Innings;
+        InningsText = game.Innings.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
         Notes = game.Notes;
         Ball = Balls.FirstOrDefault(b => b.Name == game.Ball);
 
@@ -132,7 +132,7 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
             PlayerScore = PlayerScore,
             OpponentScore = OpponentScore,
             HighestRun = HighestRun,
-            Innings = Innings < 1 ? 1 : Innings,
+            Innings = ParseInnings(),
             Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes,
             ScoreboardPhotoPath = ScoreboardPhotoPath,
         });
@@ -205,7 +205,7 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
             OpponentScore = detected.Opponent;
 
             if (detected.Innings is not null)
-                Innings = detected.Innings.Value;
+                InningsText = detected.Innings.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
             if (detected.HighestRun is not null)
                 HighestRun = detected.HighestRun.Value;
@@ -264,7 +264,7 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     public partial int HighestRun { get; set; }
 
     [ObservableProperty]
-    public partial int Innings { get; set; } = 1;
+    public partial string InningsText { get; set; } = "0";
 
     [ObservableProperty]
     public partial string? Notes { get; set; }
@@ -297,6 +297,15 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     [RelayCommand]
     private static void ImageSelected(ImageData image) =>
         SemanticScreenReader.Announce($"{image.Name} selected");
+
+    private double ParseInnings()
+    {
+        var normalized = (InningsText ?? "0").Replace(',', '.');
+        return double.TryParse(normalized,
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var result) ? Math.Max(0, result) : 0;
+    }
 
     public string? OpponentNameError => GetErrors(nameof(OpponentName)).Cast<object>().FirstOrDefault()?.ToString();
     public bool HasOpponentNameError => GetErrors(nameof(OpponentName)).Cast<object>().Any();

@@ -92,8 +92,8 @@
                          VerticalOptions="Fill" Margin="0,8"/>
                 <VerticalStackLayout Grid.Column="2">
                     <Label Text="{Binding L[NewGame_Innings]}" FontSize="13" TextColor="Gray"/>
-                    <Entry Text="{Binding Innings}" Keyboard="Numeric"
-                           HorizontalTextAlignment="Center" Placeholder="1"/>
+                    <Entry Text="{Binding InningsText}" Keyboard="Numeric"
+                           HorizontalTextAlignment="Center" Placeholder="0.000"/>
                 </VerticalStackLayout>
             </Grid>
 

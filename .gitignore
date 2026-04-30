@@ -310,6 +310,11 @@ FakesAssemblies/
 .ntvs_analysis.dat
 node_modules/
 
+# Play Store assets (generated, not source-controlled)
+BilliardIQ.Mobile/Resources/AppIcon/screenshots/
+BilliardIQ.Mobile/Resources/AppIcon/store_icon_512.png
+BilliardIQ.Mobile/Resources/AppIcon/feature_graphic_1024x500.png
+
 # Visual Studio 6 build log
 *.plg
 
@@ -404,6 +409,18 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Unity
+BilliardIQ.Unity/Library/
+BilliardIQ.Unity/Temp/
+BilliardIQ.Unity/Build/
+BilliardIQ.Unity/Builds/
+BilliardIQ.Unity/Logs/
+BilliardIQ.Unity/UserSettings/
+BilliardIQ.Unity/obj/
+
+# Unity Android export (build artifact — rebuild with gradle)
+UnityExport/
 
 # VS Code files for those working on multiple tools
 .vscode/*

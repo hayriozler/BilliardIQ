@@ -43,7 +43,6 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
                 Average REAL NOT NULL DEFAULT 0,
                 BestAverage REAL NOT NULL DEFAULT 0,
                 HighestRun INTEGER NOT NULL DEFAULT 0,
-                LastMatchResult INTEGER NOT NULL DEFAULT 0,
                 UpdatedAt DateTime NOT NULL
             );
 ";
@@ -53,9 +52,10 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
         "ALTER TABLE Games ADD COLUMN HighestRun INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE Games ADD COLUMN Notes TEXT",
         "ALTER TABLE Games ADD COLUMN ScoreboardPhotoPath TEXT",
-        "ALTER TABLE Games ADD COLUMN Innings INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE Games ADD COLUMN Innings REAL NOT NULL DEFAULT 0",
         "ALTER TABLE PlayerStats ADD COLUMN TotalInnings INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE PlayerStats ADD COLUMN BestAverage REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE PlayerStats DROP COLUMN LastMatchResult",
     ];
 
     private bool _migrationsDone = false;
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
             cmd.Parameters.AddWithValue("@PlayerScore", game.PlayerScore);
             cmd.Parameters.AddWithValue("@OpponentScore", game.OpponentScore);
             cmd.Parameters.AddWithValue("@HighestRun", game.HighestRun);
-            cmd.Parameters.AddWithValue("@Innings", game.Innings < 1 ? 1 : game.Innings);
+            cmd.Parameters.AddWithValue("@Innings", game.Innings < 0 ? 0 : game.Innings);
             cmd.Parameters.AddWithValue("@Notes", (object?)game.Notes ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@ScoreboardPhotoPath", (object?)game.ScoreboardPhotoPath ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
             cmd.Parameters.AddWithValue("@PlayerScore", game.PlayerScore);
             cmd.Parameters.AddWithValue("@OpponentScore", game.OpponentScore);
             cmd.Parameters.AddWithValue("@HighestRun", game.HighestRun);
-            cmd.Parameters.AddWithValue("@Innings", game.Innings < 1 ? 1 : game.Innings);
+            cmd.Parameters.AddWithValue("@Innings", game.Innings < 0 ? 0 : game.Innings);
             cmd.Parameters.AddWithValue("@Notes", (object?)game.Notes ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@ScoreboardPhotoPath", (object?)game.ScoreboardPhotoPath ?? DBNull.Value);
         }
@@ -117,46 +117,41 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
 
     public async Task<Game?> UpsertGameAsync(int? Id, Game game)
     {
-        int? gameId = Id; // Id is the existing game's PK; game.Id is always 0 (new object)
-
-        // Step 1: INSERT or UPDATE — close command before reading back or recalculating
+        int? gameId = Id;
+        SqliteCommand? cmd = null;
+        try
         {
-            SqliteCommand? cmd = null;
-            try
+            cmd = await GetGameSqliteCommandAsync(gameId, game);
+            if (gameId is null)
             {
-                cmd = await GetGameSqliteCommandAsync(gameId, game);
-                if (gameId is null)
+                var scalar = await cmd.ExecuteScalarAsync();
+                if (scalar != null && scalar != DBNull.Value && int.TryParse(scalar.ToString(), out var newId))
                 {
-                    var scalar = await cmd.ExecuteScalarAsync();
-                    if (scalar != null && scalar != DBNull.Value && int.TryParse(scalar.ToString(), out var newId))
-                    {
-                        gameId = newId;
-                        Logger.LogInformation("Game created with Id {Id}", gameId);
-                    }
-                    else
-                    {
-                        Logger.LogWarning("Failed to retrieve new game Id after insertion");
-                        return null;
-                    }
+                    gameId = newId;
+                    Logger.LogInformation("Game created with Id {Id}", gameId);
                 }
                 else
                 {
-                    await cmd.ExecuteNonQueryAsync();
-                    Logger.LogInformation("Game {Id} updated", gameId);
+                    Logger.LogWarning("Failed to retrieve new game Id after insertion");
+                    return null;
                 }
             }
-            catch (Exception e)
+            else
             {
-                Logger.LogError(e, "Error upserting game");
-                throw;
-            }
-            finally
-            {
-                Disposer.Dispose(ref cmd); // connection fully closed before next steps
+                await cmd.ExecuteNonQueryAsync();
+                Logger.LogInformation("Game {Id} updated", gameId);
             }
         }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Error upserting game");
+            throw;
+        }
+        finally
+        {
+            Disposer.Dispose(ref cmd); // connection fully closed before next steps
+        }
 
-        // Step 2: read result and recalculate stats on fresh connections
         var result = await GetGameById(gameId!.Value);
         await RecalculateStatsAsync();
         return result;
@@ -278,7 +273,7 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
         {
             await EnsureMigratedAsync();
             using var reader = await GetSqliteReaderAsync(_tableCreationSql,
-                "SELECT TotalMatches, Average, BestAverage, HighestRun, LastMatchResult FROM PlayerStats LIMIT 1",
+                "SELECT TotalMatches, Average, BestAverage, HighestRun FROM PlayerStats LIMIT 1",
                 Enumerable.Empty<SqliteParameter>().ToList());
             if (await reader.ReadAsync() && reader.HasRows)
             {
@@ -307,36 +302,20 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
     {
         await EnsureMigratedAsync();
 
-        // Step 1: read aggregate — close reader before writing
-        int totalMatches = 0, totalInnings = 0, highestRun = 0;
-        double average = 0;
+        // Innings artık per-game average (REAL) saklıyor
+        // Genel ortalama = tüm maçların ortalamasının ortalaması
+        int totalMatches = 0, highestRun = 0;
+        double average = 0, bestAverage = 0;
         {
             using var r = await GetSqliteReaderAsync(_tableCreationSql,
-                "SELECT COUNT(*) AS TotalMatches, COALESCE(SUM(PlayerScore),0) AS TotalScore, COALESCE(SUM(Innings),0) AS TotalInnings, COALESCE(MAX(HighestRun),0) AS HighestRun FROM Games",
+                "SELECT COUNT(*) AS TotalMatches, COALESCE(AVG(CASE WHEN Innings > 0 THEN Innings END),0) AS AvgInnings, COALESCE(MAX(Innings),0) AS BestInnings, COALESCE(MAX(HighestRun),0) AS HighestRun FROM Games",
                 []);
             if (await r.ReadAsync())
             {
-                totalMatches  = Convert.ToInt32(r["TotalMatches"]);
-                var totalScore = Convert.ToInt32(r["TotalScore"]);
-                totalInnings  = Convert.ToInt32(r["TotalInnings"]);
-                highestRun    = Convert.ToInt32(r["HighestRun"]);
-                // Overall average = total caramboles / total innings (3-cushion standard)
-                average = totalInnings > 0 ? Math.Round((double)totalScore / totalInnings, 3) : 0;
-            }
-        }
-
-        // Step 1b: best single-game average (max PlayerScore/Innings per game)
-        double bestAverage = 0;
-        {
-            using var r = await GetSqliteReaderAsync(_tableCreationSql,
-                "SELECT PlayerScore, Innings FROM Games WHERE Innings > 0",
-                []);
-            while (await r.ReadAsync())
-            {
-                var score   = Convert.ToInt32(r["PlayerScore"]);
-                var innings = Convert.ToInt32(r["Innings"]);
-                if (innings > 0)
-                    bestAverage = Math.Max(bestAverage, Math.Round((double)score / innings, 3));
+                totalMatches = Convert.ToInt32(r["TotalMatches"]);
+                highestRun   = Convert.ToInt32(r["HighestRun"]);
+                average      = Math.Round(Convert.ToDouble(r["AvgInnings"]), 3);
+                bestAverage  = Math.Round(Convert.ToDouble(r["BestInnings"]), 3);
             }
         }
 
@@ -346,10 +325,8 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
         {
             cmd = await GetSqliteCommandAsync(_tableCreationSql,
                 @"INSERT OR REPLACE INTO PlayerStats(Id, TotalMatches, TotalScore, TotalInnings, Average, BestAverage, HighestRun, UpdatedAt)
-                  VALUES(1, @TotalMatches, @TotalScore, @TotalInnings, @Average, @BestAverage, @HighestRun, @Now)");
+                  VALUES(1, @TotalMatches, 0, 0, @Average, @BestAverage, @HighestRun, @Now)");
             cmd.Parameters.AddWithValue("@TotalMatches", totalMatches);
-            cmd.Parameters.AddWithValue("@TotalScore", totalInnings > 0 ? (int)(average * totalInnings) : 0);
-            cmd.Parameters.AddWithValue("@TotalInnings", totalInnings);
             cmd.Parameters.AddWithValue("@Average", average);
             cmd.Parameters.AddWithValue("@BestAverage", bestAverage);
             cmd.Parameters.AddWithValue("@HighestRun", highestRun);
@@ -422,7 +399,7 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
         PlayerScore = GameRepository.IsDbNull(reader["PlayerScore"]) ? 0 : Convert.ToInt32(reader["PlayerScore"]),
         OpponentScore = GameRepository.IsDbNull(reader["OpponentScore"]) ? 0 : Convert.ToInt32(reader["OpponentScore"]),
         HighestRun = GameRepository.IsDbNull(reader["HighestRun"]) ? 0 : Convert.ToInt32(reader["HighestRun"]),
-        Innings = GameRepository.IsDbNull(reader["Innings"]) ? 1 : Convert.ToInt32(reader["Innings"]),
+        Innings = GameRepository.IsDbNull(reader["Innings"]) ? 0 : Convert.ToDouble(reader["Innings"]),
         Notes = GameRepository.IsDbNull(reader["Notes"]) ? null : reader["Notes"].ToString(),
         ScoreboardPhotoPath = GameRepository.IsDbNull(reader["ScoreboardPhotoPath"]) ? null : reader["ScoreboardPhotoPath"].ToString(),
     };

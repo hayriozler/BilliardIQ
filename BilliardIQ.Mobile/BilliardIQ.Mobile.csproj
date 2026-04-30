@@ -5,13 +5,6 @@
 		<TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 
-		<!-- Note for MacCatalyst:
-		The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
-		When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifier>.
-		The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
-		either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
-		<!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
-
 		<OutputType>Exe</OutputType>
 		<RootNamespace>BilliardIQ.Mobile</RootNamespace>
 		<UseMaui>true</UseMaui>
@@ -19,16 +12,9 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 
-		<!-- Enable XAML source generation for faster build times and improved performance.
-		     This generates C# code from XAML at compile time instead of runtime inflation.
-		     To disable, remove this line.
-		     For individual files, you can override by setting Inflator metadata:
-		       <MauiXaml Update="MyPage.xaml" Inflator="Default" /> (reverts to defaults: Runtime for Debug, XamlC for Release)
-		       <MauiXaml Update="MyPage.xaml" Inflator="Runtime" /> (force runtime inflation) -->
 		<MauiXamlInflator>SourceGen</MauiXamlInflator>
 		
-		<!-- Display name -->
-		<ApplicationTitle>BilliardIQ.Mobile</ApplicationTitle>
+		<ApplicationTitle>BilliardIQ</ApplicationTitle>
 
 		<!-- App Identifier -->
 		<ApplicationId>com.billiardiq.mobile</ApplicationId>
@@ -84,14 +70,16 @@
 		
 	</ItemGroup>
 
+	<ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+		<AndroidLibrary Include="Platforms\Android\libs\unityLibrary-debug.aar" Bind="false" Condition="Exists('Platforms\Android\libs\unityLibrary-debug.aar')" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Maui.Camera" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.5" />
 		<PackageReference Include="Plugin.Maui.OCR" Version="1.1.1" />
-		<!-- Override the net9 transitive dependency pulled in by Plugin.Maui.OCR with the net10-compatible version
-		     to prevent "WebView2Loader.dll not found" errors on Windows builds. -->
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.51" />
 	</ItemGroup>
 
@@ -138,14 +126,14 @@
 	  <MauiXaml Update="Pages\Games\GameListViewPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Pages\Play\GamePlayViewPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	</ItemGroup>
 
-	<!-- Remove copy-local items that physically don't exist (e.g. win-x86 WebView2Loader.dll
-	     from transitive net9 packages) to prevent "file not found" build errors. -->
 	<Target Name="RemoveMissingNativeCopyItems" AfterTargets="ResolvePackageDependenciesForBuild">
 		<ItemGroup>
-			<ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)"
-				Condition="!Exists('%(ReferenceCopyLocalPaths.FullPath)')" />
+			<ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="!Exists('%(ReferenceCopyLocalPaths.FullPath)')" />
 		</ItemGroup>
 	</Target>
 </Project>

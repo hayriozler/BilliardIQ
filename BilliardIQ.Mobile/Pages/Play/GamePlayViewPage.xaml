@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.PlayPageModels"
+    x:DataType="pageModels:GamePlayPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Play.GamePlayViewPage"
+    Title="Game">
+
+    <Grid RowDefinitions="*, Auto, *" HorizontalOptions="Fill">
+
+        <!-- Table icon + title -->
+        <VerticalStackLayout Grid.Row="1" Spacing="24" HorizontalOptions="Center">
+
+            <Border BackgroundColor="#1B5E20"
+                    StrokeThickness="0"
+                    HorizontalOptions="Center"
+                    Padding="32">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="24"/>
+                </Border.StrokeShape>
+                <Label Text="&#xE878;"
+                       FontFamily="MaterialIcons"
+                       FontSize="72"
+                       TextColor="White"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"/>
+            </Border>
+
+            <Label Text="{Binding L[Game_Title]}"
+                   FontSize="26"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   TextColor="{AppThemeBinding Light=#1B5E20, Dark=#A5D6A7}"/>
+
+            <Label Text="{Binding L[Game_Description]}"
+                   FontSize="14"
+                   TextColor="Gray"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   MaximumWidthRequest="280"/>
+
+            <Button Text="{Binding L[Game_Play]}"
+                    Command="{Binding PlayCommand}"
+                    BackgroundColor="#2E7D32"
+                    TextColor="White"
+                    FontAttributes="Bold"
+                    FontSize="18"
+                    CornerRadius="30"
+                    WidthRequest="180"
+                    HeightRequest="56"
+                    HorizontalOptions="Center"/>
+
+        </VerticalStackLayout>
+
+    </Grid>
+
+</basePages:BasePage>

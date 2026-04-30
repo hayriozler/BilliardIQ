@@ -74,6 +74,11 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Ocr_No"]               = "Skip",
             ["Ocr_Failed"]           = "Could not read scores from photo",
             ["Ocr_Reading"]          = "Reading scoreboard...",
+
+            // Game (Play) page
+            ["Game_Title"]       = "3-Cushion Billiards",
+            ["Game_Description"] = "Tap PLAY to start a 2-player 3-cushion match.",
+            ["Game_Play"]        = "PLAY",
         },
         ["tr"] = new()
         {
@@ -134,6 +139,11 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Ocr_No"]                = "Atla",
             ["Ocr_Failed"]            = "Fotoğraftan skor okunamadı",
             ["Ocr_Reading"]           = "Skorbord okunuyor...",
+
+            // Game (Play) page
+            ["Game_Title"]       = "3-Bant Bilardo",
+            ["Game_Description"] = "2 oyunculu 3-bant maçı başlatmak için OYNA'ya dokun.",
+            ["Game_Play"]        = "OYNA",
         }
     };
 

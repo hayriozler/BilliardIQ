@@ -10,7 +10,7 @@ public class Game
     public int PlayerScore { get; set; }
     public int OpponentScore { get; set; }
     public int HighestRun { get; set; }
-    public int Innings { get; set; }
+    public double Innings { get; set; }
     public string? Notes { get; set; }
     public string? ScoreboardPhotoPath { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
