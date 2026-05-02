@@ -3,6 +3,7 @@ using BilliardIQ.Mobile.Models;
 using BilliardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Plugin.Maui.OCR;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 
@@ -11,16 +12,16 @@ namespace BilliardIQ.Mobile.PageModels.GamePageModels;
 public partial class NewGamePageModel : BasePageModel, IQueryAttributable
 {
     private readonly GameRepository _gameRepo;
-    private readonly ScoreboardOcrService _ocrService;
+    private readonly IOcrService _ocrService;
     private int? _gameId = null;
 
     private const string _recentLocationsKey = "recent_locations";
     private const int _maxRecentLocations = 3;
 
-    public NewGamePageModel(GameRepository GameRepo, ScoreboardOcrService OcrService)
+    public NewGamePageModel(GameRepository GameRepo, IOcrService ocrService)
     {
         _gameRepo = GameRepo;
-        _ocrService = OcrService;
+        _ocrService = ocrService;
         Date = DateTime.Today;
         MinimumDate = DateTime.Today.AddDays(-7);
         MaximumDate = DateTime.Today.AddDays(7);
@@ -92,7 +93,7 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
 
         if (_gameId is null) return;
 
-        var game = await _gameRepo.GetGameById(_gameId.Value);
+        var game = await _gameRepo.GetGameByIdAsync(_gameId.Value);
         if (game is null) return;
 
         OpponentName = game.OpponentName;
@@ -105,11 +106,8 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
         Notes = game.Notes;
         Ball = Balls.FirstOrDefault(b => b.Name == game.Ball);
 
-        if (!string.IsNullOrEmpty(game.ScoreboardPhotoPath) && File.Exists(game.ScoreboardPhotoPath))
-        {
-            ScoreboardPhotoPath = game.ScoreboardPhotoPath;
-            ScoreboardPhotoSource = ImageSource.FromFile(game.ScoreboardPhotoPath);
-        }
+        if (game.ScoreboardThumbnail is { Length: > 0 })
+            SetThumbnail(game.ScoreboardThumbnail);
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]
@@ -125,16 +123,16 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
 
         await _gameRepo.UpsertGameAsync(_gameId, new Game
         {
-            Location = locationToSave,
-            OpponentName = OpponentName,
-            Date = Date,
-            Ball = Ball?.Name,
-            PlayerScore = PlayerScore,
-            OpponentScore = OpponentScore,
-            HighestRun = HighestRun,
-            Innings = ParseInnings(),
-            Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes,
-            ScoreboardPhotoPath = ScoreboardPhotoPath,
+            Location            = locationToSave,
+            OpponentName        = OpponentName,
+            Date                = Date,
+            Ball                = Ball?.Name,
+            PlayerScore         = PlayerScore,
+            OpponentScore       = OpponentScore,
+            HighestRun          = HighestRun,
+            Innings             = ParseInnings(),
+            Notes               = string.IsNullOrWhiteSpace(Notes) ? null : Notes,
+            ScoreboardThumbnail = ScoreboardThumbnail,
         });
 
         if (locationToSave is not null)
@@ -168,32 +166,73 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
 #endif
             var photo = await MediaPicker.Default.CapturePhotoAsync();
             if (photo is null) return;
-
-            var fileName = $"scoreboard_{DateTime.UtcNow:yyyyMMddHHmmss}_{photo.FileName}";
-            var localPath = Path.Combine(FileSystem.AppDataDirectory, fileName);
-            using var sourceStream = await photo.OpenReadAsync();
-            using var fileStream = File.OpenWrite(localPath);
-            await sourceStream.CopyToAsync(fileStream);
-
-            ScoreboardPhotoPath = localPath;
-            ScoreboardPhotoSource = ImageSource.FromFile(localPath);
-
-            await RunOcrAsync(localPath);
+            await ApplyScoreboardPhotoAsync(photo);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Scoreboard photo error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Scoreboard camera error: {ex.Message}");
         }
     }
 
-    private async Task RunOcrAsync(string photoPath)
+    [RelayCommand]
+    private async Task PickScoreboardPhoto()
+    {
+        try
+        {
+#if ANDROID
+            // Android 13+ uses READ_MEDIA_IMAGES; older uses READ_EXTERNAL_STORAGE.
+            // Permissions.Photos abstracts both.
+            var status = await Permissions.RequestAsync<Permissions.Photos>();
+            if (status != PermissionStatus.Granted) return;
+#endif
+            var photos = await MediaPicker.Default.PickPhotosAsync(
+                new MediaPickerOptions { Title = L["NewGame_ScoreboardPhoto"] });
+            if (photos is null || photos.Count==0) return;
+            await ApplyScoreboardPhotoAsync(photos.First());
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Scoreboard pick error: {ex.Message}");
+        }
+    }
+
+    private async Task ApplyScoreboardPhotoAsync(FileResult photo)
+    {
+        using var stream = await photo.OpenReadAsync();
+        using var ms     = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        var originalBytes = ms.ToArray();
+
+        // Thumbnail stored in DB — no file copy needed
+        var thumb = await Task.Run(() => ImagePreprocessor.CreateThumbnail(originalBytes));
+        SetThumbnail(thumb.Length > 0 ? thumb : originalBytes);
+
+        await RunOcrAsync(originalBytes);
+    }
+
+    private void SetThumbnail(byte[] bytes)
+    {
+        ScoreboardThumbnail   = bytes;
+        ScoreboardPhotoSource = ImageSource.FromStream(() => new MemoryStream(bytes));
+    }
+
+    private async Task RunOcrAsync(byte[] originalBytes)
     {
         IsOcrRunning = true;
         OcrStatusText = null;
         try
         {
-            var detected = await _ocrService.ExtractValuesAsync(photoPath);
+            await _ocrService.InitAsync();
+            // Normalize HEIC/WebP → JPEG so ML Kit can always decode the image
+            var bytes  = await Task.Run(() => ImagePreprocessor.NormalizeToJpeg(originalBytes));
+            var result = await _ocrService.RecognizeTextAsync(bytes, tryHard: true);
+            if (!result.Success)
+            {
+                OcrStatusText = L["Ocr_Failed"];
+                return;
+            }
 
+            var detected = await ScoreboardOcrService.ExtractValuesAsync(result);
             if (detected is null)
             {
                 OcrStatusText = L["Ocr_Failed"];
@@ -201,14 +240,25 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
             }
 
             // Auto-fill all detected fields — user can edit afterwards
-            PlayerScore  = detected.Player;
-            OpponentScore = detected.Opponent;
+            PlayerScore   = detected.Player1Score;
+            OpponentScore = detected.Player2Score;
 
-            if (detected.Innings is not null)
+            // Prefer the billiard average (e.g. 0.422); fall back to innings count
+            if (detected.Average is not null)
+                InningsText = detected.Average.Value.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
+            else if (detected.Innings is not null)
                 InningsText = detected.Innings.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
             if (detected.HighestRun is not null)
                 HighestRun = detected.HighestRun.Value;
+
+            // Auto-select ball when confident
+            if (detected.PlayerBall is not null)
+            {
+                var ballName = detected.PlayerBall.ToString(); // "White" or "Yellow"
+                var match = Balls.FirstOrDefault(b => b.Name == ballName);
+                if (match is not null) Ball = match;
+            }
 
             OcrStatusText = BuildOcrSummary(detected);
         }
@@ -222,20 +272,24 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     {
         var parts = new List<string>
         {
-            $"{L["NewGame_MyScore"]}: {d.Player}",
-            $"{L["NewGame_OpponentScore"]}: {d.Opponent}"
+            $"{L["NewGame_MyScore"]}: {d.Player1Score}",
+            $"{L["NewGame_OpponentScore"]}: {d.Player2Score}"
         };
-        if (d.Innings is not null)
+        if (d.Average is not null)
+            parts.Add($"{L["NewGame_Innings"]}: {d.Average:F3}");
+        else if (d.Innings is not null)
             parts.Add($"{L["NewGame_Innings"]}: {d.Innings}");
         if (d.HighestRun is not null)
             parts.Add($"{L["NewGame_HighestRun"]}: {d.HighestRun}");
+        if (d.PlayerBall is not null)
+            parts.Add($"Top: {d.PlayerBall}");
         return $"✓ {string.Join("  |  ", parts)}";
     }
 
     [RelayCommand]
     private void RemoveScoreboardPhoto()
     {
-        ScoreboardPhotoPath = null;
+        ScoreboardThumbnail   = null;
         ScoreboardPhotoSource = null;
     }
 
@@ -270,7 +324,8 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     public partial string? Notes { get; set; }
 
     [ObservableProperty]
-    public partial string? ScoreboardPhotoPath { get; set; }
+    [NotifyPropertyChangedFor(nameof(HasScoreboardPhoto))]
+    public partial byte[]? ScoreboardThumbnail { get; set; }
 
     [ObservableProperty]
     public partial bool IsOcrRunning { get; set; }
@@ -282,7 +337,6 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     public bool HasOcrStatus => !string.IsNullOrEmpty(OcrStatusText);
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasScoreboardPhoto))]
     public partial ImageSource? ScoreboardPhotoSource { get; set; }
 
     [ObservableProperty]
@@ -313,5 +367,5 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     public bool HasLocationError => GetErrors(nameof(Location)).Cast<object>().Any();
     public string? BallError => GetErrors(nameof(Ball)).Cast<object>().FirstOrDefault()?.ToString();
     public bool HasBallError => GetErrors(nameof(Ball)).Cast<object>().Any();
-    public bool HasScoreboardPhoto => ScoreboardPhotoSource is not null;
+    public bool HasScoreboardPhoto => ScoreboardThumbnail is { Length: > 0 };
 }

@@ -37,5 +37,5 @@ public class Player
     public PlayerStatistics Statistics { get; set; } = new();
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public override string ToString() => $"{Name} {LastName}";
+
 }

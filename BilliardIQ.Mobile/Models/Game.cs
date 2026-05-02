@@ -12,6 +12,7 @@ public class Game
     public int HighestRun { get; set; }
     public double Innings { get; set; }
     public string? Notes { get; set; }
-    public string? ScoreboardPhotoPath { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>JPEG thumbnail (~400×300, ≤30KB) stored directly in the database.</summary>
+    public byte[]? ScoreboardThumbnail { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;  
 }

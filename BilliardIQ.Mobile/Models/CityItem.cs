@@ -5,5 +5,5 @@ public class CityItem
     public int Id { get; set; }
     public int CountryId { get; set; }
     public string Name { get; set; } = string.Empty;
-    public override string ToString() => Name;
+      
 }

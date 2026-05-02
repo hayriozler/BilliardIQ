@@ -130,8 +130,8 @@
 
             <!-- Scoreboard Photo -->
             <Label Text="{Binding L[NewGame_ScoreboardPhoto]}" FontAttributes="Bold" />
-            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="8">
-                <!-- Camera icon button -->
+            <Grid ColumnDefinitions="Auto, Auto, *, Auto" ColumnSpacing="8">
+                <!-- Camera: take a new photo -->
                 <Button Grid.Column="0"
                         ImageSource="{StaticResource IconCameraAdd}"
                         Command="{Binding TakeScoreboardPhotoCommand}"
@@ -140,8 +140,17 @@
                         HeightRequest="56"
                         WidthRequest="56"
                         Padding="0" />
+                <!-- Gallery: pick from albums -->
+                <Button Grid.Column="1"
+                        ImageSource="{StaticResource IconPhotoLibrary}"
+                        Command="{Binding PickScoreboardPhotoCommand}"
+                        BackgroundColor="{StaticResource Secondary}"
+                        CornerRadius="30"
+                        HeightRequest="56"
+                        WidthRequest="56"
+                        Padding="0" />
                 <!-- Remove button (visible only when photo exists) -->
-                <Button Grid.Column="2"
+                <Button Grid.Column="3"
                         Text="{Binding L[NewGame_Remove]}"
                         Command="{Binding RemoveScoreboardPhotoCommand}"
                         IsVisible="{Binding HasScoreboardPhoto}"

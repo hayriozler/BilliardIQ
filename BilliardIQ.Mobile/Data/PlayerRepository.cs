@@ -1,167 +1,58 @@
 using BilliardIQ.Mobile.Models;
 using BilliardIQ.Mobile.Services;
-using BilliardIQ.Mobile.Utilities;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
 namespace BilliardIQ.Mobile.Data;
 
-public class PlayerRepository(ILogger<PlayerRepository> Logger) : BaseRepo(Logger)
+public class PlayerRepository(ILogger<PlayerRepository> Logger, DatabaseExecutor dbExecutor) : BaseRepo
 {
-    private readonly string _tableCreationSql = @"
-             CREATE TABLE IF NOT EXISTS Player (
-                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 Name TEXT NOT NULL,
-                 LastName TEXT NOT NULL,
-                 Level INTEGER NOT NULL,
-                 Country TEXT NOT NULL DEFAULT '',
-                 City TEXT NOT NULL DEFAULT '',
-                 Club TEXT,
-                 Association TEXT,
-                 Email TEXT NOT NULL DEFAULT '',
-                 Phone TEXT,
-                 CreatedAt DateTime NOT NULL
-             );";
-
-    private readonly string[] _migrations =
-    [
-        "ALTER TABLE Player ADD COLUMN Country TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE Player ADD COLUMN City TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE Player ADD COLUMN Club TEXT",
-        "ALTER TABLE Player ADD COLUMN Association TEXT",
-        "ALTER TABLE Player ADD COLUMN Email TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE Player ADD COLUMN Phone TEXT",
-    ];
-
-    private bool _migrationsDone = false;
-
-    private async Task EnsureMigratedAsync()
+    private async Task<int> UpsertPlayerAsync(Player player)
     {
-        if (_migrationsDone) return;
-        await InitAsync(_tableCreationSql);
-        foreach (var migration in _migrations)
+        var currentDbPlayer = await GetPlayerAsync();
+        List<SqliteParameter> parameters = [];
+        string query = @"INSERT INTO Player(Name, LastName, Level, Country, City, Club, Association, Email, Phone, CreatedAt) VALUES (@Name, @LastName, @Level, @Country, @City, @Club, @Association, @Email, @Phone, @CreatedAt)";
+        if (currentDbPlayer is null)
         {
-            SqliteCommand? cmd = null;
-            try
-            {
-                cmd = await DatabaseService.GetCommandAsync(migration);
-                await cmd.ExecuteNonQueryAsync();
-            }
-            catch { /* column already exists */ }
-            finally { Disposer.Dispose(ref cmd); }
-        }
-        _migrationsDone = true;
-    }
-
-    private async Task<SqliteCommand> GetPlayerSqliteCommandAsync(bool isPlayExists, Player player) {
-        await EnsureMigratedAsync();
-        SqliteCommand cmd;
-        if (!isPlayExists)
-        {
-            cmd = await GetSqliteCommandAsync(_tableCreationSql, @"INSERT INTO Player(Name, LastName, Level, Country, City, Club, Association, Email, Phone, CreatedAt) VALUES (@Name, @LastName, @Level, @Country, @City, @Club, @Association, @Email, @Phone, @CreatedAt)");
-            cmd.Parameters.AddWithValue("@Name", player.Name);
-            cmd.Parameters.AddWithValue("@LastName", player.LastName);
-            cmd.Parameters.AddWithValue("@Level", player.Level);
-            cmd.Parameters.AddWithValue("@Country", player.Country);
-            cmd.Parameters.AddWithValue("@City", player.City);
-            cmd.Parameters.AddWithValue("@Club", (object?)player.Club ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@Association", (object?)player.Association ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@Email", player.Email);
-            cmd.Parameters.AddWithValue("@Phone", (object?)player.Phone ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+            parameters.Add(new SqliteParameter("@CreatedAt", DateTime.UtcNow));
         }
         else
         {
-            cmd = await GetSqliteCommandAsync(_tableCreationSql, @"UPDATE Player SET Name = @Name, LastName = @LastName, Level = @Level, Country = @Country, City = @City, Club = @Club, Association = @Association, Email = @Email, Phone = @Phone");
-            cmd.Parameters.AddWithValue("@Name", player.Name);
-            cmd.Parameters.AddWithValue("@LastName", player.LastName);
-            cmd.Parameters.AddWithValue("@Level", player.Level);
-            cmd.Parameters.AddWithValue("@Country", player.Country);
-            cmd.Parameters.AddWithValue("@City", player.City);
-            cmd.Parameters.AddWithValue("@Club", (object?)player.Club ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@Association", (object?)player.Association ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@Email", player.Email);
-            cmd.Parameters.AddWithValue("@Phone", (object?)player.Phone ?? DBNull.Value);
+            query = "UPDATE Player SET Name = @Name, LastName = @LastName, Level = @Level, Country = @Country, City = @City, Club = @Club, Association = @Association, Email = @Email, Phone = @Phone";
+            parameters.Add(new SqliteParameter("@Id", player.Id));
         }
-        return cmd;
+        parameters.Add(new SqliteParameter("@Name", player.Name));
+        parameters.Add(new SqliteParameter("@LastName", player.LastName));
+        parameters.Add(new SqliteParameter("@Level", player.Level));
+        parameters.Add(new SqliteParameter("@Country", player.Country));
+        parameters.Add(new SqliteParameter("@City", player.City));
+        parameters.Add(new SqliteParameter("@Club", (object?)player.Club ?? DBNull.Value));
+        parameters.Add(new SqliteParameter("@Association", (object?)player.Association ?? DBNull.Value));
+        parameters.Add(new SqliteParameter("@Email", player.Email));
+        parameters.Add(new SqliteParameter("@Phone", (object?)player.Phone ?? DBNull.Value));
+        return await dbExecutor.ExecuteAsync(query, parameters);
     }
 
     public async Task UpsertAsync(Player player)
     {
-        SqliteCommand? cmd = null;
-        try
+        var affectedRow = await UpsertPlayerAsync(player);
+        if (affectedRow > 0)
         {
-            var currentDbPlayer = await GetPlayerAsync();
-            bool isPlayerExists = currentDbPlayer is not null;
-            cmd = await GetPlayerSqliteCommandAsync(isPlayerExists, player);
-            var result = await cmd.ExecuteNonQueryAsync();
-            if (result > 0)
-            {
-                Logger.LogInformation(isPlayerExists ? "Player has been updated successfully" : "Player has been created successfully");
-            }
-            else
-            {
-                Logger.LogDebug("Something went wrong....");
-            }
+            Logger.LogInformation("Player has been upserted successfully");
         }
-        catch (Exception e)
+        else
         {
-            Logger.LogError(e.Message);
-            throw;
-        }
-        finally
-        {
-            Disposer.Dispose(ref cmd);
+            Logger.LogDebug("Something went wrong....");
         }
     }
 
     public async Task<Player?> GetPlayerAsync()
     {
-        SqliteCommand? cmd = null;
-        try
+        var player = await dbExecutor.ReadSingleDataAsync<Player>("select * from Player", []);
+        if (player is null)
         {
-            await EnsureMigratedAsync();
-            using var reader = await GetSqliteReaderAsync(_tableCreationSql, "select * from Player", Enumerable.Empty<SqliteParameter>().ToList());
-            if (!await reader.ReadAsync() || !reader.HasRows)
-            {
-                return null;
-            }
-            var idxLevel = reader.GetOrdinal("Level");
-            var idxName = reader.GetOrdinal("Name");
-            var idxLastName = reader.GetOrdinal("LastName");
-            var idxCreatedAt = reader.GetOrdinal("CreatedAt");
-            return new Player
-            {
-                Name = reader.GetString(idxName),
-                LastName = reader.GetString(idxLastName),
-                Level = (Level)reader.GetInt32(idxLevel),
-                Country = IsDbNull(reader, "Country") ? string.Empty : reader.GetString(reader.GetOrdinal("Country")),
-                City = IsDbNull(reader, "City") ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
-                Club = IsDbNull(reader, "Club") ? null : reader.GetString(reader.GetOrdinal("Club")),
-                Association = IsDbNull(reader, "Association") ? null : reader.GetString(reader.GetOrdinal("Association")),
-                Email = IsDbNull(reader, "Email") ? string.Empty : reader.GetString(reader.GetOrdinal("Email")),
-                Phone = IsDbNull(reader, "Phone") ? null : reader.GetString(reader.GetOrdinal("Phone")),
-                CreatedAt = reader.GetDateTime(idxCreatedAt)
-            };
+            return null;
         }
-        catch (Exception e)
-        {
-            Logger.LogError(e.Message);
-            throw;
-        }
-        finally
-        {
-            Disposer.Dispose(ref cmd);
-        }
-    }
-
-    private static bool IsDbNull(SqliteDataReader reader, string column)
-    {
-        try
-        {
-            var idx = reader.GetOrdinal(column);
-            return reader.IsDBNull(idx);
-        }
-        catch { return true; }
+        return player;
     }
 }

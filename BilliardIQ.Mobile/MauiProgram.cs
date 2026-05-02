@@ -13,6 +13,21 @@ using Plugin.Maui.OCR;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 
+#if DEBUG
+using BilliardIQ.Mobile.PageModels.Debug;
+using BilliardIQ.Mobile.Pages.Debug;
+#endif
+
+#if ANDROID
+using BilliardIQ.Mobile.Platforms.Android;
+#endif
+#if WINDOWS
+using BilliardIQ.Mobile.Platforms.Windows;
+#endif
+#if IOS
+using BilliardIQ.Mobile.Platforms.iOS;
+#endif
+
 
 
 namespace BilliardIQ.Mobile;
@@ -36,15 +51,20 @@ public static class MauiProgram
                 fonts.AddFont("MaterialIcons-Regular.ttf", "MaterialIcons");
             });
 
-        #if DEBUG
+#if DEBUG
             builder.Logging.AddDebug();
             builder.Services.AddLogging(configure => configure.AddDebug());
-        #endif
+            builder.Services.AddTransient<DebugOcrPageModel>();
+            builder.Services.AddTransient<DebugOcrViewPage>();
+#endif
+        builder.Services.AddSingleton<DatabaseExecutor>();
         builder.Services.AddSingleton<PlayerRepository>();
         builder.Services.AddSingleton<GameRepository>();
         builder.Services.AddSingleton<LocationRepository>();
-        builder.Services.AddSingleton<ModalErrorHandler>();
+        builder.Services.AddSingleton<IErrorHandler, ModalErrorHandler>();
+        builder.Services.AddSingleton<IAlertHandler, ShowAlertHandler>();
         builder.Services.AddSingleton<ScoreboardOcrService>();
+        builder.Services.AddSingleton<BallDetectionService>();
         builder.Services.AddSingleton<PlayerProfilePageModel>();
         builder.Services.AddSingleton<PlayerProfileViewPage>();
         builder.Services.AddTransient<CitySearchPageModel>();
@@ -58,10 +78,7 @@ public static class MauiProgram
         builder.Services.AddTransientWithShellRoute<NewGameViewPage, NewGamePageModel>("newgame");
         builder.Services.AddTransient<PhotoAnalyzerPageModel>();
         builder.Services.AddTransient<PhotoAnalyzerViewPage>();
-        if (AppSettings.DropDatabaseOnStartup)
-            DatabaseService.DropDatabaseAsync().GetAwaiter().GetResult();
-        DatabaseService.InitializeDatabaseAsync().GetAwaiter().GetResult();
-
+        new DatabaseMigrationService(builder.Services.BuildServiceProvider().GetRequiredService<DatabaseExecutor>()).RunMigrationAsync().GetAwaiter().GetResult();
         return builder.Build();
     }
 }

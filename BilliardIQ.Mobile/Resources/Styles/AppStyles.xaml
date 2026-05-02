@@ -109,6 +109,12 @@
                 Color="{StaticResource White}"
                 Size="{StaticResource IconSize}" />
 
+    <FontImageSource x:Key="IconPhotoLibrary"
+                Glyph="{x:Static f:FluentUI.image_multiple_24_regular}"
+                FontFamily="{x:Static f:FluentUI.FontFamily}"
+                Color="{StaticResource White}"
+                Size="{StaticResource IconSize}" />
+
         <FontImageSource x:Key="IconClean"
                 Glyph="{x:Static f:FluentUI.broom_32_regular}"
                 FontFamily="{x:Static f:FluentUI.FontFamily}"

@@ -1,15 +1,14 @@
 using BilliardIQ.Mobile.Data;
 using BilliardIQ.Mobile.Models;
 using BilliardIQ.Mobile.Pages.Analyzers;
+using BilliardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace BilliardIQ.Mobile.PageModels.GamePageModels;
 
-public partial class GameListPageModel(GameRepository gameRepo, IServiceProvider services) : BasePageModel
+public partial class GameListPageModel(GameRepository GameRepo, PlayerRepository PlayerRepo, IAlertHandler AlertHandler, IServiceProvider Services) : BasePageModel
 {
-    private readonly GameRepository _gameRepo = gameRepo;
-    private readonly IServiceProvider _services = services;
 
     [ObservableProperty]
     public partial IReadOnlyList<Game> Games { get; set; } = [];
@@ -20,30 +19,43 @@ public partial class GameListPageModel(GameRepository gameRepo, IServiceProvider
     [RelayCommand]
     private async Task Appearing(string Limit)
     {
-        Games = await _gameRepo.GetGamesAsync(int.Parse(Limit));
-        Stats = await _gameRepo.GetStatsAsync();
+        Games = await GameRepo.GetGamesAsync(int.Parse(Limit));
+        Stats = await GameRepo.GetStatsAsync();
     }
 
     [RelayCommand]
-    private static async Task NavigateToGame(Game? game)
+    private async Task NavigateToGame(Game? game)
     {
         if (game is null)
-            await Shell.Current.GoToAsync($"newgame");
+        {
+            var player = await PlayerRepo.GetPlayerAsync();
+            if (player is null)
+            {
+                await AlertHandler.ShowAlertAsync("NewGame_NoProfile_Title",
+                    "NewGame_NoProfile_Message",
+                    "NewGame_NoProfile_Ok");
+                await Shell.Current.GoToAsync("//profile");
+                return;
+            }
+            await Shell.Current.GoToAsync("newgame");
+        }
         else
-            await Shell.Current.GoToAsync($"newgame", new Dictionary<string, object>
+        {
+            await Shell.Current.GoToAsync("newgame", new Dictionary<string, object>
             {
                 { "gameId", game.Id }
             });
+        }
     }
 
     [RelayCommand]
     private async Task Delete(Game? game)
     {
-        var isDeleted = await _gameRepo.DeleteGame(game?.Id);
+        var isDeleted = await GameRepo.DeleteGame(game?.Id);
         if (isDeleted)
         {
-            Games = await _gameRepo.GetGamesAsync();
-            Stats = await _gameRepo.GetStatsAsync();
+            Games = await GameRepo.GetGamesAsync();
+            Stats = await GameRepo.GetStatsAsync();
         }
     }
 
@@ -54,7 +66,7 @@ public partial class GameListPageModel(GameRepository gameRepo, IServiceProvider
         ((Android.App.Activity)Microsoft.Maui.ApplicationModel.Platform.CurrentActivity!)
             .RequestedOrientation = Android.Content.PM.ScreenOrientation.Portrait;
 #endif
-        var page = _services.GetRequiredService<PhotoAnalyzerViewPage>();
+        var page = Services.GetRequiredService<PhotoAnalyzerViewPage>();
         await Shell.Current.Navigation.PushModalAsync(page, animated: false);
     }
 }

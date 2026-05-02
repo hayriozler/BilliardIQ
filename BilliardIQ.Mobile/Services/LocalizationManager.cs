@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace BilliardIQ.Mobile.Services;
 
-public sealed class LocalizationManager : INotifyPropertyChanged
+public  sealed partial class LocalizationManager : INotifyPropertyChanged
 {
     public static readonly LocalizationManager Instance = new();
 
@@ -46,6 +46,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             // Common actions
             ["Action_Save"]   = "Save",
             ["Action_Update"] = "Update",
+            ["Action_Ok"]     = "OK",
 
             // Profile
             ["Profile_Title"]        = "Player Profile",
@@ -75,10 +76,22 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Ocr_Failed"]           = "Could not read scores from photo",
             ["Ocr_Reading"]          = "Reading scoreboard...",
 
+            // New game — profile guard
+            ["NewGame_NoProfile_Title"]   = "Profile Required",
+            ["NewGame_NoProfile_Message"] = "You need to create a player profile before adding a game.",
+            ["NewGame_NoProfile_Ok"]      = "Go to Profile",
+
             // Game (Play) page
             ["Game_Title"]       = "3-Cushion Billiards",
             ["Game_Description"] = "Tap PLAY to start a 2-player 3-cushion match.",
             ["Game_Play"]        = "PLAY",
+            ["Game_Player1"]     = "Player 1",
+            ["Game_Player2"]     = "Player 2",
+
+            // Platform not supported
+            ["Platform_DoesNotSupport"]         = "Platform Not Supported",
+            ["Platform_DoesNotSupport_Message"] = "The 3-cushion game only works on Android.",
+            ["Platform_DoesNotSupport_Ok"]      = "OK",
         },
         ["tr"] = new()
         {
@@ -112,6 +125,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
 
             ["Action_Save"]   = "Kaydet",
             ["Action_Update"] = "Güncelle",
+            ["Action_Ok"]     = "Tamam",
 
             ["Profile_Title"]         = "Oyuncu Profili",
             ["Profile_CreateHeader"]  = "Yeni Oyuncu Oluştur",
@@ -140,15 +154,25 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Ocr_Failed"]            = "Fotoğraftan skor okunamadı",
             ["Ocr_Reading"]           = "Skorbord okunuyor...",
 
+            // New game — profile guard
+            ["NewGame_NoProfile_Title"]   = "Profil Gerekli",
+            ["NewGame_NoProfile_Message"] = "Maç ekleyebilmek için önce oyuncu profili oluşturmanız gerekiyor.",
+            ["NewGame_NoProfile_Ok"]      = "Profile Git",
+
             // Game (Play) page
             ["Game_Title"]       = "3-Bant Bilardo",
             ["Game_Description"] = "2 oyunculu 3-bant maçı başlatmak için OYNA'ya dokun.",
             ["Game_Play"]        = "OYNA",
+            ["Game_Player1"]     = "Oyuncu 1",
+            ["Game_Player2"]     = "Oyuncu 2",
+
+            // Platform not supported
+            ["Platform_DoesNotSupport"]         = "Platform Desteklenmiyor",
+            ["Platform_DoesNotSupport_Message"] = "3-Bant oyunu yalnızca Android'de çalışır.",
+            ["Platform_DoesNotSupport_Ok"]      = "Tamam",
         }
     };
-
     public string CurrentLanguage => _language;
-
     public string this[string key]
     {
         get

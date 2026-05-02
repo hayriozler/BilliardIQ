@@ -6,5 +6,5 @@ public static class AppSettings
     /// Set to true to drop and recreate the database on next startup.
     /// Remember to set back to false after use.
     /// </summary>
-    public static bool DropDatabaseOnStartup { get; set; } = false;
+    public static bool DropDatabaseOnStartup { get; set; } = true;
 }

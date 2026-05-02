@@ -1,15 +1,13 @@
 using BilliardIQ.Mobile.Services;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BilliardIQ.Mobile.Platforms.Windows;
 
-// Windows'ta Unity oyunu desteklenmiyor — stub implementasyon
-public class UnityBridgeService : IUnityBridgeService
+public class UnityBridgeService(IAlertHandler AlertHandler) : IUnityBridgeService
 {
-    public void LaunchGame(string player1Name, string player2Name, int targetScore)
-    {
-        Application.Current!.MainPage!.DisplayAlert(
-            "Platform Desteklenmiyor",
-            "3-Bant oyunu yalnızca Android'de çalışır.",
-            "Tamam");
-    }
+    public void LaunchGame(string player1Name, string player2Name, int targetScore) =>    
+        AlertHandler.ShowAlertAsync(
+            "Platform_DoesNotSupport",
+                "Platform_DoesNotSupport_Message",
+                "Platform_DoesNotSupport_Ok");
+  
 }

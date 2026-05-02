@@ -1,10 +1,23 @@
-﻿using CommunityToolkit.Maui.Alerts;
+﻿using BilliardIQ.Mobile.Pages.Debug;
+using CommunityToolkit.Maui.Alerts;
 
 namespace BilliardIQ.Mobile;
 
 public partial class AppShell : Shell
 {
-    public AppShell() => InitializeComponent();
+    public AppShell()
+    {
+        InitializeComponent();
+
+#if DEBUG
+        Items.Add(new ShellContent
+        {
+            Title           = "🐛 Debug OCR",
+            ContentTemplate = new DataTemplate(typeof(DebugOcrViewPage)),
+            Route           = "debugocr"
+        });
+#endif
+    }
 
     public static async Task DisplayToastAsync(string message)
     {

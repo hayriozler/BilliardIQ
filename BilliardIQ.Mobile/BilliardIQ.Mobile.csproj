@@ -25,6 +25,8 @@
 		<!-- AOT compiler crashes on Windows with certain SDK versions (exit code -1073740791).
 		     Disabling AOT produces a working APK; startup is ~100ms slower but functionally identical. -->
 		<RunAOTCompilation Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">false</RunAOTCompilation>
+		<EmbedAssembliesIntoApk Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">true</EmbedAssembliesIntoApk>
+		<AndroidUseAssemblyStore Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">false</AndroidUseAssemblyStore>
 		<LangVersion>preview</LangVersion>
 
 		<!-- Versions -->
@@ -81,6 +83,10 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.5" />
 		<PackageReference Include="Plugin.Maui.OCR" Version="1.1.1" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.51" />
+		<!-- ONNX Runtime: YOLOv8 ball detection + future on-device models (Android, iOS, Windows) -->
+		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.25.1" />
+		<!-- SkiaSharp: image decode/resize for ONNX preprocessing (transitively available, made explicit) -->
+		<PackageReference Include="SkiaSharp" Version="3.119.2" />
 	</ItemGroup>
 
 	<ItemGroup>

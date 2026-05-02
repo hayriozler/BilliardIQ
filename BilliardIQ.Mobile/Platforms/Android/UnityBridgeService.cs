@@ -1,13 +1,12 @@
-using Android.App;
 using Android.Content;
 using BilliardIQ.Mobile.Services;
 using System.Text.Json;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BilliardIQ.Mobile.Platforms.Android;
 
 public class UnityBridgeService : IUnityBridgeService
 {
-    private const int RequestCodeUnity = 1001;
+    private const int _requestCodeUnity = 1001;
 
     public void LaunchGame(string player1Name, string player2Name, int targetScore)
     {
@@ -21,10 +20,9 @@ public class UnityBridgeService : IUnityBridgeService
             targetScore
         });
 
-        // UnityPlayerActivity'yi başlat — oyun biter/kapatılırsa MAUI'ye döner
         var intent = new Intent(activity, Java.Lang.Class.ForName("com.unity3d.player.UnityPlayerActivity"));
         intent.PutExtra("gameData", data);
         intent.AddFlags(ActivityFlags.ReorderToFront);
-        activity.StartActivityForResult(intent, RequestCodeUnity);
+        activity.StartActivityForResult(intent, _requestCodeUnity);
     }
 }
