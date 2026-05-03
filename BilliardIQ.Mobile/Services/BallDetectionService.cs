@@ -27,7 +27,6 @@ public record DetectedBall(BallColor Color, float CenterX, float CenterY, float 
 /// Platform support (Microsoft.ML.OnnxRuntime 1.25.1)
 ///   Android  — CPU + NNAPI acceleration (Android 8.1+)
 ///   iOS      — CPU + CoreML acceleration
-///   Windows  — CPU + DirectML acceleration
 /// </summary>
 public sealed class BallDetectionService : IDisposable
 {

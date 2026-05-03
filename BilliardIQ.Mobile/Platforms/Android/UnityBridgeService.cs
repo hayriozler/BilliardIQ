@@ -6,7 +6,7 @@ namespace BilliardIQ.Mobile.Platforms.Android;
 
 public class UnityBridgeService : IUnityBridgeService
 {
-    private const int _requestCodeUnity = 1001;
+    public const int RequestCodeUnity = 1001;
 
     public void LaunchGame(string player1Name, string player2Name, int targetScore)
     {
@@ -23,6 +23,6 @@ public class UnityBridgeService : IUnityBridgeService
         var intent = new Intent(activity, Java.Lang.Class.ForName("com.unity3d.player.UnityPlayerActivity"));
         intent.PutExtra("gameData", data);
         intent.AddFlags(ActivityFlags.ReorderToFront);
-        activity.StartActivityForResult(intent, _requestCodeUnity);
+        activity.StartActivityForResult(intent, RequestCodeUnity);
     }
 }

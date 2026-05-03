@@ -21,9 +21,6 @@ using BilliardIQ.Mobile.Pages.Debug;
 #if ANDROID
 using BilliardIQ.Mobile.Platforms.Android;
 #endif
-#if WINDOWS
-using BilliardIQ.Mobile.Platforms.Windows;
-#endif
 #if IOS
 using BilliardIQ.Mobile.Platforms.iOS;
 #endif

@@ -87,7 +87,7 @@
                             </Border.StrokeShape>
                             <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto" RowSpacing="3">
                                 <Label Grid.Row="0" Grid.Column="0"
-                                       Text="{Binding OpponentName}" FontAttributes="Bold" />
+                                       Text="{Binding Opponent}" FontAttributes="Bold" />
                                 <Label Grid.Row="0" Grid.Column="1" FontAttributes="Bold" HorizontalOptions="End">
                                     <Label.FormattedText>
                                         <FormattedString>

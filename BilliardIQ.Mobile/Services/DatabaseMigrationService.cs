@@ -7,23 +7,23 @@ internal sealed class DatabaseMigrationService(DatabaseExecutor dbExecutor)
 {
     internal abstract class BaseDatabaseMigrationService
     {
-        internal static void DropDatabaseFileIfExists()
-        {
-            try
-            {
-                var fileName = $"{FileSystem.AppDataDirectory}/{Constants.DatabaseFileName}";
-                if (File.Exists(fileName))
-                {
-                    File.Delete(fileName);
-                    Console.WriteLine("Old database deleted.");
-                }
+        //internal static void DropDatabaseFileIfExists()
+        //{
+        //    try
+        //    {
+        //        var fileName = $"{FileSystem.AppDataDirectory}/{Constants.DatabaseFileName}";
+        //        if (File.Exists(fileName))
+        //        {
+        //            File.Delete(fileName);
+        //            Console.WriteLine("Old database deleted.");
+        //        }
 
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
+        //    }
+        //    catch (Exception)
+        //    {
+        //        throw;
+        //    }
+        //}
 
         internal abstract Task RunAsync();
     }
@@ -35,8 +35,8 @@ internal sealed class DatabaseMigrationService(DatabaseExecutor dbExecutor)
 
     private static async Task InitializeDatabaseAsync()
     {
-        if (AppSettings.DropDatabaseOnStartup)
-            BaseDatabaseMigrationService.DropDatabaseFileIfExists();
+        //if (Preferences.Get("DropDatabaseOnStartup", false))
+        //    BaseDatabaseMigrationService.DropDatabaseFileIfExists();
         var connection = DatabaseExecutor.GetNewDbConnection();
         await connection.OpenAsync();
         await connection.DisposeAsync();
