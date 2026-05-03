@@ -120,7 +120,7 @@ public partial class PlayerProfilePageModel(PlayerRepository PlayerRepo, Locatio
         SelectedCity = null;
         Cities.Clear();
         if (value is null) return;
-        foreach (var city in _allCitiesCache.Where(c => c.CountryId == value.Id))
+        foreach (var city in _allCitiesCache.Where(c => c.CountryCode == value.Code))
             Cities.Add(city);
     }
 
@@ -162,7 +162,7 @@ public partial class PlayerProfilePageModel(PlayerRepository PlayerRepo, Locatio
 
             foreach (var country in countries)
             {
-                var cities = await LocationRepo.GetCitiesByCountryIdAsync(country.Id);
+                var cities = await LocationRepo.GetCitiesByCountryAsync(country.Code);
                 _allCitiesCache.AddRange(cities);
             }
         }

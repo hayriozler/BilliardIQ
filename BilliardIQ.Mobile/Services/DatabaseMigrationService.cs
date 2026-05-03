@@ -53,13 +53,12 @@ internal sealed class DatabaseMigrationService(DatabaseExecutor dbExecutor)
     {
         private readonly string _tableCreationSql = @"
 CREATE TABLE IF NOT EXISTS Countries (
-    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-    Code TEXT NOT NULL UNIQUE,
+    Code TEXT NOT NULL PRIMARY KEY ,
     Name TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS Cities (
     Id INTEGER PRIMARY KEY AUTOINCREMENT,
-    CountryId INTEGER NOT NULL,
+    CountryCode TEXT NOT NULL,
     Name TEXT NOT NULL
 );";
         private static readonly (string Code, string Name)[] _seedCountries =
@@ -102,12 +101,11 @@ CREATE TABLE IF NOT EXISTS Cities (
         internal async override Task RunAsync()
         {
             var created = await dbExecutor.ExecuteAsync(_tableCreationSql);
-            if (created == 0)
+            if (created)
             {
                 await EnsureSeededAsync();
             }
         }
-
         private async Task EnsureSeededAsync()
         {
             foreach (var (code, name) in _seedCountries)
@@ -118,7 +116,7 @@ CREATE TABLE IF NOT EXISTS Cities (
 
             foreach (var (countryCode, cityName) in _seedCities)
             {
-                    await dbExecutor.ExecuteAsync("INSERT INTO Cities(CountryId, Name) SELECT Id, @City FROM Countries WHERE Code=@Code",
+                    await dbExecutor.ExecuteAsync("INSERT INTO Cities(CountryCode, Name) SELECT Code, @City FROM Countries WHERE Code=@Code",
                         [new("@City", cityName), new("@Code", countryCode)]);
             }
         }
@@ -126,6 +124,7 @@ CREATE TABLE IF NOT EXISTS Cities (
 
     private sealed class GameTableMigrationService(DatabaseExecutor dbExecutor) : BaseDatabaseMigrationService
     {
+        //Opponent
         readonly string _tableCreationSql = @"
             CREATE TABLE IF NOT EXISTS Games (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,

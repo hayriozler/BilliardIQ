@@ -45,8 +45,5 @@ public partial class CitySearchPageModel(PlayerProfilePageModel ProfileModel) : 
     }
 
     [RelayCommand]
-    private static async Task Cancel()
-    {
-        await Shell.Current.Navigation.PopModalAsync(animated: true);
-    }
+    private static async Task Cancel() => await Shell.Current.Navigation.PopModalAsync(animated: true);
 }

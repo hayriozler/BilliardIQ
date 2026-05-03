@@ -20,20 +20,20 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
         List<SqliteParameter> parameters = [];
         string executeSql = "INSERT INTO Games(OpponentName, Ball, Location, Date, PlayerScore, OpponentScore, HighestRun, Innings, Notes, ScoreboardThumbnail, CreatedAt) VALUES (@OpponentName, @Ball, @Location, @Date, @PlayerScore, @OpponentScore, @HighestRun, @Innings, @Notes, @ScoreboardThumbnail, @CreatedAt); SELECT last_insert_rowid();";
         int gameId = id ?? 0;
-        if (gameId !=  0)
+        if (gameId ==  0)
+        {
+            parameters.Add(new SqliteParameter("@CreatedAt", DateTime.Now));
+        }
+        else
         {
             if (await GetGameByIdAsync(gameId) is not null)
             {
-                Logger.LogInformation("Game with Id {Id} not found. Continue with insertion.", id);
+                Logger.LogInformation("Game with Id {Id} found. Continue with insertion.", id);
                 executeSql = "UPDATE Games SET OpponentName = @OpponentName, Ball = @Ball, Location = @Location, Date = @Date, PlayerScore = @PlayerScore, OpponentScore = @OpponentScore, HighestRun = @HighestRun, Innings = @Innings, Notes = @Notes, ScoreboardThumbnail = @ScoreboardThumbnail Where Id=@Id";
                 parameters.Add(new SqliteParameter("@Id", gameId));
             }
-            else
-            {
-                parameters.Add(new SqliteParameter("@CreatedAt", DateTime.Now));
-            }
         }
-        parameters.Add(new SqliteParameter("@OpponentName", game.OpponentName));
+        parameters.Add(new SqliteParameter("@OpponentName", game.Opponent));
         parameters.Add(new SqliteParameter("@Ball", game.Ball));
         parameters.Add(new SqliteParameter("@Location", game.Location ?? (object)DBNull.Value));
         parameters.Add(new SqliteParameter("@Date", game.Date));
@@ -44,7 +44,7 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
         parameters.Add(new SqliteParameter("@Notes", game.Notes ?? (object)DBNull.Value));
         parameters.Add(new SqliteParameter("@ScoreboardThumbnail", game.ScoreboardThumbnail ?? (object)DBNull.Value));
         var affectedRow = await dbExecutor.ExecuteAsync(executeSql, parameters);
-        if (affectedRow > 0)
+        if (affectedRow)
         {
             Logger.LogInformation("Game upserted with Id {Id}", gameId);
         }
@@ -59,20 +59,9 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
     }
     public async Task<IReadOnlyList<Game>> GetGamesAsync(int limit = 15)
     {
-        string sql = $"SELECT Id, OpponentName, Ball, Location, Date, PlayerScore, OpponentScore, HighestRun, Innings FROM Games ORDER BY Date DESC LIMIT {limit}";
-        return await dbExecutor.ReadDataAsync<Game>(sql);
+        string sql = $"SELECT Id, OpponentName , Ball, Location, Date, PlayerScore, OpponentScore, HighestRun, Innings FROM Games ORDER BY Date DESC LIMIT @limit";
+        return await dbExecutor.ReadDataAsync<Game>(sql, [new("@limit", limit)]);
     }
-
-    public async Task DeletePhoto(int Id, string PhotoName)
-    {
-        var parameters = new List<SqliteParameter> { new("@Id", Id), new("@PhotoName", PhotoName) };
-        var result = await dbExecutor.ExecuteAsync(@"DELETE FROM GamePhotos WHERE Id = @Id AND PhotoName = @PhotoName", parameters);
-        if (result > 0)
-            Logger.LogInformation("Photo has been deleted successfully");
-        else
-            Logger.LogDebug("Something went wrong....");
-    }
-
     public async Task AddPhotoAsync(int GameId, string PhotoName, string PhotoPath)
     {
         var parameters = new List<SqliteParameter> { new("@GameId", GameId),
@@ -81,21 +70,17 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
                 new("@CreatedAt", DateTime.UtcNow)
             };
         var result = await dbExecutor.ExecuteAsync(@"INSERT INTO GamePhotos(GameId, PhotoName, PhotoPath, CreatedAt) VALUES (@GameId, @PhotoName, @PhotoPath, @CreatedAt)", parameters);
-        if (result > 0)
+        if (result )
             Logger.LogInformation("Photo has been added successfully");
         else
             Logger.LogDebug("Something went wrong....");
     }
 
-    public async Task<Game?> GetGameByIdAsync(int Id)
-    {
-        var sqlParameters = new List<SqliteParameter> { new("@Id", Id) };
-        return await dbExecutor.ReadSingleDataAsync<Game>(@"Select * From Games Where Id = @Id", sqlParameters);
-    }
+    public async Task<Game?> GetGameByIdAsync(int Id) => await dbExecutor.ReadSingleDataAsync<Game>(@"Select * From Games Where Id = @Id", [new("@Id", Id)]);
     public async Task<PlayerSummaryStats> GetStatsAsync()
     {
         var playerSummaryStats = await dbExecutor.ReadSingleDataAsync<PlayerSummaryStats>("SELECT TotalMatches, Average, BestAverage, HighestRun FROM PlayerStats LIMIT 1");
-        if(playerSummaryStats is null) return new PlayerSummaryStats
+        playerSummaryStats ??= new PlayerSummaryStats
         {
             TotalMatches = 0,
             Average = 0,
@@ -148,9 +133,9 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
     private async Task DeleteGameRecordsAsync(int id)
     {
         await dbExecutor.ExecuteAsync("""
-                DELETE FROM GamePhotos WHERE GameId = @Id
-                DELETE FROM GameStats WHERE GameId = @Id
-                DELETE FROM Games WHERE Id = @Id
+                DELETE FROM GamePhotos WHERE GameId = @Id;
+                DELETE FROM GameStats WHERE GameId = @Id;
+                DELETE FROM Games WHERE Id = @Id;
                 """,
                 [new("@Id", id)]);
         Logger.LogInformation("Game {Id} deleted", id);

@@ -1,6 +1,7 @@
 ﻿using BilliardIQ.Mobile.Utilities;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 
 namespace BilliardIQ.Mobile.Services;
 public class DatabaseExecutor(ILogger<DatabaseExecutor> Logger)
@@ -27,7 +28,7 @@ public class DatabaseExecutor(ILogger<DatabaseExecutor> Logger)
        
     }
       
-    internal async Task<int> ExecuteAsync(string query, List<SqliteParameter>? parameters = null)
+    internal async Task<bool> ExecuteAsync(string query, List<SqliteParameter>? parameters = null)
     {
         SqliteCommand? command = null;
         try
@@ -41,9 +42,9 @@ public class DatabaseExecutor(ILogger<DatabaseExecutor> Logger)
             if (command is not null)
             {
                 await command.Connection!.OpenAsync();
-                return await command.ExecuteNonQueryAsync();
+                return await command.ExecuteNonQueryAsync() >= 0;
             }
-            return -1;
+            return false;
         }
         catch (Exception e)
         {
@@ -73,16 +74,44 @@ public class DatabaseExecutor(ILogger<DatabaseExecutor> Logger)
             await command.Connection!.OpenAsync();
             reader = await command.ExecuteReaderAsync();
             if (!reader.HasRows) return result;
+
+            var customAttrDic = typeof(T).GetProperties()
+            .Select(p => (p, attr: p.GetCustomAttribute<DbFieldNameAttribute>()))
+            .Where(x => x.attr != null)
+            .ToDictionary(
+                x => x.attr!.FieldName,
+                x => x.p.Name
+            );
             while (await reader.ReadAsync())
             {
                 T item = new();
                 for (int i = 0; i < reader.FieldCount; i++)
                 {
-                    var property = typeof(T).GetProperty(reader.GetName(i));
-                    if (property is not null && !await reader.IsDBNullAsync(i))
+                    var fieldName = reader.GetName(i);
+                    PropertyInfo? propertyInfo = null;
+                    if (customAttrDic.TryGetValue(fieldName, out string? propertyName))
+                        propertyInfo = typeof(T).GetProperty(propertyName);
+                    else propertyInfo = typeof(T).GetProperty(fieldName);
+                    if (propertyInfo is not null && !await reader.IsDBNullAsync(i))
                     {
                         var value = reader.GetValue(i);
-                        property.SetValue(item, value);
+                        if((propertyInfo.PropertyType == typeof(Int32) || propertyInfo.PropertyType.IsEnum))
+                        {
+                            propertyInfo.SetValue(item, Convert.ToInt32(value));
+                        }
+                        else if (propertyInfo.PropertyType == typeof(DateTime))
+                        {
+                            propertyInfo.SetValue(item, Convert.ToDateTime(value));
+                        }
+                        else if (propertyInfo.PropertyType == typeof(bool))
+                        {
+                            propertyInfo.SetValue(item, Convert.ToBoolean(value));
+                        }
+                        else
+                        {
+                            propertyInfo.SetValue(item, value);
+                        }
+                        
                     }
                 }
                 result.Add(item);

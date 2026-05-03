@@ -31,10 +31,10 @@ public record DetectedBall(BallColor Color, float CenterX, float CenterY, float 
 /// </summary>
 public sealed class BallDetectionService : IDisposable
 {
-    private const string ModelAsset    = "billiard_balls.onnx";
-    private const int    InputSize     = 640;
-    private const float  ConfThreshold = 0.45f;
-    private const float  IouThreshold  = 0.45f;
+    private const string _modelAsset    = "billiard_balls.onnx";
+    private const int    _inputSize     = 640;
+    private const float  _confThreshold = 0.45f;
+    private const float  _iouThreshold  = 0.45f;
 
     private InferenceSession? _session;
     private bool _modelMissing;
@@ -52,7 +52,7 @@ public sealed class BallDetectionService : IDisposable
 
         try
         {
-            using var stream = await FileSystem.OpenAppPackageFileAsync(ModelAsset);
+            using var stream = await FileSystem.OpenAppPackageFileAsync(_modelAsset);
             using var ms     = new MemoryStream();
             await stream.CopyToAsync(ms);
 
@@ -119,17 +119,17 @@ public sealed class BallDetectionService : IDisposable
         origW = skBitmap.Width;
         origH = skBitmap.Height;
 
-        float scale = Math.Min((float)InputSize / origW, (float)InputSize / origH);
+        float scale = Math.Min((float)_inputSize / origW, (float)_inputSize / origH);
         int   newW  = (int)(origW * scale);
         int   newH  = (int)(origH * scale);
-        padX  = (InputSize - newW) / 2;
-        padY  = (InputSize - newH) / 2;
+        padX  = (_inputSize - newW) / 2;
+        padY  = (_inputSize - newH) / 2;
         scaleX = scale;
         scaleY = scale;
 
         // Create 640×640 grey canvas and draw scaled image
         using var surface = SKSurface.Create(
-            new SKImageInfo(InputSize, InputSize, SKColorType.Rgb888x));
+            new SKImageInfo(_inputSize, _inputSize, SKColorType.Rgb888x));
         var canvas = surface.Canvas;
         canvas.Clear(new SKColor(114, 114, 114));   // standard letterbox grey
         canvas.DrawBitmap(skBitmap,
@@ -143,10 +143,10 @@ public sealed class BallDetectionService : IDisposable
     private static DenseTensor<float> BuildInputTensor(byte[] pngBytes)
     {
         using var bmp = SKBitmap.Decode(pngBytes);
-        var tensor = new DenseTensor<float>([1, 3, InputSize, InputSize]);
+        var tensor = new DenseTensor<float>([1, 3, _inputSize, _inputSize]);
 
-        for (int y = 0; y < InputSize; y++)
-        for (int x = 0; x < InputSize; x++)
+        for (int y = 0; y < _inputSize; y++)
+        for (int x = 0; x < _inputSize; x++)
         {
             var px = bmp.GetPixel(x, y);
             tensor[0, 0, y, x] = px.Red   / 255f;   // R
@@ -180,7 +180,7 @@ public sealed class BallDetectionService : IDisposable
             float p2 = raw[6 * cols + a];   // red prob
 
             float conf = MathF.Max(p0, MathF.Max(p1, p2));
-            if (conf < ConfThreshold) continue;
+            if (conf < _confThreshold) continue;
 
             var color = (p0 >= p1 && p0 >= p2) ? BallColor.White
                       : (p1 >= p2)              ? BallColor.Yellow
@@ -210,7 +210,7 @@ public sealed class BallDetectionService : IDisposable
                     best.conf));
 
                 // Remove overlapping detections of the same class
-                cls_cands.RemoveAll(c => Iou(best, c) > IouThreshold);
+                cls_cands.RemoveAll(c => Iou(best, c) > _iouThreshold);
             }
         }
 

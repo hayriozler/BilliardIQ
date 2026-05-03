@@ -89,14 +89,12 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     [RelayCommand]
     private async Task Appearing()
     {
-        LoadRecentLocations();
-
         if (_gameId is null) return;
-
+        LoadRecentLocations();
         var game = await _gameRepo.GetGameByIdAsync(_gameId.Value);
         if (game is null) return;
 
-        OpponentName = game.OpponentName;
+        OpponentName = game.Opponent;
         Location = game.Location;
         Date = game.Date;
         PlayerScore = game.PlayerScore;
@@ -124,7 +122,7 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
         await _gameRepo.UpsertGameAsync(_gameId, new Game
         {
             Location            = locationToSave,
-            OpponentName        = OpponentName,
+            Opponent            = OpponentName,
             Date                = Date,
             Ball                = Ball?.Name,
             PlayerScore         = PlayerScore,

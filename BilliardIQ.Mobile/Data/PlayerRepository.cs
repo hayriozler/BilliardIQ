@@ -7,7 +7,7 @@ namespace BilliardIQ.Mobile.Data;
 
 public class PlayerRepository(ILogger<PlayerRepository> Logger, DatabaseExecutor dbExecutor) : BaseRepo
 {
-    private async Task<int> UpsertPlayerAsync(Player player)
+    private async Task<bool> UpsertPlayerAsync(Player player)
     {
         var currentDbPlayer = await GetPlayerAsync();
         List<SqliteParameter> parameters = [];
@@ -36,7 +36,7 @@ public class PlayerRepository(ILogger<PlayerRepository> Logger, DatabaseExecutor
     public async Task UpsertAsync(Player player)
     {
         var affectedRow = await UpsertPlayerAsync(player);
-        if (affectedRow > 0)
+        if (affectedRow)
         {
             Logger.LogInformation("Player has been upserted successfully");
         }
@@ -51,6 +51,7 @@ public class PlayerRepository(ILogger<PlayerRepository> Logger, DatabaseExecutor
         var player = await dbExecutor.ReadSingleDataAsync<Player>("select * from Player", []);
         if (player is null)
         {
+            Logger.LogDebug("Plater could not be found....");
             return null;
         }
         return player;
