@@ -2,14 +2,8 @@ using SkiaSharp;
 
 namespace BilliardIQ.Mobile.Services;
 
-/// <summary>Bilardo masası fotoğrafından elde edilen top ve köşe bilgileri.</summary>
-/// <param name="Color">Topun rengi.</param>
-/// <param name="CenterX">Görüntü genişliğine göre yatay merkez (0–1).</param>
-/// <param name="CenterY">Görüntü yüksekliğine göre dikey merkez (0–1).</param>
-/// <param name="Radius">Büyük boyuta (width/height max) göre yarıçap (0–1).</param>
 public record TableBall(BallColor Color, float CenterX, float CenterY, float Radius);
 
-/// <summary>Masa analizi sonucu.</summary>
 public class TableAnalysisResult
 {
     public IReadOnlyList<TableBall> Balls { get; init; } = [];
@@ -22,17 +16,25 @@ public class TableAnalysisResult
 /// <summary>
 /// Bilardo masası fotoğrafından top ve masa köşelerini tespit eder.
 ///
-/// Çalışma adımları:
-///   1. Görüntü analiz için 640px'e ölçeklenir (performans).
-///   2. Her piksel HSV rengine çevrilir; yeşil (masa örtüsü), beyaz/sarı/kırmızı maskeleri oluşturulur.
-///   3. Masa köşeleri: yeşil bölgenin köşegen-ekstrem noktaları (Sol-Üst, Sağ-Üst, Sağ-Alt, Sol-Alt).
-///   4. Toplar: önce ONNX modeli denenir; model yoksa her renk maskesinde BFS flood-fill ile en büyük
-///      bağlı bileşen bulunur (1 beyaz, 1 sarı, 1 kırmızı).
-///   5. Tespit sonuçları orijinal görüntü üzerine çizilir ve JPEG olarak döndürülür.
+/// Renk önceliği (önemli — eski sürümde hata kaynağıydı):
+///   Beyaz → Sarı → Kırmızı → Yeşil (masa)
+///   Sarı topun Hue değeri (≈55-72°) yeşil alt sınırıyla çakışabilir.
+///   Bu yüzden top renkleri yeşilden ÖNCE kontrol edilip "continue" ile geçilir;
+///   yeşil maske yalnızca top olmayan piksellere uygulanır.
+///
+/// Köşe tespiti:
+///   Görüntü dört eşit bölgeye (quadrant) ayrılır.
+///   Her bölgede kendi köşesine en yakın yeşil piksel köşegen projeksiyonla bulunur:
+///     Sol-Üst quadrant  → min(x + y)
+///     Sağ-Üst quadrant  → min(y − x)
+///     Sağ-Alt quadrant  → max(x + y)
+///     Sol-Alt quadrant  → max(y − x)
+///   Quadrant ayrımı, karşı köşedeki gürültü piksellerinin yanlış köşe
+///   noktası seçmesini önler.
 /// </summary>
 public class TableVisionService(BallDetectionService onnxDetector)
 {
-    private const int WorkDim = 640; // analiz için hedef boyut
+    private const int WorkDim = 640;
 
     public async Task<TableAnalysisResult> AnalyzeAsync(string imagePath)
     {
@@ -42,12 +44,9 @@ public class TableVisionService(BallDetectionService onnxDetector)
 
     public async Task<TableAnalysisResult> AnalyzeBytesAsync(byte[] imageBytes)
     {
-        // ONNX modeli varsa onu kullan (daha hızlı ve doğru)
         var onnxBalls = await onnxDetector.DetectAsync(imageBytes);
         return await Task.Run(() => RunAnalysis(imageBytes, onnxBalls));
     }
-
-    // ── Çekirdek analiz ───────────────────────────────────────────────────────
 
     private static TableAnalysisResult RunAnalysis(byte[] imageBytes, IReadOnlyList<DetectedBall> onnxBalls)
     {
@@ -56,40 +55,28 @@ public class TableVisionService(BallDetectionService onnxDetector)
             return new TableAnalysisResult { StatusMessage = "Görüntü okunamadı." };
 
         int ow = orig.Width, oh = orig.Height;
-
-        // Büyük kenara göre WorkDim'e kadar küçült (upsample yapma)
-        float scale = (float)WorkDim / Math.Max(ow, oh);
-        scale = Math.Min(scale, 1f);
-        int ww = Math.Max(1, (int)(ow * scale));
-        int wh = Math.Max(1, (int)(oh * scale));
+        float scale = MathF.Min((float)WorkDim / MathF.Max(ow, oh), 1f);
+        int ww = MathF.Max(1, (int)(ow * scale));
+        int wh = MathF.Max(1, (int)(oh * scale));
 
         using var work = ScaleBitmap(orig, ww, wh);
-
-        // HSV renk maskeleri
         var (greenMask, whiteMask, yellowMask, redMask) = BuildMasks(work, ww, wh);
 
-        // Masa köşeleri (yeşil bölgenin ekstrem noktaları)
         var corners = FindCorners(greenMask, ww, wh, scale);
 
-        // Top tespiti
         List<TableBall> balls;
         if (onnxBalls.Count > 0)
         {
-            // ONNX modeli: relative [0,1] koordinatları kullan
             int tableW = EstimateTableWidth(greenMask, ww, wh);
-            balls = [..onnxBalls.Select(b =>
-            {
-                float r = tableW * 0.021f / Math.Max(ww, wh); // toplarda top/tablo ~%2.1
-                return new TableBall(b.Color, b.CenterX, b.CenterY, r);
-            })];
+            balls = [..onnxBalls.Select(b => new TableBall(
+                b.Color, b.CenterX, b.CenterY,
+                tableW * 0.021f / MathF.Max(ww, wh)))];
         }
         else
         {
-            // Fallback: renk segmentasyonu
             balls = DetectByColor(whiteMask, yellowMask, redMask, ww, wh);
         }
 
-        // Orijinal görüntüye bindirme çiz
         byte[] annotated = DrawAnnotations(orig, balls, corners);
 
         return new TableAnalysisResult
@@ -103,6 +90,16 @@ public class TableVisionService(BallDetectionService onnxDetector)
 
     // ── Renk maskeleri ────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// HSV renk maskelerini oluşturur.
+    ///
+    /// KRİTİK SIRALAMA: Top renkleri yeşilden önce kontrol edilir.
+    /// Sarı topun H ≈ 55-72° ile yeşil maskenin alt sınırı (H ≥ 65°) örtüşebilir.
+    /// Eğer yeşil önce kontrol edilirse sarı top "masa" olarak sınıflandırılır
+    /// ve sarı maske hiç dolmaz → top bulunamaz.
+    ///
+    /// Çözüm: beyaz → sarı → kırmızı → (kalan her şey için) yeşil
+    /// </summary>
     private static (bool[] green, bool[] white, bool[] yellow, bool[] red)
         BuildMasks(SKBitmap bmp, int w, int h)
     {
@@ -118,17 +115,36 @@ public class TableVisionService(BallDetectionService onnxDetector)
             int idx = y * w + x;
             RgbToHsv(px.Red, px.Green, px.Blue, out float hue, out float sat, out float val);
 
-            // Yeşil (masa örtüsü): tipik bilardo keçesi rengi H=80-175, doygun, orta parlak
-            green[idx] = hue is >= 70f and <= 180f && sat > 0.22f && val > 0.12f;
+            // 1. Beyaz top: yüksek parlaklık + düşük doygunluk → top renk kontrolünden ilk geçer
+            if (val > 0.78f && sat < 0.22f)
+            {
+                white[idx] = true;
+                continue; // bu piksel başka maskeye girmesin
+            }
 
-            if (green[idx]) continue;
+            // 2. Sarı top: H = 15-78° (geniş sarı-turuncu bant), doygun, orta parlak
+            //    Üst sınır 78°'ye çıkarıldı çünkü bazı sarı toplar hafif yeşilimsi görünür.
+            //    Yeşilden ÖNCE kontrol edilir; aksi halde H=68-72° olan top yeşil maskesine girer.
+            if (hue is >= 15f and <= 78f && sat > 0.38f && val > 0.28f)
+            {
+                yellow[idx] = true;
+                continue;
+            }
 
-            // Beyaz top: yüksek parlaklık, düşük doygunluk (gri değil, parlak beyaz)
-            white[idx]  = val > 0.78f && sat < 0.22f;
-            // Sarı top: H=22-68 (sarı bant), yüksek doygunluk, orta parlaklık
-            yellow[idx] = hue is >= 22f and <= 68f && sat > 0.45f && val > 0.35f;
-            // Kırmızı top: H=0-20 veya 340-360 (kırmızı bant), yüksek doygunluk
-            red[idx]    = (hue <= 20f || hue >= 340f) && sat > 0.45f && val > 0.25f;
+            // 3. Kırmızı top: H = 0-22° veya 338-360° (kırmızı çemberi), doygun
+            if ((hue <= 22f || hue >= 338f) && sat > 0.38f && val > 0.20f)
+            {
+                red[idx] = true;
+                continue;
+            }
+
+            // 4. Yeşil (masa örtüsü): yalnızca top olmayan pikseller buraya gelir.
+            //    H = 60-200°: geniş aralık; loş ışıkta veya yıpranmış keçede H kayması olabilir.
+            //    Saturation eşiği düşük: flaş altında soluk yeşil yüzeyler de yakalanır.
+            if (hue is >= 60f and <= 200f && sat > 0.15f && val > 0.08f)
+            {
+                green[idx] = true;
+            }
         }
 
         return (green, white, yellow, red);
@@ -137,48 +153,68 @@ public class TableVisionService(BallDetectionService onnxDetector)
     // ── Köşe tespiti ──────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Yeşil bölgenin dört köşelik ekstrem noktalarını bulur.
+    /// Görüntüyü dört quadrant'a böler; her quadrant'ta kendi köşesine en yakın
+    /// yeşil pikseli köşegen projeksiyon yöntemiyle bulur.
     ///
-    /// Yöntem — köşegen projeksiyon:
-    ///   Sol-Üst  : min(x + y)   → sol-üst köşeye en yakın yeşil piksel
-    ///   Sağ-Üst  : min(y − x)   → sağ-üst köşeye en yakın yeşil piksel
-    ///   Sağ-Alt  : max(x + y)   → sağ-alt köşeye en yakın yeşil piksel
-    ///   Sol-Alt  : max(y − x)   → sol-alt köşeye en yakın yeşil piksel
+    /// Quadrant ayrımı neden önemli?
+    ///   Eski tek-geçiş yönteminde, sağ-alt köşedeki birkaç gürültü pikseli
+    ///   sol-üst köşenin "minimum" değerini ezebiliyordu.
+    ///   Quadrant ayrımıyla her köşe kendi bölgesinde aranır → gürültüden etkilenmez.
     ///
-    /// Bu dört nokta, masanın perspektif bozukluğunu içeren dörtgenini oluşturur.
+    /// Her quadrant için minimum arama yeterli yeşil piksel içermiyorsa
+    /// (< 50 piksel) o köşe null döner ve tüm köşe listesi boş döndürülür.
     /// </summary>
     private static List<(float X, float Y)> FindCorners(bool[] green, int w, int h, float scale)
     {
-        float tlV = float.MaxValue, trV = float.MaxValue;
-        float brV = float.MinValue, blV = float.MinValue;
-        float tlX = 0, tlY = 0, trX = w - 1, trY = 0;
-        float brX = w - 1, brY = h - 1, blX = 0, blY = h - 1;
-        int count = 0;
+        int hw = w / 2, hh = h / 2;
 
-        for (int y = 0; y < h; y++)
-        for (int x = 0; x < w; x++)
+        // Her quadrant'ta ilgili diagonal ekstrem noktayı bul
+        (int X, int Y)? tl = QuadrantExtreme(green, w, 0,  hw, 0,  hh, minimize: true,  diagonal: +1); // min(x+y)
+        (int X, int Y)? tr = QuadrantExtreme(green, w, hw, w,  0,  hh, minimize: true,  diagonal: -1); // min(y-x)
+        (int X, int Y)? br = QuadrantExtreme(green, w, hw, w,  hh, h,  minimize: false, diagonal: +1); // max(x+y)
+        (int X, int Y)? bl = QuadrantExtreme(green, w, 0,  hw, hh, h,  minimize: false, diagonal: -1); // max(y-x)
+
+        if (tl is null || tr is null || br is null || bl is null)
+            return [];
+
+        float inv = 1f / scale;
+        return
+        [
+            (tl.Value.X * inv, tl.Value.Y * inv),
+            (tr.Value.X * inv, tr.Value.Y * inv),
+            (br.Value.X * inv, br.Value.Y * inv),
+            (bl.Value.X * inv, bl.Value.Y * inv),
+        ];
+    }
+
+    /// <summary>
+    /// Belirli bir dikdörtgen bölge içindeki yeşil pikseller arasında
+    /// diagonal projeksiyon değerine göre en uç noktayı bulur.
+    ///   diagonal = +1 → x+y kullanılır (ana köşegen)
+    ///   diagonal = -1 → y-x kullanılır (ters köşegen)
+    ///   minimize = true  → en küçük değer (sol-üst yönler)
+    ///   minimize = false → en büyük değer (sağ-alt yönler)
+    /// Bölgede 50'den az yeşil piksel varsa null döner.
+    /// </summary>
+    private static (int X, int Y)? QuadrantExtreme(
+        bool[] green, int w,
+        int x0, int x1, int y0, int y1,
+        bool minimize, int diagonal)
+    {
+        int best = minimize ? int.MaxValue : int.MinValue;
+        int bx = -1, by = -1, count = 0;
+
+        for (int y = y0; y < y1; y++)
+        for (int x = x0; x < x1; x++)
         {
             if (!green[y * w + x]) continue;
             count++;
-            float s = x + y, d = y - x;
-            if (s < tlV) { tlV = s; tlX = x; tlY = y; }
-            if (d < trV) { trV = d; trX = x; trY = y; }
-            if (s > brV) { brV = s; brX = x; brY = y; }
-            if (d > blV) { blV = d; blX = x; blY = y; }
+            int proj = diagonal == +1 ? x + y : y - x;
+            bool isBetter = minimize ? proj < best : proj > best;
+            if (isBetter) { best = proj; bx = x; by = y; }
         }
 
-        // Yeşil piksel sayısı toplam alanın %5'inden azsa masa bulunamadı
-        if (count < w * h / 20)
-            return [];
-
-        float inv = 1f / scale; // küçük kopya koordinatlarını orijinale geri çevir
-        return
-        [
-            (tlX * inv, tlY * inv),
-            (trX * inv, trY * inv),
-            (brX * inv, brY * inv),
-            (blX * inv, blY * inv),
-        ];
+        return count >= 50 ? (bx, by) : null;
     }
 
     // ── Renk bazlı top tespiti ────────────────────────────────────────────────
@@ -193,13 +229,6 @@ public class TableVisionService(BallDetectionService onnxDetector)
         return balls;
     }
 
-    /// <summary>
-    /// Verilen renk maskesinde en büyük bağlı bileşeni bulur ve top olarak ekler.
-    ///
-    /// Bağlı bileşen (connected component): 4-komşuluk ile birbirine bağlı true pikseller.
-    /// BFS (Breadth-First Search / Genişlik Öncelikli Arama) flood fill ile bulunur.
-    /// En büyük bileşenin merkezini (centroid) ve yarıçapını (alan → daire formülü) hesaplar.
-    /// </summary>
     private static void TryAddBall(bool[] mask, int w, int h, BallColor color, List<TableBall> results)
     {
         var visited = new bool[w * h];
@@ -215,52 +244,41 @@ public class TableVisionService(BallDetectionService onnxDetector)
                 best = blob;
         }
 
-        if (best is null || best.Count < 25) return; // çok az piksel → gürültü
+        if (best is null || best.Count < 20) return;
 
-        // Alan = π × r² → r = √(Alan / π)
         float radius = MathF.Sqrt(best.Count / MathF.PI);
+        float dim    = MathF.Max(w, h);
+        if (radius < dim * 0.007f || radius > dim * 0.16f) return;
 
-        // Boyut kontrol: çok küçük (gürültü) veya çok büyük (top değil) blobleri ele
-        float minR = Math.Max(w, h) * 0.008f; // minimum top yarıçapı
-        float maxR = Math.Max(w, h) * 0.14f;  // maksimum top yarıçapı
-        if (radius < minR || radius > maxR) return;
-
-        float cx = best.SumX / (float)best.Count / w;  // [0,1] normalize merkez X
-        float cy = best.SumY / (float)best.Count / h;  // [0,1] normalize merkez Y
-        float r  = radius / Math.Max(w, h);             // [0,1] normalize yarıçap
-
-        results.Add(new TableBall(color, cx, cy, r));
+        results.Add(new TableBall(
+            color,
+            best.SumX / (float)best.Count / w,
+            best.SumY / (float)best.Count / h,
+            radius / dim));
     }
 
     private record BlobInfo(long SumX, long SumY, int Count);
 
-    /// <summary>
-    /// BFS flood fill: (sx, sy) başlangıç noktasından başlayarak mask=true olan
-    /// tüm komşu pikselleri ziyaret eder ve blobun istatistiklerini döndürür.
-    /// </summary>
     private static BlobInfo FloodFill(bool[] mask, bool[] visited, int sx, int sy, int w, int h)
     {
         var queue = new Queue<int>(256);
-        int startIdx = sy * w + sx;
-        queue.Enqueue(startIdx);
-        visited[startIdx] = true;
+        int start = sy * w + sx;
+        queue.Enqueue(start);
+        visited[start] = true;
 
         long sumX = 0, sumY = 0;
         int count = 0;
 
         while (queue.Count > 0)
         {
-            int idx  = queue.Dequeue();
-            int x    = idx % w;
-            int y    = idx / w;
+            int idx = queue.Dequeue();
+            int x = idx % w, y = idx / w;
             sumX += x; sumY += y; count++;
 
-            // 4-komşuluk: sağ, sol, aşağı, yukarı
-            // Satır sınırı: x±1 geçişi yanlış satıra atlamasın diye kontrol edilir
             TryEnqueue(idx + 1, x + 1, y, w, h, mask, visited, queue);
             TryEnqueue(idx - 1, x - 1, y, w, h, mask, visited, queue);
-            TryEnqueue(idx + w, x,     y + 1, w, h, mask, visited, queue);
-            TryEnqueue(idx - w, x,     y - 1, w, h, mask, visited, queue);
+            TryEnqueue(idx + w, x, y + 1, w, h, mask, visited, queue);
+            TryEnqueue(idx - w, x, y - 1, w, h, mask, visited, queue);
         }
 
         return new BlobInfo(sumX, sumY, count);
@@ -275,8 +293,6 @@ public class TableVisionService(BallDetectionService onnxDetector)
         queue.Enqueue(ni);
     }
 
-    // ── Yardımcı hesaplamalar ─────────────────────────────────────────────────
-
     private static int EstimateTableWidth(bool[] green, int w, int h)
     {
         int minX = w, maxX = 0;
@@ -290,7 +306,7 @@ public class TableVisionService(BallDetectionService onnxDetector)
         return Math.Max(1, maxX - minX);
     }
 
-    // ── Görüntü bindirme (annotation) ────────────────────────────────────────
+    // ── Görüntü bindirme ──────────────────────────────────────────────────────
 
     private static byte[] DrawAnnotations(
         SKBitmap orig, List<TableBall> balls, List<(float X, float Y)> corners)
@@ -299,80 +315,93 @@ public class TableVisionService(BallDetectionService onnxDetector)
         var canvas = surface.Canvas;
         canvas.DrawBitmap(orig, 0, 0);
 
-        float refDim = Math.Max(orig.Width, orig.Height);
-        float sw     = Math.Max(3f, refDim / 250f); // çizgi kalınlığı görüntü boyutuna göre
+        float refDim = MathF.Max(orig.Width, orig.Height);
+        float sw     = MathF.Max(3f, refDim / 220f);
 
-        // ── Masa dörtgeni: kesik sarı çizgi + köşe noktaları ─────────────────
+        // ── Masa köşeleri ─────────────────────────────────────────────────────
         if (corners.Count == 4)
         {
-            // Kesik çizgi efekti: SKPathEffect.CreateDash
-            using var linePaint = new SKPaint
+            // Kenar çizgileri: yarı saydam sarı, kesik
+            using var edgePaint = new SKPaint
             {
-                Color       = new SKColor(255, 215, 0, 210), // altın sarısı
+                Color       = new SKColor(255, 215, 0, 180),
                 StrokeWidth = sw,
                 Style       = SKPaintStyle.Stroke,
                 IsAntialias = true,
                 PathEffect  = SKPathEffect.CreateDash([sw * 5, sw * 2.5f], 0f)
             };
-            using var dotPaint = new SKPaint
-            {
-                Color       = new SKColor(255, 215, 0, 255),
-                Style       = SKPaintStyle.Fill,
-                IsAntialias = true
-            };
-            using var dotBorderPaint = new SKPaint
-            {
-                Color       = new SKColor(0, 0, 0, 180),
-                StrokeWidth = Math.Max(2f, sw * 0.6f),
-                Style       = SKPaintStyle.Stroke,
-                IsAntialias = true
-            };
-
             var path = new SKPath();
             path.MoveTo(corners[0].X, corners[0].Y);
-            for (int i = 1; i < corners.Count; i++)
-                path.LineTo(corners[i].X, corners[i].Y);
+            for (int i = 1; i < 4; i++) path.LineTo(corners[i].X, corners[i].Y);
             path.Close();
-            canvas.DrawPath(path, linePaint);
+            canvas.DrawPath(path, edgePaint);
 
-            // Köşe noktaları: siyah kenarlıklı sarı daireler
-            float dotR = Math.Max(10f, refDim / 100f);
-            foreach (var (cx, cy) in corners)
+            // Köşe noktaları: L-şekilli belirteç + dolgu daire + etiket
+            string[] labels = ["SÜ", "SÜ", "SA", "SA"]; // Sol-Üst, Sağ-Üst, Sağ-Alt, Sol-Alt
+            string[] fullLabels = ["Sol-Üst", "Sağ-Üst", "Sağ-Alt", "Sol-Alt"];
+            float dotR    = MathF.Max(12f, refDim / 80f);
+            float armLen  = dotR * 2.2f;
+            float textSz  = MathF.Max(18f, refDim / 55f);
+
+            using var fillP   = new SKPaint { Color = new SKColor(255, 215, 0, 230), Style = SKPaintStyle.Fill,   IsAntialias = true };
+            using var borderP = new SKPaint { Color = new SKColor(0, 0, 0, 200),     Style = SKPaintStyle.Stroke, StrokeWidth = MathF.Max(2f, sw * 0.5f), IsAntialias = true };
+            using var armP    = new SKPaint { Color = new SKColor(255, 215, 0, 255), Style = SKPaintStyle.Stroke, StrokeWidth = sw * 1.2f, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
+            using var textP   = new SKPaint { Color = SKColors.Black, TextSize = textSz, IsAntialias = true, FakeBoldText = true, TextAlign = SKTextAlign.Center };
+            using var shadowP = new SKPaint { Color = new SKColor(255, 215, 0, 255), TextSize = textSz, IsAntialias = true, FakeBoldText = true, TextAlign = SKTextAlign.Center };
+
+            // Köşe indeksine göre L-kollarının yönleri:
+            // 0=SolÜst → sağa(+x) ve aşağı(+y), 1=SağÜst → sola(-x) ve aşağı(+y)
+            // 2=SağAlt → sola(-x) ve yukarı(-y), 3=SolAlt → sağa(+x) ve yukarı(-y)
+            (float dx, float dy)[] armDirs = [(+1, +1), (-1, +1), (-1, -1), (+1, -1)];
+
+            for (int i = 0; i < 4; i++)
             {
-                canvas.DrawCircle(cx, cy, dotR, dotPaint);
-                canvas.DrawCircle(cx, cy, dotR, dotBorderPaint);
+                float cx = corners[i].X, cy = corners[i].Y;
+                var (adx, ady) = armDirs[i];
+
+                // L kolları
+                canvas.DrawLine(cx, cy, cx + adx * armLen, cy, armP);
+                canvas.DrawLine(cx, cy, cx, cy + ady * armLen, armP);
+
+                // Dolgu daire
+                canvas.DrawCircle(cx, cy, dotR, fillP);
+                canvas.DrawCircle(cx, cy, dotR, borderP);
+
+                // Etiket: sarı gölge arkada, siyah öne
+                float ty = cy + ady * (dotR + textSz * 1.2f);
+                canvas.DrawText(fullLabels[i], cx, ty,     shadowP);
+                canvas.DrawText(fullLabels[i], cx, ty + 2, textP);
             }
         }
 
-        // ── Toplar: yarı saydam renkli daire + beyaz etiket ───────────────────
+        // ── Toplar ───────────────────────────────────────────────────────────
         foreach (var ball in balls)
         {
             float cx = ball.CenterX * orig.Width;
             float cy = ball.CenterY * orig.Height;
-            float r  = Math.Max(ball.Radius * refDim, refDim * 0.016f); // en az görünür boyut
+            float r  = MathF.Max(ball.Radius * refDim, refDim * 0.015f);
 
-            var (fillColor, strokeColor, label) = ball.Color switch
+            var (fill, stroke, label) = ball.Color switch
             {
-                BallColor.White  => (new SKColor(255, 255, 255, 155), new SKColor(160, 160, 160, 255), "Ak"),
-                BallColor.Yellow => (new SKColor(255, 210, 0,   155), new SKColor(170, 130, 0,   255), "Sa"),
-                BallColor.Red    => (new SKColor(220, 40,  40,  155), new SKColor(150, 0,   0,   255), "Kı"),
+                BallColor.White  => (new SKColor(255, 255, 255, 160), new SKColor(160, 160, 160, 255), "Ak"),
+                BallColor.Yellow => (new SKColor(255, 210, 0,   160), new SKColor(170, 130, 0,   255), "Sa"),
+                BallColor.Red    => (new SKColor(220, 40,  40,  160), new SKColor(150, 0,   0,   255), "Kı"),
                 _                => (SKColors.Gray, SKColors.DarkGray, "?")
             };
 
-            float textSize = Math.Max(16f, r * 0.6f);
-            float strokeW  = Math.Max(2.5f, r * 0.12f);
+            float textSz  = MathF.Max(16f, r * 0.55f);
+            float strokeW = MathF.Max(2.5f, r * 0.12f);
 
-            using var fillP   = new SKPaint { Color = fillColor,   Style = SKPaintStyle.Fill,   IsAntialias = true };
-            using var strokeP = new SKPaint { Color = strokeColor, Style = SKPaintStyle.Stroke, StrokeWidth = strokeW, IsAntialias = true };
-            // Metin gölge + asıl metin için iki ayrı paint
-            using var shadowP = new SKPaint { Color = SKColors.Black, TextSize = textSize, IsAntialias = true, FakeBoldText = true, TextAlign = SKTextAlign.Center };
-            using var textP   = new SKPaint { Color = SKColors.White, TextSize = textSize, IsAntialias = true, FakeBoldText = true, TextAlign = SKTextAlign.Center };
+            using var fillP   = new SKPaint { Color = fill,         Style = SKPaintStyle.Fill,   IsAntialias = true };
+            using var strokeP = new SKPaint { Color = stroke,       Style = SKPaintStyle.Stroke, StrokeWidth = strokeW, IsAntialias = true };
+            using var textP   = new SKPaint { Color = SKColors.White, TextSize = textSz, IsAntialias = true, FakeBoldText = true, TextAlign = SKTextAlign.Center };
+            using var shadowP = new SKPaint { Color = SKColors.Black, TextSize = textSz, IsAntialias = true, FakeBoldText = true, TextAlign = SKTextAlign.Center };
 
             canvas.DrawCircle(cx, cy, r, fillP);
             canvas.DrawCircle(cx, cy, r, strokeP);
-            float textY = cy + textSize * 0.38f;
-            canvas.DrawText(label, cx + 1.5f, textY + 1.5f, shadowP); // gölge
-            canvas.DrawText(label, cx,        textY,        textP);   // asıl
+            float textY = cy + textSz * 0.38f;
+            canvas.DrawText(label, cx + 1.5f, textY + 1.5f, shadowP);
+            canvas.DrawText(label, cx,        textY,        textP);
         }
 
         using var img  = surface.Snapshot();
@@ -380,9 +409,8 @@ public class TableVisionService(BallDetectionService onnxDetector)
         return data.ToArray();
     }
 
-    // ── Yardımcı metodlar ─────────────────────────────────────────────────────
+    // ── Yardımcılar ───────────────────────────────────────────────────────────
 
-    /// <summary>Bitmap'i (w × h) boyutuna ölçekler, yeni bir SKBitmap döndürür.</summary>
     private static SKBitmap ScaleBitmap(SKBitmap src, int w, int h)
     {
         var dst = new SKBitmap(w, h, SKColorType.Bgra8888, SKAlphaType.Opaque);
@@ -392,13 +420,14 @@ public class TableVisionService(BallDetectionService onnxDetector)
     }
 
     /// <summary>
-    /// RGB rengi HSV'ye çevirir.
-    ///   H (Hue / Ton)        : 0–360° — renk türü (kırmızı=0, yeşil=120, mavi=240)
-    ///   S (Saturation / Doygunluk): 0–1 — renk yoğunluğu (0=gri, 1=tam renkli)
-    ///   V (Value / Parlaklık): 0–1 — parlaklık (0=siyah, 1=en parlak)
+    /// RGB → HSV dönüşümü.
+    ///   H (Hue / Ton)              : 0–360°
+    ///   S (Saturation / Doygunluk) : 0–1
+    ///   V (Value / Parlaklık)      : 0–1
     ///
-    /// HSV, RGB'ye kıyasla renk tanıma için çok daha uygundur çünkü aydınlatma
-    /// değişimleri yalnızca V kanalını etkiler; H ve S görece sabit kalır.
+    /// HSV, renk sınıflandırması için RGB'den üstündür: aydınlatma değişimleri
+    /// yalnızca V'yi etkilerken H ve S büyük ölçüde sabit kalır.
+    /// Bu sayede farklı ışık koşullarında aynı HSV eşikleri çalışır.
     /// </summary>
     private static void RgbToHsv(byte r, byte g, byte b, out float h, out float s, out float v)
     {
@@ -412,10 +441,9 @@ public class TableVisionService(BallDetectionService onnxDetector)
 
         if (d < 1e-5f) { h = 0f; return; }
 
-        // Hangi kanal en büyük → farklı açı hesabı
-        if (max == rf)       h = 60f * (((gf - bf) / d) % 6f);
-        else if (max == gf)  h = 60f * ((bf - rf) / d + 2f);
-        else                 h = 60f * ((rf - gf) / d + 4f);
+        if (max == rf)      h = 60f * (((gf - bf) / d) % 6f);
+        else if (max == gf) h = 60f * ((bf - rf) / d + 2f);
+        else                h = 60f * ((rf - gf) / d + 4f);
 
         if (h < 0f) h += 360f;
     }
@@ -430,6 +458,6 @@ public class TableVisionService(BallDetectionService onnxDetector)
 
         return parts.Count > 0
             ? string.Join("  ·  ", parts)
-            : "Top veya masa algılanamadı — daha iyi aydınlatma ve açıyla tekrar deneyin.";
+            : "Hiçbir şey algılanamadı — daha iyi aydınlatma ve dik açıyla tekrar deneyin.";
     }
 }
