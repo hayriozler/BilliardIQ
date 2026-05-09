@@ -2,6 +2,7 @@
 <basePages:BasePage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
     xmlns:vm="clr-namespace:BilliardIQ.Mobile.PageModels.Debug"
     x:DataType="vm:DebugTableAnalysisPageModel"
@@ -38,7 +39,7 @@
             <Button Text="🎱  Analiz Et"
                     Command="{Binding RunAnalysisCommand}"
                     IsVisible="{Binding HasPhoto}"
-                    IsEnabled="{Binding IsAnalyzing, Converter={StaticResource InvertedBoolConverter}}"
+                    IsEnabled="{Binding IsAnalyzing, Converter={toolkit:InvertedBoolConverter}}"
                     BackgroundColor="#5E1B0A" TextColor="White"
                     CornerRadius="10" HeightRequest="50"
                     FontSize="16" FontAttributes="Bold"/>
