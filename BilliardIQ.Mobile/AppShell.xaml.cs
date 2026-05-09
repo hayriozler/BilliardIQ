@@ -1,4 +1,5 @@
 ﻿using BilliardIQ.Mobile.Pages.Debug;
+using BilliardIQ.Mobile.PageModels.Debug;
 using CommunityToolkit.Maui.Alerts;
 
 namespace BilliardIQ.Mobile;
@@ -15,6 +16,12 @@ public partial class AppShell : Shell
             Title           = "🐛 Debug OCR",
             ContentTemplate = new DataTemplate(typeof(DebugOcrViewPage)),
             Route           = "debugocr"
+        });
+        Items.Add(new ShellContent
+        {
+            Title           = "🎱 Debug Masa Analizi",
+            ContentTemplate = new DataTemplate(typeof(DebugTableAnalysisViewPage)),
+            Route           = "debugtable"
         });
 #endif
     }

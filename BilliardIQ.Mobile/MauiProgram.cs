@@ -53,6 +53,8 @@ public static class MauiProgram
             builder.Services.AddLogging(configure => configure.AddDebug());
             builder.Services.AddTransient<DebugOcrPageModel>();
             builder.Services.AddTransient<DebugOcrViewPage>();
+            builder.Services.AddTransient<DebugTableAnalysisPageModel>();
+            builder.Services.AddTransient<DebugTableAnalysisViewPage>();
 #endif
         builder.Services.AddSingleton<DatabaseExecutor>();
         builder.Services.AddSingleton<PlayerRepository>();

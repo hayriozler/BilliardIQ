@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:vm="clr-namespace:BilliardIQ.Mobile.PageModels.Debug"
+    x:DataType="vm:DebugTableAnalysisPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Debug.DebugTableAnalysisViewPage"
+    Title="Debug · Masa Analizi">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="12" Padding="12">
+
+            <!-- Fotoğraf seç -->
+            <Button Text="📷  Galeriden Fotoğraf Seç"
+                    Command="{Binding PickPhotoCommand}"
+                    BackgroundColor="#1E3A5F" TextColor="White"
+                    CornerRadius="10" HeightRequest="50"
+                    FontSize="16" FontAttributes="Bold"/>
+
+            <!-- Orijinal fotoğraf önizlemesi -->
+            <Border IsVisible="{Binding HasPhoto}"
+                    StrokeThickness="1" Stroke="#444"
+                    HeightRequest="240">
+                <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                <Grid>
+                    <Image Source="{Binding OriginalPhoto}"
+                           Aspect="AspectFit"
+                           BackgroundColor="Black"/>
+                    <Label Text="Orijinal"
+                           TextColor="#AAAAAA" FontSize="11"
+                           HorizontalOptions="Start" VerticalOptions="End"
+                           Margin="8,0,0,6"/>
+                </Grid>
+            </Border>
+
+            <!-- Analiz Et butonu -->
+            <Button Text="🎱  Analiz Et"
+                    Command="{Binding RunAnalysisCommand}"
+                    IsVisible="{Binding HasPhoto}"
+                    IsEnabled="{Binding IsAnalyzing, Converter={StaticResource InvertedBoolConverter}}"
+                    BackgroundColor="#5E1B0A" TextColor="White"
+                    CornerRadius="10" HeightRequest="50"
+                    FontSize="16" FontAttributes="Bold"/>
+
+            <!-- Yükleme göstergesi -->
+            <Grid IsVisible="{Binding IsAnalyzing}"
+                  HeightRequest="60">
+                <ActivityIndicator IsRunning="True" Color="White"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                <Label Text="Analiz ediliyor..."
+                       TextColor="#AAAAAA" FontSize="13"
+                       HorizontalOptions="Center" VerticalOptions="End"
+                       Margin="0,0,0,4"/>
+            </Grid>
+
+            <!-- Sonuçlar -->
+            <VerticalStackLayout IsVisible="{Binding HasResult}" Spacing="10">
+
+                <!-- Durum satırı -->
+                <Border Padding="12,10" BackgroundColor="#0D2B0D" StrokeThickness="0">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
+                    <Label Text="{Binding StatusMessage}"
+                           TextColor="#A5D6A7" FontSize="15" FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"/>
+                </Border>
+
+                <!-- Annotated görüntü -->
+                <Label Text="Annotated Görüntü"
+                       TextColor="#FFCC80" FontAttributes="Bold" FontSize="13"/>
+                <Border StrokeThickness="1" Stroke="#FFCC80"
+                        HeightRequest="300">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                    <Image Source="{Binding AnnotatedPhoto}"
+                           Aspect="AspectFit"
+                           BackgroundColor="Black"/>
+                </Border>
+
+                <!-- Koordinat detayları -->
+                <Label Text="Koordinat Detayları"
+                       TextColor="#90CAF9" FontAttributes="Bold" FontSize="13"/>
+                <Border Padding="12" BackgroundColor="#0D1520" StrokeThickness="0">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
+                    <Label Text="{Binding DetailText}"
+                           TextColor="#CFE8FF" FontFamily="OpenSansRegular"
+                           FontSize="13" LineBreakMode="WordWrap"/>
+                </Border>
+
+                <!-- Yeniden analiz et -->
+                <Button Text="🔄  Yeniden Analiz Et"
+                        Command="{Binding RunAnalysisCommand}"
+                        BackgroundColor="#333" TextColor="White"
+                        CornerRadius="10" HeightRequest="44"/>
+
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</basePages:BasePage>

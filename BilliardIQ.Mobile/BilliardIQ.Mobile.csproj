@@ -67,6 +67,7 @@
 
 	<ItemGroup Condition="$(TargetFramework.Contains('-android'))">
 		<AndroidLibrary Include="Platforms\Android\libs\unityLibrary-debug.aar" Bind="false" Condition="Exists('Platforms\Android\libs\unityLibrary-debug.aar')" />
+		<AndroidJavaSource Include="Platforms\Android\BilliardUnityActivity.java" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -110,6 +111,9 @@
 	  <Compile Update="Pages\Players\PlayerProfileViewPage.xaml.cs">
 	    <DependentUpon>PlayerProfileViewPage.xaml</DependentUpon>
 	  </Compile>
+	  <Compile Update="Pages\Debug\DebugTableAnalysisViewPage.xaml.cs">
+	    <DependentUpon>DebugTableAnalysisViewPage.xaml</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -126,6 +130,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Pages\Play\GamePlayViewPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Pages\Debug\DebugTableAnalysisViewPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	</ItemGroup>
