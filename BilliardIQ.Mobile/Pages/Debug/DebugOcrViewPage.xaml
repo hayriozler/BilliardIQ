@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:vm="clr-namespace:BilliardIQ.Mobile.PageModels.Debug"
+    x:DataType="vm:DebugOcrPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Debug.DebugOcrViewPage"
+    Title="Debug · OCR &amp; Analiz">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="14" Padding="12">
+
+            <!-- ─── Fotoğraf seç ──────────────────────────────────── -->
+            <Button Text="📷 Galeriden Fotoğraf Seç"
+                    Command="{Binding PickPhotoCommand}"
+                    BackgroundColor="#1E3A5F"
+                    TextColor="White"
+                    CornerRadius="10"
+                    HeightRequest="48" />
+
+            <!-- Yükleme göstergesi -->
+            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               Color="#1E3A5F"
+                               HeightRequest="40" />
+
+            <!-- Seçilen orijinal fotoğraf önizlemesi -->
+            <Border IsVisible="{Binding HasPhoto}"
+                    StrokeThickness="1" Stroke="Gray"
+                    HeightRequest="220">
+                <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                <Image Source="{Binding SelectedPhoto}" Aspect="AspectFit" />
+            </Border>
+
+            <!-- ─── İki aksiyon butonu ─────────────────────────────── -->
+            <Grid ColumnDefinitions="*, *" ColumnSpacing="10"
+                  IsVisible="{Binding HasPhoto}">
+
+                <Button Grid.Column="0"
+                        Text="🔍 OCR Çalıştır"
+                        Command="{Binding RunOcrCommand}"
+                        BackgroundColor="#2E7D32"
+                        TextColor="White"
+                        CornerRadius="10" />
+
+                <Button Grid.Column="1"
+                        Text="🎱 Masa Analizi"
+                        Command="{Binding AnalyzeTableCommand}"
+                        BackgroundColor="#5E1B0A"
+                        TextColor="White"
+                        CornerRadius="10" />
+            </Grid>
+
+            <!-- ─── Masa analizi sonuçları ─────────────────────────── -->
+            <VerticalStackLayout IsVisible="{Binding HasAnalysis}" Spacing="8">
+
+                <Label Text="Masa Analizi Sonucu"
+                       FontAttributes="Bold" FontSize="14"
+                       TextColor="#FFCC80" />
+
+                <!-- Durum mesajı -->
+                <Border Padding="10" BackgroundColor="#1A0D06" StrokeThickness="0">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
+                    <Label Text="{Binding AnalysisStatus}"
+                           TextColor="#FFCC80"
+                           FontSize="14" LineBreakMode="WordWrap" />
+                </Border>
+
+                <!-- Annotated (top + köşe işaretli) görüntü -->
+                <Border IsVisible="{Binding HasAnalysis}"
+                        StrokeThickness="1" Stroke="#FFCC80"
+                        HeightRequest="260">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                    <Image Source="{Binding AnnotatedPhoto}"
+                           Aspect="AspectFit"
+                           BackgroundColor="Black" />
+                </Border>
+
+            </VerticalStackLayout>
+
+            <!-- ─── OCR ham çıktı ───────────────────────────────────── -->
+            <VerticalStackLayout IsVisible="{Binding HasOcrResult}" Spacing="6">
+                <Label Text="Ham OCR Çıktısı"
+                       FontAttributes="Bold" FontSize="14"
+                       TextColor="#90CAF9" />
+                <Border Padding="10" BackgroundColor="#111" StrokeThickness="0">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
+                    <Label Text="{Binding RawOcrText}"
+                           TextColor="#E0E0E0"
+                           FontFamily="OpenSansRegular"
+                           FontSize="13" LineBreakMode="WordWrap" />
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- ─── Parse edilmiş değerler ────────────────────────── -->
+            <VerticalStackLayout IsVisible="{Binding HasOcrResult}" Spacing="6">
+                <Label Text="Parse Edilmiş Değerler"
+                       FontAttributes="Bold" FontSize="14"
+                       TextColor="#90CAF9" />
+                <Border Padding="10" BackgroundColor="#1A2A1A" StrokeThickness="0">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
+                    <Label Text="{Binding ParsedResult}"
+                           TextColor="#A5D6A7"
+                           FontFamily="OpenSansRegular"
+                           FontSize="14" LineBreakMode="WordWrap" />
+                </Border>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</basePages:BasePage>

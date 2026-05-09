@@ -106,7 +106,7 @@ public partial class PhotoAnalyzerViewPage : BasePage
 
     /// <summary>
     /// Verilen fotoğrafı photo viewer'da tam ekran gösterir.
-    /// Analiz butonunu sıfırlar (önceki analiz sonucu temizlenir).
+    /// Bilardo masası yatay format olduğundan landscape moduna geçer.
     /// </summary>
     private void ShowInViewer(CapturedPhoto photo)
     {
@@ -117,6 +117,12 @@ public partial class PhotoAnalyzerViewPage : BasePage
         analyzeOverlay.IsVisible    = false;
         analysisResultBar.IsVisible = false;
         photoViewer.IsVisible       = true;
+
+#if ANDROID
+        // Bilardo masası fotoğrafı yatay format: landscape'e geç → ekranı tam kullan
+        ((Android.App.Activity)Microsoft.Maui.ApplicationModel.Platform.CurrentActivity!)
+            .RequestedOrientation = Android.Content.PM.ScreenOrientation.SensorLandscape;
+#endif
     }
 
     private void OnPhotoViewerClose(object? sender, EventArgs e)
@@ -126,6 +132,12 @@ public partial class PhotoAnalyzerViewPage : BasePage
         analysisResultBar.IsVisible = false;
         fullPhoto.Source            = null;
         _currentPhotoPath           = null;
+
+#if ANDROID
+        // Kamera ekranı portrait modda çalışıyor; geri dön
+        ((Android.App.Activity)Microsoft.Maui.ApplicationModel.Platform.CurrentActivity!)
+            .RequestedOrientation = Android.Content.PM.ScreenOrientation.Portrait;
+#endif
     }
 
     // ── Masa analizi ───────────────────────────────────────────────────────────

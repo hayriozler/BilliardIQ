@@ -1,12 +1,31 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           xmlns:tools="http://schemas.android.com/tools">
-	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:supportsRtl="true">
+	<!-- extractNativeLibs="true" → Unity AAR'ının libil2cpp.so / libunity.so gibi native
+	     kütüphanelerinin APK'ya çıkarılmasını zorlar. Unity'nin kendi AAR manifest'i
+	     bu değeri "false" olarak set edebilir; tools:replace ile MAUI manifest'i kazanır. -->
+	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:supportsRtl="true"
+	             android:extractNativeLibs="true"
+	             tools:replace="android:extractNativeLibs">
 		<!-- Unity'nin launcher intent-filter'ını kaldır, icon oluşturmasın -->
 		<activity android:name="com.unity3d.player.UnityPlayerActivity"
 		          tools:node="merge">
 			<intent-filter tools:node="removeAll"/>
 		</activity>
+
+		<!--
+		    BilliardUnityActivity wraps UnityPlayerActivity and overrides finish()
+		    to call moveTaskToBack() instead — preventing System.exit() and allowing
+		    the MAUI task to come back to the foreground cleanly.
+		    launchMode="singleTask" keeps Unity in its own task separate from MAUI.
+		-->
+		<activity
+		    android:name="com.billiardiq.mobile.BilliardUnityActivity"
+		    android:exported="false"
+		    android:launchMode="singleTask"
+		    android:screenOrientation="fullSensor"
+		    android:resizeableActivity="false"
+		    android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density" />
 	</application>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
