@@ -62,6 +62,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IAlertHandler, ShowAlertHandler>();
         builder.Services.AddSingleton<ScoreboardOcrService>();
         builder.Services.AddSingleton<BallDetectionService>();
+        builder.Services.AddSingleton<TableVisionService>();
         builder.Services.AddSingleton<PlayerProfilePageModel>();
         builder.Services.AddSingleton<PlayerProfileViewPage>();
         builder.Services.AddTransient<CitySearchPageModel>();

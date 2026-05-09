@@ -10,14 +10,13 @@
 
     <Grid BackgroundColor="Black">
 
-        <!-- Full-screen camera preview (no gestures — handled by overlay) -->
+        <!-- Full-screen camera preview -->
         <toolkit:CameraView x:Name="Camera"
                         HorizontalOptions="Fill"
                         VerticalOptions="Fill"
                         SelectedCamera="{Binding SelectedCamera}"/>
 
         <!-- Transparent gesture overlay: pinch-to-zoom + tap-to-focus -->
-        <!-- #01000000 = nearly invisible but receives multi-touch on Android -->
         <Grid x:Name="cameraOverlay"
               HorizontalOptions="Fill"
               VerticalOptions="Fill"
@@ -27,32 +26,22 @@
                 <TapGestureRecognizer Tapped="OnCameraViewTapped"/>
             </Grid.GestureRecognizers>
 
-            <!-- Focus indicator (positioned via TranslationX/Y at tap point) -->
+            <!-- Focus indicator -->
             <Border x:Name="focusIndicator"
                     IsVisible="False"
-                    WidthRequest="72"
-                    HeightRequest="72"
+                    WidthRequest="72" HeightRequest="72"
                     StrokeShape="RoundRectangle 4"
-                    Stroke="White"
-                    StrokeThickness="2"
+                    Stroke="White" StrokeThickness="2"
                     BackgroundColor="Transparent"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"/>
+                    HorizontalOptions="Center" VerticalOptions="Center"/>
         </Grid>
 
         <!-- Close button — top left -->
         <Button Text="✕"
-                FontSize="22"
-                BackgroundColor="#60000000"
-                TextColor="White"
-                CornerRadius="24"
-                WidthRequest="48"
-                HeightRequest="48"
-                Padding="0"
-                HorizontalOptions="Start"
-                VerticalOptions="Start"
-                Margin="12,48,0,0"
-                Clicked="OnCloseClicked"/>
+                FontSize="22" BackgroundColor="#60000000" TextColor="White"
+                CornerRadius="24" WidthRequest="48" HeightRequest="48"
+                Padding="0" HorizontalOptions="Start" VerticalOptions="Start"
+                Margin="12,48,0,0" Clicked="OnCloseClicked"/>
 
         <!-- Bottom bar: photo strip + capture controls -->
         <Grid VerticalOptions="End" HorizontalOptions="Fill">
@@ -78,7 +67,7 @@
                         FontSize="14" Padding="0" Clicked="OnDeletePhoto"/>
             </Grid>
 
-            <!-- Horizontal photo strip -->
+            <!-- Horizontal photo strip: tıklanınca tam ekran açılır -->
             <CollectionView Grid.Row="1"
                             x:Name="photoStrip"
                             SelectionMode="Single"
@@ -122,15 +111,71 @@
             </Border>
         </Grid>
 
-        <!-- Full-screen photo viewer (shown after capture or from gallery) -->
+        <!-- ═══════════════════════════════════════════════════════════════════
+             TAM EKRAN FOTO GÖRÜNTÜLEYICI
+             Fotoğraf çekince veya strip'ten bir küçük resme tıklanınca açılır.
+             ═══════════════════════════════════════════════════════════════════ -->
         <Grid x:Name="photoViewer" IsVisible="False" BackgroundColor="Black">
-            <Image x:Name="fullPhoto" Aspect="AspectFit"
-                   HorizontalOptions="Fill" VerticalOptions="Fill"/>
-            <Button Text="✕"
-                    FontSize="22" BackgroundColor="#60000000" TextColor="White"
-                    CornerRadius="24" WidthRequest="48" HeightRequest="48"
-                    Padding="0" HorizontalOptions="Start" VerticalOptions="Start"
-                    Margin="12,48,0,0" Clicked="OnPhotoViewerClose"/>
+
+            <!-- Fotoğraf (analiz sonrası annotated görüntüyle değiştirilir) -->
+            <Image x:Name="fullPhoto"
+                   Aspect="AspectFit"
+                   HorizontalOptions="Fill"
+                   VerticalOptions="Fill"/>
+
+            <!-- Analiz sırasında gösterilen yükleme bindirmesi -->
+            <Grid x:Name="analyzeOverlay"
+                  IsVisible="False"
+                  BackgroundColor="#99000000"
+                  HorizontalOptions="Fill"
+                  VerticalOptions="Fill">
+                <VerticalStackLayout
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Spacing="16">
+                    <ActivityIndicator IsRunning="True"
+                                       Color="White"
+                                       WidthRequest="48" HeightRequest="48"/>
+                    <Label Text="Analiz ediliyor..."
+                           TextColor="White" FontSize="16"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- Üst bar: kapat (sol) + Analiz Et (sağ) -->
+            <Grid VerticalOptions="Start" HorizontalOptions="Fill" Margin="0,44,0,0">
+                <Button Text="✕"
+                        FontSize="22" BackgroundColor="#60000000" TextColor="White"
+                        CornerRadius="24" WidthRequest="48" HeightRequest="48"
+                        Padding="0" HorizontalOptions="Start"
+                        Margin="12,0,0,0"
+                        Clicked="OnPhotoViewerClose"/>
+
+                <Button x:Name="analyzeButton"
+                        Text="🔍 Analiz Et"
+                        FontSize="15" FontAttributes="Bold"
+                        BackgroundColor="#DD0A5E14"
+                        TextColor="White"
+                        CornerRadius="22" HeightRequest="44"
+                        Padding="18,0"
+                        HorizontalOptions="End"
+                        Margin="0,0,12,0"
+                        Clicked="OnAnalyzeClicked"/>
+            </Grid>
+
+            <!-- Alt sonuç barı: tespit edilen top ve köşe bilgisi -->
+            <Grid x:Name="analysisResultBar"
+                  IsVisible="False"
+                  VerticalOptions="End"
+                  BackgroundColor="#EE0A1A0A"
+                  Padding="16,10">
+                <Label x:Name="analysisResultLabel"
+                       TextColor="White"
+                       FontSize="14"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"/>
+            </Grid>
+
         </Grid>
 
     </Grid>
