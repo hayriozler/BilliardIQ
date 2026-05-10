@@ -113,7 +113,7 @@ public partial class PhotoAnalyzerViewPage : BasePage
         _currentPhotoPath           = photo.FilePath;
         fullPhoto.Source            = photo.Source;
         analyzeButton.IsEnabled     = true;
-        analyzeButton.Text          = "🔍 Analiz Et";
+        analyzeButton.Text          = LocalizationManager.Instance["TV_Analyze"];
         analyzeOverlay.IsVisible    = false;
         analysisResultBar.IsVisible = false;
         photoViewer.IsVisible       = true;
@@ -148,7 +148,7 @@ public partial class PhotoAnalyzerViewPage : BasePage
 
         // UI: analiz başladı
         analyzeButton.IsEnabled     = false;
-        analyzeButton.Text          = "⏳ Analiz ediliyor...";
+        analyzeButton.Text          = LocalizationManager.Instance["TV_Analyzing2"];
         analyzeOverlay.IsVisible    = true;
         analysisResultBar.IsVisible = false;
 
@@ -167,15 +167,14 @@ public partial class PhotoAnalyzerViewPage : BasePage
             analysisResultLabel.Text    = result.StatusMessage;
             analysisResultBar.IsVisible = true;
 
-            // Butonu "Yeniden Analiz Et" olarak güncelle
-            analyzeButton.Text    = "🔄 Yeniden Analiz";
+            analyzeButton.Text      = LocalizationManager.Instance["TV_Reanalyze"];
             analyzeButton.IsEnabled = true;
         }
         catch (Exception ex)
         {
-            analysisResultLabel.Text    = $"Hata: {ex.Message}";
+            analysisResultLabel.Text    = ex.Message;
             analysisResultBar.IsVisible = true;
-            analyzeButton.Text          = "🔍 Analiz Et";
+            analyzeButton.Text          = LocalizationManager.Instance["TV_Analyze"];
             analyzeButton.IsEnabled     = true;
         }
         finally

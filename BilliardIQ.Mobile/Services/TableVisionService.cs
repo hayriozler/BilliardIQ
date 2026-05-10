@@ -2,6 +2,12 @@ using SkiaSharp;
 
 namespace BilliardIQ.Mobile.Services;
 
+// Kısayol: LocalizationManager.Instance["key"]
+file static class L
+{
+    public static string Get(string key) => LocalizationManager.Instance[key];
+}
+
 public enum DetectionEngine
 {
     /// <summary>HSV eşik tabanlı: en büyük renk blobu seçilir. Hızlı ama gürültüye duyarlı.</summary>
@@ -75,7 +81,7 @@ public class TableVisionService(BallDetectionService onnxDetector)
     {
         using var orig = SKBitmap.Decode(imageBytes);
         if (orig is null)
-            return new TableAnalysisResult { StatusMessage = "Görüntü okunamadı." };
+            return new TableAnalysisResult { StatusMessage = L.Get("TV_ReadError") };
 
         int ow = orig.Width, oh = orig.Height;
         float scale = MathF.Min((float)WorkDim / MathF.Max(ow, oh), 1f);
@@ -388,8 +394,11 @@ public class TableVisionService(BallDetectionService onnxDetector)
             float dotR   = MathF.Max(12f, refDim / 85f);
             float armLen = dotR * 2.2f;
             (float dx, float dy)[] dirs = [(+1, +1), (-1, +1), (-1, -1), (+1, -1)];
-            string[] lbls = ["SÜ", "SÜ", "SA", "SA"];
-            string[] fullLbls = ["Sol-Üst", "Sağ-Üst", "Sağ-Alt", "Sol-Alt"];
+            string[] fullLbls =
+            [
+                L.Get("TV_TopLeft"), L.Get("TV_TopRight"),
+                L.Get("TV_BottomRight"), L.Get("TV_BottomLeft")
+            ];
 
             for (int i = 0; i < 4; i++)
             {
@@ -477,10 +486,13 @@ public class TableVisionService(BallDetectionService onnxDetector)
         List<(float X, float Y)> corners, DetectionEngine engine)
     {
         var parts = new List<string>(5) { $"[{engine}]" };
-        if (balls.Any(b => b.Color == BallColor.White))  parts.Add("beyaz ✓");
-        if (balls.Any(b => b.Color == BallColor.Yellow)) parts.Add("sarı ✓");
-        if (balls.Any(b => b.Color == BallColor.Red))    parts.Add("kırmızı ✓");
-        if (corners.Count == 4)                          parts.Add("4 köşe ✓");
-        return string.Join("  ·  ", parts);
+        if (balls.Any(b => b.Color == BallColor.White))  parts.Add(L.Get("TV_White")  + " ✓");
+        if (balls.Any(b => b.Color == BallColor.Yellow)) parts.Add(L.Get("TV_Yellow") + " ✓");
+        if (balls.Any(b => b.Color == BallColor.Red))    parts.Add(L.Get("TV_Red")    + " ✓");
+        if (corners.Count == 4)                          parts.Add(L.Get("TV_Corners") + " ✓");
+
+        return parts.Count > 1
+            ? string.Join("  ·  ", parts)
+            : L.Get("TV_NotFound");
     }
 }

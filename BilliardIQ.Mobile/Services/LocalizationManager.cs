@@ -92,6 +92,22 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["Platform_DoesNotSupport"]         = "Platform Not Supported",
             ["Platform_DoesNotSupport_Message"] = "The 3-cushion game only works on Android.",
             ["Platform_DoesNotSupport_Ok"]      = "OK",
+
+            // Table vision / ball detection
+            ["TV_White"]        = "white ball",
+            ["TV_Yellow"]       = "yellow ball",
+            ["TV_Red"]          = "red ball",
+            ["TV_Corners"]      = "4 corners",
+            ["TV_TopLeft"]      = "Top-Left",
+            ["TV_TopRight"]     = "Top-Right",
+            ["TV_BottomRight"]  = "Bottom-Right",
+            ["TV_BottomLeft"]   = "Bottom-Left",
+            ["TV_NotFound"]     = "No balls or table detected — try better lighting and a more direct angle.",
+            ["TV_ReadError"]    = "Could not read image.",
+            ["TV_Analyzing"]    = "Analyzing...",
+            ["TV_Reanalyze"]    = "🔄 Re-analyze",
+            ["TV_Analyze"]      = "🔍 Analyze",
+            ["TV_Analyzing2"]   = "⏳ Analyzing...",
         },
         ["tr"] = new()
         {
@@ -170,6 +186,22 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["Platform_DoesNotSupport"]         = "Platform Desteklenmiyor",
             ["Platform_DoesNotSupport_Message"] = "3-Bant oyunu yalnızca Android'de çalışır.",
             ["Platform_DoesNotSupport_Ok"]      = "Tamam",
+
+            // Table vision / top tespiti
+            ["TV_White"]        = "beyaz top",
+            ["TV_Yellow"]       = "sarı top",
+            ["TV_Red"]          = "kırmızı top",
+            ["TV_Corners"]      = "4 köşe",
+            ["TV_TopLeft"]      = "Sol-Üst",
+            ["TV_TopRight"]     = "Sağ-Üst",
+            ["TV_BottomRight"]  = "Sağ-Alt",
+            ["TV_BottomLeft"]   = "Sol-Alt",
+            ["TV_NotFound"]     = "Top veya masa algılanamadı — daha iyi aydınlatma ve dik açıyla tekrar deneyin.",
+            ["TV_ReadError"]    = "Görüntü okunamadı.",
+            ["TV_Analyzing"]    = "Analiz ediliyor...",
+            ["TV_Reanalyze"]    = "🔄 Yeniden Analiz",
+            ["TV_Analyze"]      = "🔍 Analiz Et",
+            ["TV_Analyzing2"]   = "⏳ Analiz ediliyor...",
         }
     };
     public string CurrentLanguage => _language;
