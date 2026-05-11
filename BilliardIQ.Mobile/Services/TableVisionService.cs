@@ -10,11 +10,11 @@ file static class L
 
 public enum DetectionEngine
 {
-    /// <summary>HSV eşik tabanlı: en büyük renk blobu seçilir. Hızlı ama gürültüye duyarlı.</summary>
+    /// <summary>HSV threshold: largest color blob per color. Fast, may pick table frames over balls.</summary>
     Color,
-    /// <summary>Dairesellik filtreli: en dairesel renk blobu seçilir. Beyaz bant/çerçeve gürültüsünü eler.</summary>
-    Hough,
-    /// <summary>YOLOv8 ONNX modeli. Model dosyası yoksa Color'a düşer.</summary>
+    /// <summary>OpenCV (EmguCV): HoughCircles for balls, findContours+ApproxPolyDP for corners.</summary>
+    OpenCv,
+    /// <summary>YOLOv8 ONNX model. Falls back to Color if model file is missing.</summary>
     Onnx
 }
 
@@ -48,36 +48,71 @@ public class TableAnalysisResult
 ///   Görüntü 4 çeyreğe bölünür; her çeyrekte kendi köşesine en yakın yeşil
 ///   piksel bulunur ve 8-piksel komşuluk ortalamasıyla gürültü azaltılır.
 /// </summary>
-public class TableVisionService(BallDetectionService onnxDetector)
+public class TableVisionService(BallDetectionService onnxDetector, OpenCvBallDetector openCvDetector)
 {
     private const int WorkDim = 640;
-    private const float MinCircularity = 0.35f; // Hough engine için dairesellik eşiği
+    private const float MinCircularity = 0.35f;
 
     public async Task<TableAnalysisResult> AnalyzeAsync(string imagePath,
-        DetectionEngine engine = DetectionEngine.Hough)
+        DetectionEngine engine = DetectionEngine.OpenCv)
     {
         var bytes = await File.ReadAllBytesAsync(imagePath);
         return await AnalyzeBytesAsync(bytes, engine);
     }
 
     public async Task<TableAnalysisResult> AnalyzeBytesAsync(byte[] imageBytes,
-        DetectionEngine engine = DetectionEngine.Hough)
+        DetectionEngine engine = DetectionEngine.OpenCv)
     {
-        // ONNX isteniyorsa dene; model yoksa Hough'a düş
+        // OpenCV engine: EmguCV ile ayrı iş parçacığında çalıştır
+        if (engine == DetectionEngine.OpenCv)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var (balls, corners) = openCvDetector.Detect(imageBytes);
+                    // Annotated görüntüyü SkiaSharp ile çiz (SkiaSharp daha iyi JPEG kalitesi verir)
+                    using var orig = SkiaSharp.SKBitmap.Decode(imageBytes);
+                    byte[] annotated = orig is not null
+                        ? DrawAnnotations(orig, balls, corners)
+                        : imageBytes;
+                    return new TableAnalysisResult
+                    {
+                        Balls          = balls,
+                        Corners        = corners,
+                        AnnotatedImage = annotated,
+                        StatusMessage  = BuildStatus(balls, corners, engine),
+                        UsedEngine     = engine
+                    };
+                }
+                catch (Exception ex)
+                {
+                    return new TableAnalysisResult
+                    {
+                        StatusMessage = $"OpenCV hatası: {ex.Message}",
+                        UsedEngine    = engine
+                    };
+                }
+            });
+        }
+
+        // ONNX: try model, fall back to Color algorithm if model is missing
         IReadOnlyList<DetectedBall> onnxBalls = [];
-        DetectionEngine usedEngine = engine;
+        DetectionEngine algorithmEngine = engine; // may change on fallback
 
         if (engine == DetectionEngine.Onnx)
         {
             onnxBalls = await onnxDetector.DetectAsync(imageBytes);
-            if (onnxBalls.Count == 0) usedEngine = DetectionEngine.Hough; // model yoksa fallback
+            if (onnxBalls.Count == 0) algorithmEngine = DetectionEngine.Color;
         }
 
-        return await Task.Run(() => RunAnalysis(imageBytes, onnxBalls, usedEngine));
+        // Pass original requested engine separately so status always reflects what the user selected
+        return await Task.Run(() => RunAnalysis(imageBytes, onnxBalls, algorithmEngine, engine));
     }
 
     private static TableAnalysisResult RunAnalysis(
-        byte[] imageBytes, IReadOnlyList<DetectedBall> onnxBalls, DetectionEngine engine)
+        byte[] imageBytes, IReadOnlyList<DetectedBall> onnxBalls,
+        DetectionEngine engine, DetectionEngine requestedEngine)
     {
         using var orig = SKBitmap.Decode(imageBytes);
         if (orig is null)
@@ -108,20 +143,25 @@ public class TableVisionService(BallDetectionService onnxDetector)
         }
         else
         {
-            // Renk bazlı: Color (büyük blob) veya Hough (dairesel blob)
-            bool useCircularity = engine == DetectionEngine.Hough;
-            balls = DetectByColor(whiteMask, yellowMask, redMask, ww, wh, scale, ow, oh, useCircularity);
+            // Color: largest blob per color (fastest, may pick table borders over balls)
+            // OpenCV handles circularity properly via HoughCircles — no overlap here
+            balls = DetectByColor(whiteMask, yellowMask, redMask, ww, wh, scale, ow, oh,
+                useCircularity: false);
         }
 
         byte[] annotated = DrawAnnotations(orig, balls, corners);
+
+        // Status shows the engine the user requested (e.g. [Onnx] even when it fell back to Color)
+        string fallbackNote = (requestedEngine == DetectionEngine.Onnx && engine == DetectionEngine.Color)
+            ? " (no model→Color)" : string.Empty;
 
         return new TableAnalysisResult
         {
             Balls          = balls,
             Corners        = corners,
             AnnotatedImage = annotated,
-            StatusMessage  = BuildStatus(balls, corners, engine),
-            UsedEngine     = engine
+            StatusMessage  = BuildStatus(balls, corners, requestedEngine) + fallbackNote,
+            UsedEngine     = requestedEngine
         };
     }
 

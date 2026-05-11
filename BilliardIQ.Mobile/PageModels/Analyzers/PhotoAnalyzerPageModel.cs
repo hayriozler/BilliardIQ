@@ -1,4 +1,3 @@
-
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -35,14 +34,42 @@ public partial class PhotoAnalyzerPageModel : BasePageModel
     [RelayCommand]
     void SelectBackCamera()
     {
-        SelectedCamera = Cameras.FirstOrDefault(c => c.Position == CameraPosition.Rear) ?? Cameras.FirstOrDefault();
+        var cams = Cameras;
+        CameraInfo? found = null;
+        for (int i = 0; i < cams.Count; i++)
+        {
+            if (cams[i].Position == CameraPosition.Rear)
+            {
+                found = cams[i];
+                break;
+            }
+        }
+
+        if (found is null && cams.Count > 0)
+            found = cams[0];
+
+        SelectedCamera = found;
         IsBackCameraSelected = true;
     }
 
     [RelayCommand]
     void SelectFrontCamera()
     {
-        SelectedCamera = Cameras.FirstOrDefault(c => c.Position == CameraPosition.Front) ?? Cameras.FirstOrDefault();
+        var cams = Cameras;
+        CameraInfo? found = null;
+        for (int i = 0; i < cams.Count; i++)
+        {
+            if (cams[i].Position == CameraPosition.Front)
+            {
+                found = cams[i];
+                break;
+            }
+        }
+
+        if (found is null && cams.Count > 0)
+            found = cams[0];
+
+        SelectedCamera = found;
         IsBackCameraSelected = false;
     }
 

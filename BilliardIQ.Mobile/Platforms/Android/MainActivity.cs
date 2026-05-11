@@ -14,18 +14,35 @@ namespace BilliardIQ.Mobile.Platforms.Android;
         ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 public class MainActivity : MauiAppCompatActivity
 {
-    protected override void OnActivityResult(int requestCode, Result resultCode, Intent? data)
+    /// <summary>
+    /// Called whenever MainActivity comes to the foreground.
+    /// When Unity's BilliardUnityActivity calls moveTaskToBack(), Android
+    /// brings the MAUI task to front and triggers this method.
+    /// </summary>
+    protected override void OnResume()
     {
-        base.OnActivityResult(requestCode, resultCode, data);
+        base.OnResume();
 
-        if (requestCode == UnityBridgeService.RequestCodeUnity)
+        if (UnityBridgeService.IsGameRunning)
         {
-            // Unity activity finished — navigate back to the home (game list) page
-            MainThread.BeginInvokeOnMainThread(async () =>
+            UnityBridgeService.IsGameRunning = false;
+            NavigateToHome();
+        }
+    }
+
+    internal void NavigateToHome()
+    {
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            try
             {
                 if (Shell.Current is not null)
                     await Shell.Current.GoToAsync("//home");
-            });
-        }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainActivity] NavigateToHome failed: {ex.Message}");
+            }
+        });
     }
 }

@@ -7,103 +7,114 @@
     xmlns:vm="clr-namespace:BilliardIQ.Mobile.PageModels.Debug"
     x:DataType="vm:DebugTableAnalysisPageModel"
     x:Class="BilliardIQ.Mobile.Pages.Debug.DebugTableAnalysisViewPage"
-    Title="Debug · Masa Analizi">
+    Title="Debug · Table Analysis">
 
     <ScrollView>
         <VerticalStackLayout Spacing="12" Padding="12">
 
-            <!-- ─── Engine Seçimi ──────────────────────────────────────────── -->
-            <Label Text="Tespit Motoru" TextColor="#AAAAAA" FontSize="12" Margin="0,4,0,0"/>
+            <!-- ─── Engine Selection ──────────────────────────────────────────── -->
+            <Label Text="Detection Engine" TextColor="#AAAAAA" FontSize="12" Margin="0,4,0,0"/>
             <Grid ColumnDefinitions="*, *, *" ColumnSpacing="6">
 
-                <!-- Renk (HSV eşik, en büyük blob) -->
-                <Border Grid.Column="0" StrokeThickness="2" Padding="0">
+                <!-- Color (HSV threshold, largest blob) -->
+                <Border Grid.Column="0" StrokeThickness="2" Padding="0"
+                        BackgroundColor="#1A1A1A" Stroke="#333333">
                     <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
-                    <Border.Stroke>
-                        <Binding Path="IsColorEngine">
-                            <Binding.Converter>
-                                <toolkit:BoolToObjectConverter TrueObject="#64B5F6" FalseObject="#444"/>
-                            </Binding.Converter>
-                        </Binding>
-                    </Border.Stroke>
-                    <Button Text="🎨 Renk" Command="{Binding SelectColorCommand}"
-                            BackgroundColor="Transparent" TextColor="White"
-                            FontSize="13" HeightRequest="44"/>
+                    <Border.Triggers>
+                        <DataTrigger TargetType="Border" Binding="{Binding IsColorEngine}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#1D3D5F"/>
+                            <Setter Property="Stroke" Value="#64B5F6"/>
+                        </DataTrigger>
+                    </Border.Triggers>
+                    <Button Text="🎨 Color" Command="{Binding SelectColorCommand}"
+                            BackgroundColor="Transparent" FontSize="13" HeightRequest="44"
+                            TextColor="#777" FontAttributes="Bold">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" Binding="{Binding IsColorEngine}" Value="True">
+                                <Setter Property="TextColor" Value="#64B5F6"/>
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
                 </Border>
 
-                <!-- Hough (dairesellik filtreli) -->
-                <Border Grid.Column="1" StrokeThickness="2" Padding="0">
+                <!-- OpenCV (EmguCV HoughCircles + findContours) -->
+                <Border Grid.Column="1" StrokeThickness="2" Padding="0"
+                        BackgroundColor="#1A1A1A" Stroke="#333333">
                     <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
-                    <Border.Stroke>
-                        <Binding Path="IsHoughEngine">
-                            <Binding.Converter>
-                                <toolkit:BoolToObjectConverter TrueObject="#81C784" FalseObject="#444"/>
-                            </Binding.Converter>
-                        </Binding>
-                    </Border.Stroke>
-                    <Button Text="🔵 Hough" Command="{Binding SelectHoughCommand}"
-                            BackgroundColor="Transparent" TextColor="White"
-                            FontSize="13" HeightRequest="44"/>
+                    <Border.Triggers>
+                        <DataTrigger TargetType="Border" Binding="{Binding IsOpenCvEngine}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#1A3D22"/>
+                            <Setter Property="Stroke" Value="#81C784"/>
+                        </DataTrigger>
+                    </Border.Triggers>
+                    <Button Text="🔵 OpenCV" Command="{Binding SelectOpenCvCommand}"
+                            BackgroundColor="Transparent" FontSize="13" HeightRequest="44"
+                            TextColor="#777" FontAttributes="Bold">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" Binding="{Binding IsOpenCvEngine}" Value="True">
+                                <Setter Property="TextColor" Value="#81C784"/>
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
                 </Border>
 
-                <!-- ONNX (model bazlı) -->
-                <Border Grid.Column="2" StrokeThickness="2" Padding="0">
+                <!-- ONNX (model-based) -->
+                <Border Grid.Column="2" StrokeThickness="2" Padding="0"
+                        BackgroundColor="#1A1A1A" Stroke="#333333">
                     <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
-                    <Border.Stroke>
-                        <Binding Path="IsOnnxEngine">
-                            <Binding.Converter>
-                                <toolkit:BoolToObjectConverter TrueObject="#FFB74D" FalseObject="#444"/>
-                            </Binding.Converter>
-                        </Binding>
-                    </Border.Stroke>
+                    <Border.Triggers>
+                        <DataTrigger TargetType="Border" Binding="{Binding IsOnnxEngine}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#3D2800"/>
+                            <Setter Property="Stroke" Value="#FFB74D"/>
+                        </DataTrigger>
+                    </Border.Triggers>
                     <Button Text="🤖 ONNX" Command="{Binding SelectOnnxCommand}"
-                            BackgroundColor="Transparent" TextColor="White"
-                            FontSize="13" HeightRequest="44"/>
+                            BackgroundColor="Transparent" FontSize="13" HeightRequest="44"
+                            TextColor="#777" FontAttributes="Bold">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" Binding="{Binding IsOnnxEngine}" Value="True">
+                                <Setter Property="TextColor" Value="#FFB74D"/>
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
                 </Border>
 
             </Grid>
 
-            <!-- Engine açıklaması -->
-            <Label FontSize="11" TextColor="#888" Margin="2,0">
-                <Label.Text>
-                    <MultiBinding StringFormat="{}{}">
-                        <!-- binding trick: engine description via converter would need code; keep simple -->
-                    </MultiBinding>
-                </Label.Text>
-            </Label>
-            <Label FontSize="11" TextColor="#888" Margin="2,-8,2,4">
+            <!-- Engine description -->
+            <Label FontSize="11" TextColor="#888" Margin="2,0,2,4">
                 <Label.FormattedText>
                     <FormattedString>
-                        <Span Text="🎨 Renk" TextColor="#64B5F6"/>
-                        <Span Text=": büyük blob   "/>
-                        <Span Text="🔵 Hough" TextColor="#81C784"/>
-                        <Span Text=": dairesel blob (önerilen)   "/>
+                        <Span Text="🎨 Color" TextColor="#64B5F6"/>
+                        <Span Text=": largest blob   "/>
+                        <Span Text="🔵 OpenCV" TextColor="#81C784"/>
+                        <Span Text=": HoughCircles + findContours (recommended)   "/>
                         <Span Text="🤖 ONNX" TextColor="#FFB74D"/>
-                        <Span Text=": model (model yoksa Hough'a düşer)"/>
+                        <Span Text=": model (falls back to Color if missing)"/>
                     </FormattedString>
                 </Label.FormattedText>
             </Label>
 
-            <!-- ─── Fotoğraf Seç ────────────────────────────────────────────── -->
-            <Button Text="📷  Galeriden Fotoğraf Seç"
+            <!-- ─── Pick Photo ────────────────────────────────────────────────── -->
+            <Button Text="📷  Pick Photo from Gallery"
                     Command="{Binding PickPhotoCommand}"
                     BackgroundColor="#1E3A5F" TextColor="White"
                     CornerRadius="10" HeightRequest="50"
                     FontSize="16" FontAttributes="Bold"/>
 
-            <!-- Orijinal fotoğraf -->
+            <!-- Original photo -->
             <Border IsVisible="{Binding HasPhoto}"
                     StrokeThickness="1" Stroke="#444" HeightRequest="240">
                 <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
                 <Grid>
                     <Image Source="{Binding OriginalPhoto}" Aspect="AspectFit" BackgroundColor="Black"/>
-                    <Label Text="Orijinal" TextColor="#888" FontSize="11"
+                    <Label Text="Original" TextColor="#888" FontSize="11"
                            HorizontalOptions="Start" VerticalOptions="End" Margin="8,0,0,6"/>
                 </Grid>
             </Border>
 
-            <!-- Analiz Et butonu -->
-            <Button Text="🎱  Analiz Et"
+            <!-- Analyze button -->
+            <Button Text="🎱  Analyze"
                     Command="{Binding RunAnalysisCommand}"
                     IsVisible="{Binding HasPhoto}"
                     IsEnabled="{Binding IsAnalyzing, Converter={toolkit:InvertedBoolConverter}}"
@@ -111,18 +122,18 @@
                     CornerRadius="10" HeightRequest="50"
                     FontSize="16" FontAttributes="Bold"/>
 
-            <!-- Yükleme -->
+            <!-- Loading -->
             <Grid IsVisible="{Binding IsAnalyzing}" HeightRequest="60">
                 <ActivityIndicator IsRunning="True" Color="White"
                                    HorizontalOptions="Center" VerticalOptions="Center"/>
-                <Label Text="Analiz ediliyor..." TextColor="#AAA" FontSize="13"
+                <Label Text="Analyzing..." TextColor="#AAA" FontSize="13"
                        HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,4"/>
             </Grid>
 
-            <!-- ─── Sonuçlar ────────────────────────────────────────────────── -->
+            <!-- ─── Results ──────────────────────────────────────────────────── -->
             <VerticalStackLayout IsVisible="{Binding HasResult}" Spacing="10">
 
-                <!-- Durum -->
+                <!-- Status -->
                 <Border Padding="12,10" BackgroundColor="#0D2B0D" StrokeThickness="0">
                     <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
                     <Label Text="{Binding StatusMessage}"
@@ -130,23 +141,23 @@
                            HorizontalTextAlignment="Center"/>
                 </Border>
 
-                <!-- Annotated görüntü -->
-                <Label Text="Annotated Görüntü" TextColor="#FFCC80" FontAttributes="Bold" FontSize="13"/>
+                <!-- Annotated image -->
+                <Label Text="Annotated Image" TextColor="#FFCC80" FontAttributes="Bold" FontSize="13"/>
                 <Border StrokeThickness="1" Stroke="#FFCC80" HeightRequest="300">
                     <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
                     <Image Source="{Binding AnnotatedPhoto}" Aspect="AspectFit" BackgroundColor="Black"/>
                 </Border>
 
-                <!-- Koordinat detayları -->
-                <Label Text="Koordinatlar (rel = görüntü 0-1, px = piksel)" TextColor="#90CAF9" FontAttributes="Bold" FontSize="13"/>
+                <!-- Coordinates -->
+                <Label Text="Coordinates (rel = 0–1, px = pixels)" TextColor="#90CAF9" FontAttributes="Bold" FontSize="13"/>
                 <Border Padding="12" BackgroundColor="#0D1520" StrokeThickness="0">
                     <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
                     <Label Text="{Binding DetailText}" TextColor="#CFE8FF"
                            FontFamily="OpenSansRegular" FontSize="13" LineBreakMode="WordWrap"/>
                 </Border>
 
-                <!-- Yeniden analiz -->
-                <Button Text="🔄  Yeniden Analiz Et"
+                <!-- Re-analyze -->
+                <Button Text="🔄  Re-analyze"
                         Command="{Binding RunAnalysisCommand}"
                         BackgroundColor="#333" TextColor="White"
                         CornerRadius="10" HeightRequest="44"/>

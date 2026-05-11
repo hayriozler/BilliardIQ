@@ -19,7 +19,7 @@ public partial class AppShell : Shell
         });
         Items.Add(new ShellContent
         {
-            Title           = "🎱 Debug Masa Analizi",
+            Title           = "🎱 Table Analysis",
             ContentTemplate = new DataTemplate(typeof(DebugTableAnalysisViewPage)),
             Route           = "debugtable"
         });

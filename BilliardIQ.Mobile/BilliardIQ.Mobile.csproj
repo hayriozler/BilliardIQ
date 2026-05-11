@@ -68,6 +68,8 @@
 	<ItemGroup Condition="$(TargetFramework.Contains('-android'))">
 		<AndroidLibrary Include="Platforms\Android\libs\unityLibrary-debug.aar" Bind="false" Condition="Exists('Platforms\Android\libs\unityLibrary-debug.aar')" />
 		<AndroidJavaSource Include="Platforms\Android\BilliardUnityActivity.java" />
+		<!-- EmguCV Android native runtime: libopencv_world.so bundled via AAR -->
+		<PackageReference Include="Emgu.CV.runtime.maui.mini.android" Version="4.12.0.5764" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -81,6 +83,8 @@
 		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.25.1" />
 		<!-- SkiaSharp: image decode/resize for ONNX preprocessing (transitively available, made explicit) -->
 		<PackageReference Include="SkiaSharp" Version="3.119.2" />
+		<!-- EmguCV: OpenCV .NET wrapper — HoughCircles + findContours for ball/corner detection -->
+		<PackageReference Include="Emgu.CV" Version="4.12.0.5764" />
 	</ItemGroup>
 
 	<ItemGroup>

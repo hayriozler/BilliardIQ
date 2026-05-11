@@ -100,12 +100,29 @@ CREATE TABLE IF NOT EXISTS Cities (
 
         internal async override Task RunAsync()
         {
-            var created = await dbExecutor.ExecuteAsync(_tableCreationSql);
-            if (created)
+            await dbExecutor.ExecuteAsync(_tableCreationSql);            
+            if (!await ColumnExistsAsync("Cities", "CountryCode"))
             {
-                await EnsureSeededAsync();
+                await dbExecutor.ExecuteAsync("DROP TABLE IF EXISTS Cities;");
+                await dbExecutor.ExecuteAsync(@"CREATE TABLE Cities (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    CountryCode TEXT NOT NULL,
+                    Name TEXT NOT NULL
+                );");
             }
+
+            await EnsureSeededAsync();
         }
+
+        private static async Task<bool> ColumnExistsAsync(string table, string column)
+        {
+            using var connection = DatabaseExecutor.GetNewDbConnection();
+            await connection.OpenAsync();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name='{column}'";
+            return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+        }
+
         private async Task EnsureSeededAsync()
         {
             foreach (var (code, name) in _seedCountries)
@@ -114,10 +131,17 @@ CREATE TABLE IF NOT EXISTS Cities (
                 await dbExecutor.ExecuteAsync("INSERT OR IGNORE INTO Countries(Code, Name) VALUES(@Code, @Name)", parameters);
             }
 
+            // Skip city seeding if already populated (prevents duplicates on every startup)
+            using var connection = DatabaseExecutor.GetNewDbConnection();
+            await connection.OpenAsync();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM Cities";
+            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0) return;
+
             foreach (var (countryCode, cityName) in _seedCities)
             {
-                    await dbExecutor.ExecuteAsync("INSERT INTO Cities(CountryCode, Name) SELECT Code, @City FROM Countries WHERE Code=@Code",
-                        [new("@City", cityName), new("@Code", countryCode)]);
+                await dbExecutor.ExecuteAsync("INSERT INTO Cities(CountryCode, Name) SELECT Code, @City FROM Countries WHERE Code=@Code",
+                    [new("@City", cityName), new("@Code", countryCode)]);
             }
         }
     }

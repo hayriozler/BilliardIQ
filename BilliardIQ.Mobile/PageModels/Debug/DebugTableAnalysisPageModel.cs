@@ -14,22 +14,22 @@ public partial class DebugTableAnalysisPageModel(
     [ObservableProperty] private bool         _hasPhoto;
 
     // ── Engine seçimi ──────────────────────────────────────────────────────────
-    [ObservableProperty] private DetectionEngine _selectedEngine = DetectionEngine.Hough;
+    [ObservableProperty] private DetectionEngine _selectedEngine = DetectionEngine.OpenCv;
 
     public bool IsColorEngine  => SelectedEngine == DetectionEngine.Color;
-    public bool IsHoughEngine  => SelectedEngine == DetectionEngine.Hough;
+    public bool IsOpenCvEngine => SelectedEngine == DetectionEngine.OpenCv;
     public bool IsOnnxEngine   => SelectedEngine == DetectionEngine.Onnx;
 
     partial void OnSelectedEngineChanged(DetectionEngine value)
     {
         OnPropertyChanged(nameof(IsColorEngine));
-        OnPropertyChanged(nameof(IsHoughEngine));
+        OnPropertyChanged(nameof(IsOpenCvEngine));
         OnPropertyChanged(nameof(IsOnnxEngine));
     }
 
-    [RelayCommand] private void SelectColor() => SelectedEngine = DetectionEngine.Color;
-    [RelayCommand] private void SelectHough() => SelectedEngine = DetectionEngine.Hough;
-    [RelayCommand] private void SelectOnnx()  => SelectedEngine = DetectionEngine.Onnx;
+    [RelayCommand] private void SelectColor()  => SelectedEngine = DetectionEngine.Color;
+    [RelayCommand] private void SelectOpenCv() => SelectedEngine = DetectionEngine.OpenCv;
+    [RelayCommand] private void SelectOnnx()   => SelectedEngine = DetectionEngine.Onnx;
 
     // ── Analiz sonuçları ───────────────────────────────────────────────────────
     [ObservableProperty] private bool         _isAnalyzing;
@@ -82,25 +82,24 @@ public partial class DebugTableAnalysisPageModel(
             {
                 string name = b.Color switch
                 {
-                    BallColor.White  => "Beyaz",
-                    BallColor.Yellow => "Sarı",
-                    BallColor.Red    => "Kırmızı",
+                    BallColor.White  => "White",
+                    BallColor.Yellow => "Yellow",
+                    BallColor.Red    => "Red",
                     _                => "?"
                 };
                 lines.Add($"{name}: rel=({b.CenterX:F3}, {b.CenterY:F3})  px=({b.PixelX}, {b.PixelY})  r={b.PixelRadius}px");
             }
 
-            // Köşeler: piksel koordinatları
             if (result.Corners.Count == 4)
             {
                 lines.Add(string.Empty);
-                lines.Add("Köşeler (piksel):");
-                string[] labels = ["Sol-Üst", "Sağ-Üst", "Sağ-Alt", "Sol-Alt"];
+                lines.Add("Corners (pixels):");
+                string[] labels = ["TL", "TR", "BR", "BL"];
                 for (int i = 0; i < 4; i++)
                     lines.Add($"  {labels[i]}: ({result.Corners[i].X:F0}, {result.Corners[i].Y:F0})");
             }
 
-            DetailText = lines.Count > 0 ? string.Join("\n", lines) : "Hiçbir şey algılanamadı.";
+            DetailText = lines.Count > 0 ? string.Join("\n", lines) : "Nothing detected.";
 
             if (result.AnnotatedImage.Length > 0)
             {

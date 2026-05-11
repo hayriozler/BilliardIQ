@@ -23,7 +23,7 @@ if errorlevel 1 (
 echo [OK] Unity export done.
 
 echo [1b/5] Fixing local.properties...
-echo sdk.dir=C\:\\Program Files (x86)\\Android\\android-sdk> "%UNITY_EXPORT%\local.properties"
+echo sdk.dir=C:\\Program Files (x86)\\Android\\android-sdk> "%UNITY_EXPORT%\local.properties"
 
 echo [2/5] Building unityLibrary...
 cd /d "%UNITY_EXPORT%"

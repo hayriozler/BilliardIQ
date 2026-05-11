@@ -161,7 +161,7 @@ public sealed class BallDetectionService : IDisposable
         float scaleX, float scaleY, int padX, int padY)
     {
         // raw: [7 × 8400] stored as [row0_col0, row0_col1, ..., row6_col8399]
-        const int rows = 7;
+        //const int rows = 7;
         const int cols = 8400;
 
         var candidates = new List<(float cx, float cy, float w, float h,
