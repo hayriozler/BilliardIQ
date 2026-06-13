@@ -1,0 +1,5 @@
+# Attribute macros must be defined in the top-level .gitattributes to take effect.
+# Used by BilliardIQ.Unity/.gitattributes for Unity asset LFS/EOL rules.
+[attr]lfs               filter=lfs diff=lfs merge=lfs -text
+[attr]unity-json        eol=lf linguist-language=json
+[attr]unity-yaml        merge=unityyamlmerge eol=lf linguist-language=yaml
