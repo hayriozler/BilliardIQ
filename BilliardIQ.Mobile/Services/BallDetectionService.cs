@@ -101,7 +101,7 @@ public sealed class BallDetectionService : IDisposable
         var inputs = new[] { NamedOnnxValue.CreateFromTensor("images", tensor) };
 
         using var outputs = _session!.Run(inputs);
-        var raw = outputs.First().AsEnumerable<float>().ToArray();
+        var raw = outputs[0].AsEnumerable<float>().ToArray();
 
         // raw shape: [1, 7, 8400] → parse columns
         return ParseAndFilter(raw, origW, origH, scaleX, scaleY, padX, padY);

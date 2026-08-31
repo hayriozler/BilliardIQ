@@ -50,8 +50,8 @@ public class TableAnalysisResult
 /// </summary>
 public class TableVisionService(BallDetectionService onnxDetector, OpenCvBallDetector openCvDetector)
 {
-    private const int WorkDim = 640;
-    private const float MinCircularity = 0.35f;
+    private const int _workDim = 640;
+    private const float _minCircularity = 0.35f;
 
     public async Task<TableAnalysisResult> AnalyzeAsync(string imagePath,
         DetectionEngine engine = DetectionEngine.OpenCv)
@@ -119,7 +119,7 @@ public class TableVisionService(BallDetectionService onnxDetector, OpenCvBallDet
             return new TableAnalysisResult { StatusMessage = L.Get("TV_ReadError") };
 
         int ow = orig.Width, oh = orig.Height;
-        float scale = MathF.Min((float)WorkDim / MathF.Max(ow, oh), 1f);
+        float scale = MathF.Min((float)_workDim / MathF.Max(ow, oh), 1f);
         int ww = Math.Max(1, (int)(ow * scale));
         int wh = Math.Max(1, (int)(oh * scale));
 
@@ -145,7 +145,7 @@ public class TableVisionService(BallDetectionService onnxDetector, OpenCvBallDet
         {
             // Color: largest blob per color (fastest, may pick table borders over balls)
             // OpenCV handles circularity properly via HoughCircles — no overlap here
-            balls = DetectByColor(whiteMask, yellowMask, redMask, ww, wh, scale, ow, oh,
+            balls = DetectByColor(whiteMask, yellowMask, redMask, ww, wh, ow, oh,
                 useCircularity: false);
         }
 
@@ -268,13 +268,13 @@ public class TableVisionService(BallDetectionService onnxDetector, OpenCvBallDet
 
     private static List<TableBall> DetectByColor(
         bool[] white, bool[] yellow, bool[] red,
-        int ww, int wh, float scale, int origW, int origH,
+        int ww, int wh, int origW, int origH,
         bool useCircularity)
     {
         var balls = new List<TableBall>(3);
-        TryAddBall(white,  ww, wh, BallColor.White,  scale, origW, origH, useCircularity, balls);
-        TryAddBall(yellow, ww, wh, BallColor.Yellow, scale, origW, origH, useCircularity, balls);
-        TryAddBall(red,    ww, wh, BallColor.Red,    scale, origW, origH, useCircularity, balls);
+        TryAddBall(white,  ww, wh, BallColor.White,  origW, origH, useCircularity, balls);
+        TryAddBall(yellow, ww, wh, BallColor.Yellow, origW, origH, useCircularity, balls);
+        TryAddBall(red,    ww, wh, BallColor.Red,    origW, origH, useCircularity, balls);
         return balls;
     }
 
@@ -290,7 +290,7 @@ public class TableVisionService(BallDetectionService onnxDetector, OpenCvBallDet
     /// </summary>
     private static void TryAddBall(
         bool[] mask, int w, int h, BallColor color,
-        float scale, int origW, int origH,
+        int origW, int origH,
         bool useCircularity, List<TableBall> results)
     {
         var visited = new bool[w * h];
@@ -318,7 +318,7 @@ public class TableVisionService(BallDetectionService onnxDetector, OpenCvBallDet
             if (useCircularity)
             {
                 // Hough: dairesellik eşiği + en dairesel blob
-                if (circularity < MinCircularity) continue;
+                if (circularity < _minCircularity) continue;
                 if (chosen is null || circularity > chosen.Circularity)
                     chosen = blob with { Circularity = circularity };
             }
@@ -332,7 +332,6 @@ public class TableVisionService(BallDetectionService onnxDetector, OpenCvBallDet
 
         if (chosen is null) return;
 
-        float inv = 1f / scale;
         float cx  = chosen.SumX / (float)chosen.Count / w;
         float cy  = chosen.SumY / (float)chosen.Count / h;
         float r   = (chosen.MaxX - chosen.MinX + chosen.MaxY - chosen.MinY) / 4f / MathF.Max(w, h);
@@ -428,8 +427,9 @@ public class TableVisionService(BallDetectionService onnxDetector, OpenCvBallDet
             using var dotFill   = new SKPaint { Color = new SKColor(255, 215, 0, 240), Style = SKPaintStyle.Fill,   IsAntialias = true };
             using var dotBorder = new SKPaint { Color = SKColors.Black,                Style = SKPaintStyle.Stroke, StrokeWidth = sw * 0.5f, IsAntialias = true };
             using var armPaint  = new SKPaint { Color = new SKColor(255, 215, 0, 255), Style = SKPaintStyle.Stroke, StrokeWidth = sw * 1.1f, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
-            using var lblWhite  = new SKPaint { Color = SKColors.White, TextSize = MathF.Max(16f, refDim / 60f), IsAntialias = true, FakeBoldText = true, TextAlign = SKTextAlign.Center };
-            using var lblBlack  = new SKPaint { Color = SKColors.Black, TextSize = MathF.Max(16f, refDim / 60f), IsAntialias = true, FakeBoldText = true, TextAlign = SKTextAlign.Center };
+            using var lblWhite  = new SKPaint { Color = SKColors.White, IsAntialias = true };
+            using var lblBlack  = new SKPaint { Color = SKColors.Black, IsAntialias = true };
+            using var lblFont   = new SKFont { Size = MathF.Max(16f, refDim / 60f), Embolden = true };
 
             float dotR   = MathF.Max(12f, refDim / 85f);
             float armLen = dotR * 2.2f;
@@ -448,9 +448,9 @@ public class TableVisionService(BallDetectionService onnxDetector, OpenCvBallDet
                 canvas.DrawLine(cx, cy, cx, cy + ady * armLen, armPaint);
                 canvas.DrawCircle(cx, cy, dotR, dotFill);
                 canvas.DrawCircle(cx, cy, dotR, dotBorder);
-                float ty = cy + ady * (dotR + lblWhite.TextSize * 1.3f);
-                canvas.DrawText(fullLbls[i], cx, ty,      lblBlack);
-                canvas.DrawText(fullLbls[i], cx, ty - 1f, lblWhite);
+                float ty = cy + ady * (dotR + lblFont.Size * 1.3f);
+                canvas.DrawText(fullLbls[i], cx, ty,      SKTextAlign.Center, lblFont, lblBlack);
+                canvas.DrawText(fullLbls[i], cx, ty - 1f, SKTextAlign.Center, lblFont, lblWhite);
             }
         }
 
@@ -474,14 +474,15 @@ public class TableVisionService(BallDetectionService onnxDetector, OpenCvBallDet
 
             using var fillP   = new SKPaint { Color = fill,          Style = SKPaintStyle.Fill,   IsAntialias = true };
             using var strokeP = new SKPaint { Color = stroke,        Style = SKPaintStyle.Stroke, StrokeWidth = sw2, IsAntialias = true };
-            using var textW   = new SKPaint { Color = SKColors.White, TextSize = ts, IsAntialias = true, FakeBoldText = true, TextAlign = SKTextAlign.Center };
-            using var textB   = new SKPaint { Color = SKColors.Black, TextSize = ts, IsAntialias = true, FakeBoldText = true, TextAlign = SKTextAlign.Center };
+            using var textW   = new SKPaint { Color = SKColors.White, IsAntialias = true };
+            using var textB   = new SKPaint { Color = SKColors.Black, IsAntialias = true };
+            using var textFont = new SKFont { Size = ts, Embolden = true };
 
             canvas.DrawCircle(cx, cy, r, fillP);
             canvas.DrawCircle(cx, cy, r, strokeP);
             float ty = cy + ts * 0.38f;
-            canvas.DrawText(label, cx + 1.5f, ty + 1.5f, textB);
-            canvas.DrawText(label, cx,        ty,        textW);
+            canvas.DrawText(label, cx + 1.5f, ty + 1.5f, SKTextAlign.Center, textFont, textB);
+            canvas.DrawText(label, cx,        ty,        SKTextAlign.Center, textFont, textW);
         }
 
         using var img  = surface.Snapshot();

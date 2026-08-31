@@ -178,7 +178,26 @@
       "Bash(Select-Object -First 20)",
       "Bash(Format-Table FullName)",
       "PowerShell(Get-ChildItem -Path \"D:\\\\SourceCodes\\\\BilliardIQ\\\\Unity\" -Recurse | Where-Object { $_.Extension -eq '.cs' } | Select-Object -ExpandProperty FullName)",
-      "PowerShell(Get-Content *)"
+      "PowerShell(Get-Content *)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "PowerShell(dotnet build *)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\SourceCodes\\\\BilliardIQ\" -Recurse -Directory | Where-Object { $_.Name -match \"Unity|Assets|Android\" } | Select-Object -ExpandProperty FullName)",
+      "PowerShell(Get-ChildItem \"D:\\\\SourceCodes\\\\BilliardIQ\\\\BilliardIQ.Unity\\\\Assets\" | Where-Object {$_.Name -match \"Ball|ball|Mat|mat\"})",
+      "Bash(Select-String -Pattern \"XAWAS|error\")",
+      "Bash(Select-Object -First 30)",
+      "Bash(findstr /i \"error warning Build\")",
+      "PowerShell($p = \"$env:USERPROFILE\\\\.nuget\\\\packages\\\\emgu.cv\"; dir $p)",
+      "PowerShell(dir \"$env:USERPROFILE\\\\.nuget\\\\packages\\\\emgu.cv\\\\4.9.0.5494\" -Recurse -File | ForEach-Object { $_.FullName } | Select-Object -First 50)",
+      "PowerShell(dir \"$env:USERPROFILE\\\\.nuget\\\\packages\\\\emgu.cv\\\\4.12.0.5764\" -Recurse -File | ForEach-Object { $_.FullName } | Select-Object -First 50)",
+      "PowerShell(dir \"$env:USERPROFILE\\\\.nuget\\\\packages\" | Where-Object { $_.Name -match \"emgu|opencv\" } | Select-Object Name)",
+      "PowerShell(dir \"$env:USERPROFILE\\\\.nuget\\\\packages\" | Select-String -Pattern \"emgu\" | Select-Object -First 10)",
+      "PowerShell(dir \"$env:USERPROFILE\\\\.nuget\\\\packages\\\\emgu.cv.runtime.maui.mini.android\")",
+      "PowerShell(dir \"$env:USERPROFILE\\\\.nuget\\\\packages\\\\emgu.cv.runtime.maui.mini.android\\\\4.12.0.5764\" -Recurse -File | ForEach-Object { $_.FullName.Replace\\(\"$env:USERPROFILE\\\\.nuget\\\\packages\\\\emgu.cv.runtime.maui.mini.android\\\\4.12.0.5764\", ''\\) } | Select-Object -First 40)",
+      "PowerShell(dir \"$env:USERPROFILE\\\\.nuget\\\\packages\\\\emgu.cv.bitmap\" | Select-Object Name)",
+      "PowerShell(dir \"$env:USERPROFILE\\\\.nuget\\\\packages\" | Where-Object { $_.Name -match \"emgu\" } | Select-Object Name, LastWriteTime)",
+      "Bash(grep -i \"^.. BilliardIQ.Unity$\")",
+      "Bash(grep -P \"\\\\tBilliardIQ\\\\.Unity$\")",
+      "Bash(grep -c \"\\\\.meta$\")"
     ]
   }
 }

@@ -11,20 +11,21 @@ public partial class DebugOcrPageModel(
     IErrorHandler errorHandler) : ObservableObject
 {
     // ── Ortak durum ────────────────────────────────────────────────────────────
-    [ObservableProperty] private ImageSource? _selectedPhoto;
-    [ObservableProperty] private string       _selectedPhotoPath = string.Empty;
-    [ObservableProperty] private bool         _isLoading;
-    [ObservableProperty] private bool         _hasPhoto;
+    [ObservableProperty] 
+    public partial ImageSource? SelectedPhoto { get; set; }
+    [ObservableProperty] public partial string  SelectedPhotoPath { get; set; } = string.Empty;
+    [ObservableProperty] public partial bool IsLoading { get; set; } 
+    [ObservableProperty] public partial bool HasPhoto { get; set; }
 
     // ── OCR bölümü ─────────────────────────────────────────────────────────────
-    [ObservableProperty] private string _rawOcrText   = string.Empty;
-    [ObservableProperty] private string _parsedResult = string.Empty;
-    [ObservableProperty] private bool   _hasOcrResult;
+    [ObservableProperty] public partial string RawOcrText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string ParsedResult { get; set; } = string.Empty;
+    [ObservableProperty] public partial bool   HasOcrResult { get; set; }
 
     // ── Masa analizi bölümü ────────────────────────────────────────────────────
-    [ObservableProperty] private ImageSource? _annotatedPhoto;
-    [ObservableProperty] private string       _analysisStatus = string.Empty;
-    [ObservableProperty] private bool         _hasAnalysis;
+    [ObservableProperty] public partial ImageSource? AnnotatedPhoto { get; set; }
+    [ObservableProperty] public partial string AnalysisStatus { get; set; } = string.Empty;
+    [ObservableProperty] public partial bool HasAnalysis { get; set; }
 
     // ── Galeri seçimi ──────────────────────────────────────────────────────────
 
@@ -35,7 +36,7 @@ public partial class DebugOcrPageModel(
         {
             var photos = await MediaPicker.Default.PickPhotosAsync(
                 new MediaPickerOptions { SelectionLimit = 1 });
-            if (!photos.Any()) return;
+            if (photos.Count() <= 0) return;
 
             var photo        = photos.First();
             SelectedPhotoPath = photo.FullPath;

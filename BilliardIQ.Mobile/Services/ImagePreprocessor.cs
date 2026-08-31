@@ -36,7 +36,7 @@ public static class ImagePreprocessor
             int   w     = Math.Max(1, (int)(original.Width  * scale));
             int   h     = Math.Max(1, (int)(original.Height * scale));
 
-            using var resized = original.Resize(new SKImageInfo(w, h), SKFilterQuality.Medium);
+            using var resized = original.Resize(new SKImageInfo(w, h), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
             if (resized is null) return [];
 
             using var image = SKImage.FromBitmap(resized);
