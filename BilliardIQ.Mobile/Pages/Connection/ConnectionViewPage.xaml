@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.ConnectionPageModels"
+    xmlns:models="clr-namespace:BilliardIQ.Mobile.Models"
+    x:DataType="pageModels:ConnectionPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Connection.ConnectionViewPage"
+    Title="{Binding L[Connect_Title]}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <Label Text="{Binding L[Connect_Title]}"
+                   FontSize="22" FontAttributes="Bold" HorizontalOptions="Center"/>
+
+            <!-- Status -->
+            <Border BackgroundColor="{AppThemeBinding Light=#1E3A5F, Dark=#0D1F33}"
+                    StrokeThickness="0" Padding="14,10">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12"/>
+                </Border.StrokeShape>
+                <Grid ColumnDefinitions="*, Auto">
+                    <Label Grid.Column="0" Text="{Binding StatusText}" TextColor="White" FontAttributes="Bold" VerticalOptions="Center"/>
+                    <Button Grid.Column="1"
+                            Text="{Binding L[Connect_Disconnect]}"
+                            Command="{Binding DisconnectCommand}"
+                            IsVisible="{Binding IsConnected}"
+                            BackgroundColor="#C62828"
+                            TextColor="White"
+                            CornerRadius="18"
+                            HeightRequest="36"
+                            Padding="14,0"/>
+                </Grid>
+            </Border>
+
+            <Label Text="{Binding ConnectionHint}"
+                   IsVisible="{Binding HasConnectionHint}"
+                   TextColor="#C62828" FontSize="13" />
+
+            <!-- Connection type selector -->
+            <Label Text="{Binding L[Connect_TypeLabel]}" FontSize="13" TextColor="Gray"/>
+            <Picker ItemsSource="{Binding ConnectionTypes}"
+                    SelectedItem="{Binding SelectedConnectionType}"
+                    IsEnabled="{Binding IsNotConnected}"/>
+
+            <!-- WebSocket -->
+            <VerticalStackLayout Spacing="10" IsVisible="{Binding IsWebSocketSelected}">
+                <Label Text="{Binding L[Connect_WebSocketUrl]}" FontSize="13" TextColor="Gray"/>
+                <Entry Text="{Binding WebSocketUrl, Mode=TwoWay}"
+                       IsEnabled="{Binding IsNotConnected}"
+                       Keyboard="Url"/>
+                <Button Text="{Binding L[Connect_Connect]}"
+                        Command="{Binding ConnectWebSocketCommand}"
+                        IsEnabled="{Binding IsNotConnected}"
+                        BackgroundColor="#2E7D32"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        CornerRadius="24"
+                        HeightRequest="48"/>
+            </VerticalStackLayout>
+
+            <!-- Bluetooth -->
+            <VerticalStackLayout Spacing="10" IsVisible="{Binding IsBluetoothSelected}">
+                <Button Text="{Binding L[Connect_ScanBluetooth]}"
+                        Command="{Binding ScanBluetoothCommand}"
+                        IsEnabled="{Binding IsNotConnected}"
+                        BackgroundColor="#1565C0"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        CornerRadius="24"
+                        HeightRequest="48"/>
+
+                <VerticalStackLayout Spacing="10" IsVisible="{Binding IsScanning}">
+                    <ActivityIndicator IsRunning="{Binding IsScanning}" HorizontalOptions="Center"/>
+                    <Button Text="{Binding L[Connect_Cancel]}"
+                            Command="{Binding CancelConnectCommand}"
+                            BackgroundColor="#C62828"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            CornerRadius="24"
+                            HeightRequest="48"/>
+                </VerticalStackLayout>
+
+                <CollectionView ItemsSource="{Binding DiscoveredDevices}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:BluetoothDeviceInfo">
+                            <Border Stroke="LightGray" StrokeThickness="1" Padding="12" Margin="0,4">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ConnectToDeviceCommand}"
+                                        CommandParameter="{Binding .}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="{Binding Name}" FontSize="16"/>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="10" IsVisible="{Binding IsBusy}">
+                <ActivityIndicator IsRunning="{Binding IsBusy}" HorizontalOptions="Center"/>
+                <Button Text="{Binding L[Connect_Cancel]}"
+                        Command="{Binding CancelConnectCommand}"
+                        BackgroundColor="#C62828"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        CornerRadius="24"
+                        HeightRequest="48"/>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</basePages:BasePage>

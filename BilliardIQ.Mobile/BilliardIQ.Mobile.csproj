@@ -57,7 +57,7 @@
 		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#0F1F0F" BaseSize="128,128" />
 
 		<!-- Images -->
-		<MauiFont Include="Resources\Fonts\*" />
+		<MauiFont Include="Resources\Fonts\*.ttf" />
 
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
@@ -77,6 +77,7 @@
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.100" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.11" />
+		<PackageReference Include="Plugin.BLE" Version="3.2.1" />
 		<PackageReference Include="Plugin.Maui.OCR" Version="1.1.1" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.100" />
 		<!-- ONNX Runtime: YOLOv8 ball detection + future on-device models (Android, iOS) -->

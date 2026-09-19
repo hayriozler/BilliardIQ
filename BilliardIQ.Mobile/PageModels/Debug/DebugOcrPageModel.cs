@@ -11,16 +11,16 @@ public partial class DebugOcrPageModel(
     IErrorHandler errorHandler) : ObservableObject
 {
     // ── Ortak durum ────────────────────────────────────────────────────────────
-    [ObservableProperty] 
+    [ObservableProperty]
     public partial ImageSource? SelectedPhoto { get; set; }
-    [ObservableProperty] public partial string  SelectedPhotoPath { get; set; } = string.Empty;
-    [ObservableProperty] public partial bool IsLoading { get; set; } 
+    [ObservableProperty] public partial string SelectedPhotoPath { get; set; } = string.Empty;
+    [ObservableProperty] public partial bool IsLoading { get; set; }
     [ObservableProperty] public partial bool HasPhoto { get; set; }
 
     // ── OCR bölümü ─────────────────────────────────────────────────────────────
     [ObservableProperty] public partial string RawOcrText { get; set; } = string.Empty;
     [ObservableProperty] public partial string ParsedResult { get; set; } = string.Empty;
-    [ObservableProperty] public partial bool   HasOcrResult { get; set; }
+    [ObservableProperty] public partial bool HasOcrResult { get; set; }
 
     // ── Masa analizi bölümü ────────────────────────────────────────────────────
     [ObservableProperty] public partial ImageSource? AnnotatedPhoto { get; set; }
@@ -36,14 +36,13 @@ public partial class DebugOcrPageModel(
         {
             var photos = await MediaPicker.Default.PickPhotosAsync(
                 new MediaPickerOptions { SelectionLimit = 1 });
-            if (photos.Count() <= 0) return;
+            if (photos.Count <= 0) return;
 
-            var photo        = photos.First();
+            var photo = photos.First();
             SelectedPhotoPath = photo.FullPath;
             SelectedPhoto    = ImageSource.FromFile(photo.FullPath);
             HasPhoto         = true;
 
-            // Önceki sonuçları temizle
             RawOcrText     = string.Empty;
             ParsedResult   = string.Empty;
             HasOcrResult   = false;
@@ -57,7 +56,7 @@ public partial class DebugOcrPageModel(
         }
     }
 
-    // ── OCR çalıştır ───────────────────────────────────────────────────────────
+    // ── OCR ───────────────────────────────────────────────────────────
 
     [RelayCommand]
     private async Task RunOcrAsync()
@@ -70,8 +69,8 @@ public partial class DebugOcrPageModel(
         try
         {
             await rawOcr.InitAsync();
-            var raw    = await File.ReadAllBytesAsync(SelectedPhotoPath);
-            var bytes  = await Task.Run(() => ImagePreprocessor.NormalizeToJpeg(raw));
+            var raw = await File.ReadAllBytesAsync(SelectedPhotoPath);
+            var bytes = await Task.Run(() => ImagePreprocessor.NormalizeToJpeg(raw));
             var result = await rawOcr.RecognizeTextAsync(bytes, tryHard: true);
 
             RawOcrText = result.Success
@@ -104,7 +103,6 @@ public partial class DebugOcrPageModel(
         }
     }
 
-    // ── Masa analizi çalıştır ─────────────────────────────────────────────────
 
     [RelayCommand]
     private async Task AnalyzeTableAsync()

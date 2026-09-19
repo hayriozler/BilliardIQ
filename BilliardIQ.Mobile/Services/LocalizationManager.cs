@@ -108,6 +108,37 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["TV_Reanalyze"]    = "🔄 Re-analyze",
             ["TV_Analyze"]      = "🔍 Analyze",
             ["TV_Analyzing2"]   = "⏳ Analyzing...",
+
+            // Raspberry Pi connection
+            ["Connect_Title"]             = "Connect to Table",
+            ["Connect_TypeLabel"]         = "Connection Type",
+            ["Connect_WebSocketUrl"]      = "WebSocket URL",
+            ["Connect_Connect"]           = "Connect",
+            ["Connect_Disconnect"]        = "Disconnect",
+            ["Connect_Cancel"]            = "Cancel",
+            ["Connect_Timeout"]           = "Connection timed out. Make sure the device is a BLE peripheral, powered on, and in range.",
+            ["Connect_ScanBluetooth"]     = "Scan for Devices",
+            ["Connect_StatusConnected"]   = "Connected via {0}",
+            ["Connect_StatusConnecting"]  = "Connecting...",
+            ["Connect_StatusFailed"]      = "Connection failed: {0}",
+            ["Connect_StatusDisconnected"]= "Not connected",
+
+            // Scoreboard Players
+            ["AddPlayer_Title"]    = "Add Player",
+            ["AddPlayer_NickName"] = "Nickname",
+            ["AddPlayer_Name"]     = "Name",
+
+            // Scoreboard
+            ["Scoreboard_Title"]       = "Scoreboard",
+            ["Scoreboard_Start"]       = "Start Timer",
+            ["Scoreboard_Pause"]       = "Stop Timer",
+            ["Scoreboard_ResetTimer"]  = "Reset Timer",
+            ["Scoreboard_Reset"]       = "Reset Scores",
+            ["Scoreboard_Enter"]       = "Enter",
+            ["Scoreboard_MatchTarget"] = "Target",
+            ["Scoreboard_StartNewGame"]= "Start New Game",
+            ["Scoreboard_EndGame"]     = "End Game",
+            ["Scoreboard_Reconnect"]   = "Reconnect",
         },
         ["tr"] = new()
         {
@@ -202,6 +233,37 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["TV_Reanalyze"]    = "🔄 Yeniden Analiz",
             ["TV_Analyze"]      = "🔍 Analiz Et",
             ["TV_Analyzing2"]   = "⏳ Analiz ediliyor...",
+
+            // Raspberry Pi bağlantısı
+            ["Connect_Title"]             = "Masaya Bağlan",
+            ["Connect_TypeLabel"]         = "Bağlantı Türü",
+            ["Connect_WebSocketUrl"]      = "WebSocket Adresi",
+            ["Connect_Connect"]           = "Bağlan",
+            ["Connect_Disconnect"]        = "Bağlantıyı Kes",
+            ["Connect_Cancel"]            = "İptal",
+            ["Connect_Timeout"]           = "Bağlantı zaman aşımına uğradı. Cihazın BLE destekli, açık ve menzilde olduğundan emin olun.",
+            ["Connect_ScanBluetooth"]     = "Cihazları Tara",
+            ["Connect_StatusConnected"]   = "{0} ile bağlandı",
+            ["Connect_StatusConnecting"]  = "Bağlanıyor...",
+            ["Connect_StatusFailed"]      = "Bağlantı başarısız: {0}",
+            ["Connect_StatusDisconnected"]= "Bağlı değil",
+
+            // Skorbord Oyuncuları
+            ["AddPlayer_Title"]    = "Oyuncu Ekle",
+            ["AddPlayer_NickName"] = "Takma Ad",
+            ["AddPlayer_Name"]     = "İsim",
+
+            // Skorbord
+            ["Scoreboard_Title"]       = "Skorbord",
+            ["Scoreboard_Start"]       = "Süreyi Başlat",
+            ["Scoreboard_Pause"]       = "Süreyi Durdur",
+            ["Scoreboard_ResetTimer"]  = "Süreyi Sıfırla",
+            ["Scoreboard_Reset"]       = "Skorları Sıfırla",
+            ["Scoreboard_Enter"]       = "Onayla",
+            ["Scoreboard_MatchTarget"] = "Hedef",
+            ["Scoreboard_StartNewGame"]= "Yeni Oyun Başlat",
+            ["Scoreboard_EndGame"]     = "Oyunu Bitir",
+            ["Scoreboard_Reconnect"]   = "Yeniden Bağlan",
         }
     };
     public string CurrentLanguage => _language;

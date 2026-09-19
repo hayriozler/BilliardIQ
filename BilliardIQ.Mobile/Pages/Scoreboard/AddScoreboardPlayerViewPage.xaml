@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.ScoreboardPageModels"
+    x:DataType="pageModels:AddScoreboardPlayerPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Scoreboard.AddScoreboardPlayerViewPage"
+    Title="{Binding L[AddPlayer_Title]}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="12">
+
+            <!-- Photo preview -->
+            <Border WidthRequest="140" HeightRequest="140"
+                    HorizontalOptions="Center"
+                    StrokeThickness="2"
+                    Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}"
+                    BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="70"/>
+                </Border.StrokeShape>
+                <Image Source="{Binding PhotoSource}"
+                       IsVisible="{Binding HasPhoto}"
+                       Aspect="AspectFill" />
+            </Border>
+
+            <!-- Photo actions -->
+            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="8" HorizontalOptions="Center">
+                <Button Grid.Column="0"
+                        ImageSource="{StaticResource IconCameraAdd}"
+                        Command="{Binding TakePhotoCommand}"
+                        BackgroundColor="{StaticResource Primary}"
+                        CornerRadius="24"
+                        HeightRequest="48" WidthRequest="48"
+                        Padding="0" />
+                <Button Grid.Column="2"
+                        Text="{Binding L[NewGame_Remove]}"
+                        Command="{Binding RemovePhotoCommand}"
+                        IsVisible="{Binding HasPhoto}"
+                        BackgroundColor="Red"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="48" />
+            </Grid>
+
+            <!-- Nickname -->
+            <Entry Text="{Binding NickName, Mode=TwoWay}" Placeholder="{Binding L[AddPlayer_NickName]}" />
+            <Label Text="{Binding NickNameError}" TextColor="Red"
+                   IsVisible="{Binding HasNickNameError}" FontSize="12" Margin="4,-6,0,0" />
+
+            <!-- Name -->
+            <Entry Text="{Binding Name, Mode=TwoWay}" Placeholder="{Binding L[AddPlayer_Name]}" />
+            <Label Text="{Binding NameError}" TextColor="Red"
+                   IsVisible="{Binding HasNameError}" FontSize="12" Margin="4,-6,0,0" />
+
+            <!-- Save -->
+            <Button Text="{Binding L[Action_Save]}"
+                    ImageSource="{StaticResource IconSave}"
+                    ContentLayout="Left,10"
+                    Command="{Binding SaveCommand}"
+                    Style="{StaticResource PlayerSaveButtonStyle}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</basePages:BasePage>

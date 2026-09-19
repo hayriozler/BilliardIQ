@@ -28,5 +28,9 @@
 	</array>
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/appicon.appiconset</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>BilliardIQ uses Bluetooth to connect to the Raspberry Pi controlling the table.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>BilliardIQ uses Bluetooth to connect to the Raspberry Pi controlling the table.</string>
 </dict>
 </plist>

@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.ScoreboardPageModels"
+    x:DataType="pageModels:ScoreboardPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Scoreboard.ScoreboardViewPage"
+    x:Name="Scoreboard"
+    Title="{Binding L[Scoreboard_Title]}">
+
+    <basePages:BasePage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            x:Name="AppearingBehavior"
+            BindingContext="{Binding Source={x:Reference Name=Scoreboard}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </basePages:BasePage.Behaviors>
+
+    <Grid Padding="24" RowDefinitions="Auto, Auto, Auto, *, Auto, Auto" RowSpacing="20">
+
+        <!-- Header row: connection dot (+ reconnect when down), add player, reset -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, Auto, Auto, *" ColumnSpacing="10">
+            <Ellipse Grid.Column="0"
+                     WidthRequest="12" HeightRequest="12"
+                     Fill="{Binding ConnectionStatusColor}"
+                     VerticalOptions="Center"
+                     SemanticProperties.Description="{Binding ConnectionStatusText}" />
+
+            <Button Grid.Column="1"
+                    Text="{Binding L[Scoreboard_Reconnect]}"
+                    Command="{Binding ReconnectCommand}"
+                    IsVisible="{Binding ShowReconnect}"
+                    IsEnabled="{Binding IsReconnecting, Converter={toolkit:InvertedBoolConverter}}"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    FontSize="12" FontAttributes="Bold"
+                    CornerRadius="14"
+                    HeightRequest="28"
+                    Padding="10,0" />
+
+            <Button Grid.Column="2"
+                    Text="+"
+                    FontSize="22" FontAttributes="Bold"
+                    TextColor="White"
+                    Command="{Binding NavigateToAddPlayerCommand}"
+                    BackgroundColor="{StaticResource Primary}"
+                    CornerRadius="20"
+                    HeightRequest="40" WidthRequest="40"
+                    Padding="0"
+                    SemanticProperties.Description="{Binding L[AddPlayer_Title]}" />
+
+            <Button Grid.Column="3"
+                    Text="{Binding L[Scoreboard_Reset]}"
+                    Command="{Binding ResetScoresCommand}"
+                    HorizontalOptions="End"
+                    BackgroundColor="Transparent"
+                    TextColor="Gray"
+                    FontSize="13"
+                    Padding="0" />
+        </Grid>
+
+        <!-- Match target + inning -->
+        <Grid Grid.Row="1" ColumnDefinitions="Auto, 90, Auto" ColumnSpacing="10" HorizontalOptions="Center">
+            <Label Grid.Column="0" Text="{Binding L[Scoreboard_MatchTarget]}"
+                   FontSize="14" TextColor="Gray"
+                   VerticalOptions="Center" />
+            <Entry Grid.Column="1"
+                   Text="{Binding MatchTarget, Mode=TwoWay}"
+                   Keyboard="Numeric"
+                   HorizontalTextAlignment="Center"
+                   FontAttributes="Bold"
+                   ReturnType="Done"
+                   ReturnCommand="{Binding SendMatchTargetCommand}" />
+            <Label Grid.Column="2" Text="{Binding Inning, StringFormat='{0:D0}. Inning'}"
+                   FontSize="14" TextColor="Gray"
+                   VerticalOptions="Center" Margin="10,0,0,0" />
+        </Grid>
+
+        <!-- Players: name + score box -->
+        <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="24">
+
+            <!-- Player 1 -->
+            <VerticalStackLayout Grid.Column="0" Spacing="10">
+                <Entry Text="{Binding Player1Name, Mode=TwoWay}"
+                       HorizontalTextAlignment="Center"
+                       FontAttributes="Bold" FontSize="16"
+                       TextColor="{AppThemeBinding Light=#212121, Dark=White}"
+                       BackgroundColor="Transparent" />
+                <Border BackgroundColor="Transparent"
+                        Stroke="{Binding Player1StrokeColor}"
+                        StrokeThickness="2" Padding="0,14">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+                    <Label Text="{Binding Player1Score}" FontSize="32" FontAttributes="Bold"
+                           LineBreakMode="NoWrap"
+                           HorizontalOptions="Center" VerticalOptions="Center" />
+                </Border>
+                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                    <Label Text="{Binding Player1Average, StringFormat='Avg {0:F3}'}" FontSize="11" TextColor="Gray" />
+                    <Label Text="{Binding Player1HighRun, StringFormat='HR {0}'}" FontSize="11" TextColor="Gray" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <!-- Player 2 -->
+            <VerticalStackLayout Grid.Column="1" Spacing="10">
+                <Entry Text="{Binding Player2Name, Mode=TwoWay}"
+                       HorizontalTextAlignment="Center"
+                       FontAttributes="Bold" FontSize="16"
+                       TextColor="{AppThemeBinding Light=#212121, Dark=White}"
+                       BackgroundColor="Transparent" />
+                <Border BackgroundColor="Transparent"
+                        Stroke="{Binding Player2StrokeColor}"
+                        StrokeThickness="2" Padding="0,14">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+                    <Label Text="{Binding Player2Score}" FontSize="32" FontAttributes="Bold"
+                           LineBreakMode="NoWrap"
+                           HorizontalOptions="Center" VerticalOptions="Center" />
+                </Border>
+                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                    <Label Text="{Binding Player2Average, StringFormat='Avg {0:F3}'}" FontSize="11" TextColor="Gray" />
+                    <Label Text="{Binding Player2HighRun, StringFormat='HR {0}'}" FontSize="11" TextColor="Gray" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- D-pad -->
+        <Grid Grid.Row="3" VerticalOptions="Center" HorizontalOptions="Center"
+              RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="Auto, Auto, Auto"
+              RowSpacing="4" ColumnSpacing="4">
+
+            <Button Grid.Row="0" Grid.Column="1"
+                    Command="{Binding IncrementActiveScoreCommand}"
+                    Text="&#x25B2;"
+                    FontSize="20"
+                    WidthRequest="64" HeightRequest="64" CornerRadius="12"
+                    BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}"
+                    TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
+
+            <Button Grid.Row="1" Grid.Column="0"
+                    Command="{Binding SelectPlayer1Command}"
+                    Text="&#x25C0;"
+                    FontSize="20"
+                    WidthRequest="64" HeightRequest="64" CornerRadius="12"
+                    BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}"
+                    TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
+
+            <Button Grid.Row="1" Grid.Column="1"
+                    Command="{Binding ConfirmScoreCommand}"
+                    Text="{Binding L[Scoreboard_Enter]}"
+                    FontAttributes="Bold" FontSize="15"
+                    WidthRequest="72" HeightRequest="72" CornerRadius="36"
+                    BackgroundColor="#2E7D32" TextColor="White" />
+
+            <Button Grid.Row="1" Grid.Column="2"
+                    Command="{Binding SelectPlayer2Command}"
+                    Text="&#x25B6;"
+                    FontSize="20"
+                    WidthRequest="64" HeightRequest="64" CornerRadius="12"
+                    BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}"
+                    TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
+
+            <Button Grid.Row="2" Grid.Column="1"
+                    Command="{Binding DecrementActiveScoreCommand}"
+                    Text="&#x25BC;"
+                    FontSize="20"
+                    WidthRequest="64" HeightRequest="64" CornerRadius="12"
+                    BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}"
+                    TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
+        </Grid>
+
+        <!-- Timer control (remote-only: the Pi owns the actual clock/display) -->
+        <Grid Grid.Row="4" ColumnDefinitions="*, *" ColumnSpacing="10">
+            <Button Grid.Column="0"
+                    Command="{Binding ToggleTimerCommand}"
+                    Text="{Binding TimerButtonText}"
+                    FontSize="14" FontAttributes="Bold"
+                    LineBreakMode="NoWrap"
+                    HeightRequest="44" CornerRadius="10"
+                    BackgroundColor="{Binding TimerButtonColor}"
+                    TextColor="White" />
+
+            <Button Grid.Column="1"
+                    Command="{Binding ResetTimerCommand}"
+                    Text="{Binding L[Scoreboard_ResetTimer]}"
+                    FontSize="14" FontAttributes="Bold"
+                    LineBreakMode="NoWrap"
+                    Padding="14,0"
+                    HeightRequest="44" CornerRadius="10"
+                    BackgroundColor="#616161"
+                    TextColor="White" />
+        </Grid>
+
+        <!-- Game lifecycle -->
+        <Grid Grid.Row="5" ColumnDefinitions="*, *" ColumnSpacing="10">
+            <Button Grid.Column="0"
+                    Command="{Binding StartNewGameCommand}"
+                    Text="{Binding L[Scoreboard_StartNewGame]}"
+                    FontAttributes="Bold" FontSize="14"
+                    LineBreakMode="NoWrap"
+                    HeightRequest="48" CornerRadius="10"
+                    BackgroundColor="#2E7D32" TextColor="White" />
+
+            <Button Grid.Column="1"
+                    Command="{Binding EndGameCommand}"
+                    Text="{Binding L[Scoreboard_EndGame]}"
+                    FontAttributes="Bold" FontSize="14"
+                    LineBreakMode="NoWrap"
+                    HeightRequest="48" CornerRadius="10"
+                    BackgroundColor="#C62828" TextColor="White" />
+        </Grid>
+
+    </Grid>
+
+</basePages:BasePage>

@@ -1,13 +1,17 @@
 
 using BilliardIQ.Mobile.Data;
 using BilliardIQ.Mobile.PageModels.Analyzers;
+using BilliardIQ.Mobile.PageModels.ConnectionPageModels;
 using BilliardIQ.Mobile.PageModels.GamePageModels;
 using BilliardIQ.Mobile.PageModels.PlayerPageModels;
 using BilliardIQ.Mobile.PageModels.PlayPageModels;
+using BilliardIQ.Mobile.PageModels.ScoreboardPageModels;
 using BilliardIQ.Mobile.Pages.Analyzers;
+using BilliardIQ.Mobile.Pages.Connection;
 using BilliardIQ.Mobile.Pages.Games;
 using BilliardIQ.Mobile.Pages.Play;
 using BilliardIQ.Mobile.Pages.Players;
+using BilliardIQ.Mobile.Pages.Scoreboard;
 using BilliardIQ.Mobile.Services;
 using Plugin.Maui.OCR;
 using CommunityToolkit.Maui;
@@ -58,6 +62,7 @@ public static class MauiProgram
 #endif
         builder.Services.AddSingleton<DatabaseExecutor>();
         builder.Services.AddSingleton<PlayerRepository>();
+        builder.Services.AddSingleton<ScoreboardPlayerSession>();
         builder.Services.AddSingleton<GameRepository>();
         builder.Services.AddSingleton<LocationRepository>();
         builder.Services.AddSingleton<IErrorHandler, ModalErrorHandler>();
@@ -75,8 +80,14 @@ public static class MauiProgram
         builder.Services.AddSingleton<IUnityBridgeService, UnityBridgeService>();
         builder.Services.AddSingleton<GamePlayPageModel>();
         builder.Services.AddSingleton<GamePlayViewPage>();
+        builder.Services.AddSingleton<IRaspberryPiConnectionService, RaspberryPiConnectionService>();
+        builder.Services.AddSingleton<ConnectionPageModel>();
+        builder.Services.AddSingleton<ConnectionViewPage>();
+        builder.Services.AddSingleton<ScoreboardPageModel>();
+        builder.Services.AddSingleton<ScoreboardViewPage>();
         builder.Services.AddSingleton(FileSystem.Current);
         builder.Services.AddTransientWithShellRoute<NewGameViewPage, NewGamePageModel>("newgame");
+        builder.Services.AddTransientWithShellRoute<AddScoreboardPlayerViewPage, AddScoreboardPlayerPageModel>("addscoreboardplayer");
         builder.Services.AddTransient<PhotoAnalyzerPageModel>();
         builder.Services.AddTransient<PhotoAnalyzerViewPage>();
         new DatabaseMigrationService(builder.Services.BuildServiceProvider().GetRequiredService<DatabaseExecutor>()).RunMigrationAsync().GetAwaiter().GetResult();

@@ -6,6 +6,8 @@
     xmlns:games="clr-namespace:BilliardIQ.Mobile.Pages.Games"
     xmlns:players="clr-namespace:BilliardIQ.Mobile.Pages.Players"
     xmlns:play="clr-namespace:BilliardIQ.Mobile.Pages.Play"
+    xmlns:connection="clr-namespace:BilliardIQ.Mobile.Pages.Connection"
+    xmlns:scoreboard="clr-namespace:BilliardIQ.Mobile.Pages.Scoreboard"
     Shell.FlyoutBehavior="Flyout"
     Title="BilliardIQ">
 
@@ -18,6 +20,16 @@
         Title="Game"
         ContentTemplate="{DataTemplate play:GamePlayViewPage}"
         Route="game" />
+
+    <ShellContent
+        Title="Scoreboard"
+        ContentTemplate="{DataTemplate scoreboard:ScoreboardViewPage}"
+        Route="scoreboard" />
+
+    <ShellContent
+        Title="Connect"
+        ContentTemplate="{DataTemplate connection:ConnectionViewPage}"
+        Route="connect" />
 
     <ShellContent
         Title="Profile"
