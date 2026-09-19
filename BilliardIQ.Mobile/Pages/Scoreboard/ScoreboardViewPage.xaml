@@ -78,7 +78,7 @@
                    VerticalOptions="Center" Margin="10,0,0,0" />
         </Grid>
 
-        <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="24">
+        <Grid Grid.Row="2" ColumnDefinitions="*, Auto, *" ColumnSpacing="12">
 
             <VerticalStackLayout Grid.Column="0" Spacing="10">
                 <Entry Text="{Binding Player1Name, Mode=TwoWay}"
@@ -92,7 +92,7 @@
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="8" />
                     </Border.StrokeShape>
-                    <Label Text="{Binding Player1Score}" FontSize="32" FontAttributes="Bold"
+                    <Label Text="{Binding DisplayedPlayer1Score}" FontSize="32" FontAttributes="Bold"
                            LineBreakMode="NoWrap"
                            HorizontalOptions="Center" VerticalOptions="Center" />
                 </Border>
@@ -102,7 +102,21 @@
                 </HorizontalStackLayout>
             </VerticalStackLayout>
 
-            <VerticalStackLayout Grid.Column="1" Spacing="10">
+            <Border Grid.Column="1"
+                    IsVisible="{Binding HasPendingDelta}"
+                    BackgroundColor="{Binding PendingDeltaColor}"
+                    StrokeThickness="0"
+                    Padding="10,4"
+                    VerticalOptions="Center">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <Label Text="{Binding PendingDeltaText}"
+                       FontSize="16" FontAttributes="Bold"
+                       TextColor="White" />
+            </Border>
+
+            <VerticalStackLayout Grid.Column="2" Spacing="10">
                 <Entry Text="{Binding Player2Name, Mode=TwoWay}"
                        HorizontalTextAlignment="Center"
                        FontAttributes="Bold" FontSize="16"
@@ -114,7 +128,7 @@
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="8" />
                     </Border.StrokeShape>
-                    <Label Text="{Binding Player2Score}" FontSize="32" FontAttributes="Bold"
+                    <Label Text="{Binding DisplayedPlayer2Score}" FontSize="32" FontAttributes="Bold"
                            LineBreakMode="NoWrap"
                            HorizontalOptions="Center" VerticalOptions="Center" />
                 </Border>

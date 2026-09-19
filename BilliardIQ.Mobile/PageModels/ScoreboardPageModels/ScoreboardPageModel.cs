@@ -111,6 +111,7 @@ public partial class ScoreboardPageModel : BasePageModel
             if (state.Player1HighRun is { } hr1) Player1HighRun = hr1;
             if (state.Player2HighRun is { } hr2) Player2HighRun = hr2;
             if (state.Inning is { } inning) Inning = inning;
+            PendingDelta = 0;
         });
     }
     private sealed class ScoreBoardRequest
@@ -130,11 +131,6 @@ public partial class ScoreboardPageModel : BasePageModel
     {
         [JsonPropertyName("type")] public string? Type { get; set; }
         [JsonPropertyName("state")] public ScoreboardState? State { get; set; }
-    }
-    private enum NumberType
-    {
-        Increment,
-        Decrement,
     }
     private sealed class ScoreboardState
     {
@@ -161,10 +157,16 @@ public partial class ScoreboardPageModel : BasePageModel
     public partial string Player2Name { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayedPlayer1Score))]
     public partial int Player1Score { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayedPlayer2Score))]
     public partial int Player2Score { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayedPlayer1Score), nameof(DisplayedPlayer2Score), nameof(HasPendingDelta), nameof(PendingDeltaText), nameof(PendingDeltaColor))]
+    public partial int PendingDelta { get; set; }
 
     [ObservableProperty]
     public partial double Player1Average { get; set; }
@@ -185,13 +187,19 @@ public partial class ScoreboardPageModel : BasePageModel
     public partial int MatchTarget { get; set; } = 40;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsPlayer1Active), nameof(IsPlayer2Active), nameof(Player1StrokeColor), nameof(Player2StrokeColor))]
+    [NotifyPropertyChangedFor(nameof(IsPlayer1Active), nameof(IsPlayer2Active), nameof(Player1StrokeColor), nameof(Player2StrokeColor), nameof(DisplayedPlayer1Score), nameof(DisplayedPlayer2Score))]
     public partial int ActivePlayer { get; set; } = 1;
 
     public bool IsPlayer1Active => ActivePlayer == 1;
     public bool IsPlayer2Active => ActivePlayer == 2;
     public Color Player1StrokeColor => IsPlayer1Active ? Color.FromArgb("#2E7D32") : Colors.Transparent;
     public Color Player2StrokeColor => IsPlayer2Active ? Color.FromArgb("#C62828") : Colors.Transparent;
+
+    public int DisplayedPlayer1Score => Player1Score + (IsPlayer1Active ? PendingDelta : 0);
+    public int DisplayedPlayer2Score => Player2Score + (IsPlayer2Active ? PendingDelta : 0);
+    public bool HasPendingDelta => PendingDelta != 0;
+    public string PendingDeltaText => PendingDelta > 0 ? $"+{PendingDelta}" : PendingDelta.ToString();
+    public Color PendingDeltaColor => PendingDelta >= 0 ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828");
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TimerButtonText))]
@@ -200,42 +208,25 @@ public partial class ScoreboardPageModel : BasePageModel
     public string TimerButtonText => IsTimerRunning ? L["Scoreboard_Pause"] : L["Scoreboard_Start"];
 
     private int GetActivePlayerId() => IsPlayer1Active ? 1 : 2;
-    [RelayCommand]
-    private void IncrementActiveScore()
-    {
-        if (IsPlayer1Active)
-            Player1Score++;
-        else
-            Player2Score++;
-    }
 
     [RelayCommand]
-    private async Task DecrementActiveScore()
-    {
-        if (IsPlayer1Active)
-        {
-            if (Player1Score > 0)
-            {
-                Player1Score--;
+    private void IncrementActiveScore() => PendingDelta++;
 
-            }
-        }
-        else
-        {
-            if (Player2Score > 0)
-            {
-                Player2Score--;
-            }
-        }
+    [RelayCommand]
+    private void DecrementActiveScore()
+    {
+        var confirmed = IsPlayer1Active ? Player1Score : Player2Score;
+        if (confirmed + PendingDelta > 0) PendingDelta--;
     }
 
     [RelayCommand]
     private async Task SelectPlayer1()
     {
+        PendingDelta = 0;
         var req = new ScoreBoardRequest
         {
             Type = "command",
-            Commands = [new($"SelectPlayer1")]
+            Commands = [new("SelectPlayer1")]
         };
         await SendAsync(req);
         ActivePlayer = 1;
@@ -244,10 +235,11 @@ public partial class ScoreboardPageModel : BasePageModel
     [RelayCommand]
     private async Task SelectPlayer2()
     {
+        PendingDelta = 0;
         var req = new ScoreBoardRequest
         {
             Type = "command",
-            Commands = [new($"SelectPlayer2")]
+            Commands = [new("SelectPlayer2")]
         };
         await SendAsync(req);
         ActivePlayer = 2;
@@ -256,20 +248,20 @@ public partial class ScoreboardPageModel : BasePageModel
     [RelayCommand]
     private async Task ConfirmScore()
     {
-        int score;
-        if (IsPlayer1Active)
-            score = Player1Score;
-        else score = Player2Score;
+        if (PendingDelta == 0) return;
+
+        var delta = PendingDelta;
         var req = new ScoreBoardRequest
         {
-            Type=  "batch",
+            Type = "batch",
             Commands = [
                 new($"SelectPlayer{GetActivePlayerId()}"),
-                new($"AdjustPoints", score),
+                new("AdjustPoints", delta),
                 new("CommitPoints")
             ]
         };
         await SendAsync(req);
+        PendingDelta = 0;
     }
 
     [RelayCommand]
@@ -278,6 +270,7 @@ public partial class ScoreboardPageModel : BasePageModel
         Player1Score = 0;
         Player2Score = 0;
         ActivePlayer = 1;
+        PendingDelta = 0;
         var req = new ScoreBoardRequest
         {
             Type = "command",
@@ -328,6 +321,7 @@ public partial class ScoreboardPageModel : BasePageModel
         Player2Score = 0;
         ActivePlayer = 1;
         IsTimerRunning = false;
+        PendingDelta = 0;
         var req = new ScoreBoardRequest
         {
             Type = "command",
