@@ -41,9 +41,8 @@ public partial class ScoreboardPageModel : BasePageModel
         _ => Color.FromArgb("#616161"),
     };
 
-    // Only offer Reconnect once we're actually down — not while a connect attempt
-    // is already in flight (Connecting) or while we're already Connected.
     public bool ShowReconnect => ConnectionState is PiConnectionState.Disconnected or PiConnectionState.Failed;
+    public bool CanInteract => ConnectionState == PiConnectionState.Connected;
 
     [ObservableProperty]
     public partial bool IsReconnecting { get; set; }
@@ -63,16 +62,13 @@ public partial class ScoreboardPageModel : BasePageModel
         }
     }
 
-    // Fired when the page becomes visible — including right after a successful
-    // connect, since ConnectionPageModel navigates here on success. Asks the Pi
-    // for its current state so the app reflects reality instead of stale defaults.
     [RelayCommand]
     private async Task Appearing()
     {
         var req = new ScoreBoardRequest
         {
-            Type = "command",
-            Commands = [new("GetState")]
+            Type = "state",
+            Commands = []
         };
         await SendAsync(req);
     }
@@ -84,6 +80,7 @@ public partial class ScoreboardPageModel : BasePageModel
             OnPropertyChanged(nameof(ConnectionStatusText));
             OnPropertyChanged(nameof(ConnectionStatusColor));
             OnPropertyChanged(nameof(ShowReconnect));
+            OnPropertyChanged(nameof(CanInteract));
         });
 
     private void OnMessageReceived(object? sender, string message)
@@ -95,7 +92,7 @@ public partial class ScoreboardPageModel : BasePageModel
         }
         catch (JsonException)
         {
-            return; // Not a state payload we understand — ignore.
+            return;
         }
 
         if (envelope?.Type != "state" || envelope.State is not { } state) return;
@@ -116,28 +113,18 @@ public partial class ScoreboardPageModel : BasePageModel
             if (state.Inning is { } inning) Inning = inning;
         });
     }
-    private sealed record ScoreBoardRequest
+    private sealed class ScoreBoardRequest
     {
         [JsonPropertyName("type")] public string Type { get; set; } = "command";
         [JsonPropertyName("commands")] public ScoreBoardCommand[] Commands { get; set; } = [];
     }
-    // Deliberately not a positional record: `record Foo(string x)` auto-generates a
-    // public property literally named `x` in addition to any explicitly declared
-    // property, and System.Text.Json serializes both — colliding with [JsonPropertyName]
-    // below and throwing at serialize time ("duplicate JSON property").
-    private sealed record ScoreBoardCommand
+    private sealed class ScoreBoardCommand(string commandName, int? payload = null)
     {
-        public ScoreBoardCommand(string commandName, int? payload = null)
-        {
-            CommandName = commandName;
-            Payload = payload;
-        }
-
         [JsonPropertyName("command")]
-        public string CommandName { get; }
+        public string CommandName { get; } = commandName;
 
         [JsonPropertyName("payload")]
-        public int? Payload { get; }
+        public int? Payload { get; } = payload;
     }
     private sealed class ScoreboardStateEnvelope
     {
@@ -163,10 +150,6 @@ public partial class ScoreboardPageModel : BasePageModel
         [JsonPropertyName("inning")] public int? Inning { get; set; }
         [JsonPropertyName("matchTarget")] public int? MatchTarget { get; set; }
         [JsonPropertyName("shotClockActive")] public bool? ShotClockActive { get; set; }
-
-        // Not surfaced in the UI yet (no shot-clock countdown or per-inning running
-        // points display per the "no timer shown on mobile" requirement), but kept
-        // here so the payload still deserializes cleanly if the Pi sends them.
         [JsonPropertyName("currentPoints")] public int? CurrentPoints { get; set; }
         [JsonPropertyName("shotClockSeconds")] public int? ShotClockSeconds { get; set; }
     }
@@ -183,7 +166,6 @@ public partial class ScoreboardPageModel : BasePageModel
     [ObservableProperty]
     public partial int Player2Score { get; set; }
 
-    // Match stats reported by the Pi — read-only here, the app never computes these itself.
     [ObservableProperty]
     public partial double Player1Average { get; set; }
 
@@ -199,8 +181,6 @@ public partial class ScoreboardPageModel : BasePageModel
     [ObservableProperty]
     public partial int Inning { get; set; }
 
-    // The score a player must reach to win the match — sent to the Pi so it knows
-    // when to declare a winner. Committed explicitly (Enter key), not on every keystroke.
     [ObservableProperty]
     public partial int MatchTarget { get; set; } = 40;
 
@@ -213,20 +193,13 @@ public partial class ScoreboardPageModel : BasePageModel
     public Color Player1StrokeColor => IsPlayer1Active ? Color.FromArgb("#2E7D32") : Colors.Transparent;
     public Color Player2StrokeColor => IsPlayer2Active ? Color.FromArgb("#C62828") : Colors.Transparent;
 
-    // Optimistic local reflection of what we last told the Pi — the Pi is the
-    // actual source of truth for whether the timer is running.
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(TimerButtonText), nameof(TimerButtonColor))]
+    [NotifyPropertyChangedFor(nameof(TimerButtonText))]
     public partial bool IsTimerRunning { get; set; }
 
     public string TimerButtonText => IsTimerRunning ? L["Scoreboard_Pause"] : L["Scoreboard_Start"];
-    public Color TimerButtonColor => IsTimerRunning ? Color.FromArgb("#C62828") : Color.FromArgb("#455A64");
-
-    // D-pad Up/Down: adjust the active player's score locally; nothing is sent
-    // to the Pi until ConfirmScore (the center "Enter" button) commits it.
 
     private int GetActivePlayerId() => IsPlayer1Active ? 1 : 2;
-    private NumberType _numberType = NumberType.Increment;
     [RelayCommand]
     private void IncrementActiveScore()
     {
@@ -234,7 +207,6 @@ public partial class ScoreboardPageModel : BasePageModel
             Player1Score++;
         else
             Player2Score++;
-        _numberType = NumberType.Increment;
     }
 
     [RelayCommand]
@@ -255,18 +227,15 @@ public partial class ScoreboardPageModel : BasePageModel
                 Player2Score--;
             }
         }
-        _numberType = NumberType.Decrement;
-
     }
 
-    // D-pad Left/Right: select which player Up/Down and Enter apply to.
     [RelayCommand]
     private async Task SelectPlayer1()
     {
         var req = new ScoreBoardRequest
         {
             Type = "command",
-            Commands = [new($"SelectPlayer{GetActivePlayerId()}")]
+            Commands = [new($"SelectPlayer1")]
         };
         await SendAsync(req);
         ActivePlayer = 1;
@@ -278,7 +247,7 @@ public partial class ScoreboardPageModel : BasePageModel
         var req = new ScoreBoardRequest
         {
             Type = "command",
-            Commands = [new($"SelectPlayer{GetActivePlayerId()}")]
+            Commands = [new($"SelectPlayer2")]
         };
         await SendAsync(req);
         ActivePlayer = 2;
@@ -287,21 +256,16 @@ public partial class ScoreboardPageModel : BasePageModel
     [RelayCommand]
     private async Task ConfirmScore()
     {
-        var score = IsPlayer1Active ? Player1Score : Player2Score;
-        if (_numberType == NumberType.Increment)
-        {
-            score = Math.Abs(score);
-        }
-        else
-        {
-            score = -Math.Abs(score);
-        }
+        int score;
+        if (IsPlayer1Active)
+            score = Player1Score;
+        else score = Player2Score;
         var req = new ScoreBoardRequest
         {
             Type=  "batch",
             Commands = [
                 new($"SelectPlayer{GetActivePlayerId()}"),
-                new($"AdjustPoints, {score}"),
+                new($"AdjustPoints", score),
                 new("CommitPoints")
             ]
         };
@@ -336,7 +300,6 @@ public partial class ScoreboardPageModel : BasePageModel
     [RelayCommand]
     private async Task ToggleTimer()
     {
-        IsTimerRunning = !IsTimerRunning;
         var req = new ScoreBoardRequest
         {
             Type = "command",

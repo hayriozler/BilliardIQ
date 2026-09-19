@@ -11,7 +11,6 @@
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="12">
 
-            <!-- Photo preview -->
             <Border WidthRequest="140" HeightRequest="140"
                     HorizontalOptions="Center"
                     StrokeThickness="2"
@@ -25,7 +24,6 @@
                        Aspect="AspectFill" />
             </Border>
 
-            <!-- Photo actions -->
             <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="8" HorizontalOptions="Center">
                 <Button Grid.Column="0"
                         ImageSource="{StaticResource IconCameraAdd}"
@@ -44,17 +42,14 @@
                         HeightRequest="48" />
             </Grid>
 
-            <!-- Nickname -->
             <Entry Text="{Binding NickName, Mode=TwoWay}" Placeholder="{Binding L[AddPlayer_NickName]}" />
             <Label Text="{Binding NickNameError}" TextColor="Red"
                    IsVisible="{Binding HasNickNameError}" FontSize="12" Margin="4,-6,0,0" />
 
-            <!-- Name -->
             <Entry Text="{Binding Name, Mode=TwoWay}" Placeholder="{Binding L[AddPlayer_Name]}" />
             <Label Text="{Binding NameError}" TextColor="Red"
                    IsVisible="{Binding HasNameError}" FontSize="12" Margin="4,-6,0,0" />
 
-            <!-- Save -->
             <Button Text="{Binding L[Action_Save]}"
                     ImageSource="{StaticResource IconSave}"
                     ContentLayout="Left,10"

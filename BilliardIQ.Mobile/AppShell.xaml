@@ -24,7 +24,8 @@
     <ShellContent
         Title="Scoreboard"
         ContentTemplate="{DataTemplate scoreboard:ScoreboardViewPage}"
-        Route="scoreboard" />
+        Route="scoreboard"
+        Shell.FlyoutItemIsVisible="False" />
 
     <ShellContent
         Title="Connect"

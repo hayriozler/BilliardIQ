@@ -1,7 +1,5 @@
 namespace BilliardIQ.Mobile.Models;
 
-// A player sent to the connected scoreboard hardware — this app is only a
-// remote control for it, so nothing here is persisted in BilliardIQ's own database.
 public class ScoreboardPlayer
 {
     public int Id { get; set; }

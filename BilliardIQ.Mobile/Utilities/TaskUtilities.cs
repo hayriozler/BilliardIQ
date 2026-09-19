@@ -4,13 +4,10 @@ namespace BilliardIQ.Mobile.Utilities;
 
 public static class TaskUtilities
 {
-    // No error handler: exceptions are still observed (avoids an unobserved-task-exception
-    // crash) but otherwise discarded. Prefer the IErrorHandler overload wherever a failure
-    // should be visible to the user.
     public static async void FireAndForgetSafeAsync(this Task task)
     {
         try { await task; }
-        catch { /* intentionally discarded */ }
+        catch { }
     }
 
     public static async void FireAndForgetSafeAsync(this Task task, IErrorHandler errorHandler)

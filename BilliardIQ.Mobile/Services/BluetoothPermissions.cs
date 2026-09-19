@@ -1,8 +1,5 @@
 namespace BilliardIQ.Mobile.Services;
 
-// Android 12+ (API 31) moved BLUETOOTH_SCAN/BLUETOOTH_CONNECT to runtime-requested
-// permissions even though they're also declared in AndroidManifest.xml — without this,
-// scanning throws Java.Lang.SecurityException from ScanBinder.registerScanner().
 public class BluetoothPermissions : Permissions.BasePlatformPermission
 {
 #if ANDROID

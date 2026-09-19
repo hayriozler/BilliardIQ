@@ -20,7 +20,6 @@
 
     <Grid Padding="24" RowDefinitions="Auto, Auto, Auto, *, Auto, Auto" RowSpacing="20">
 
-        <!-- Header row: connection dot (+ reconnect when down), add player, reset -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto, Auto, Auto, *" ColumnSpacing="10">
             <Ellipse Grid.Column="0"
                      WidthRequest="12" HeightRequest="12"
@@ -45,6 +44,7 @@
                     FontSize="22" FontAttributes="Bold"
                     TextColor="White"
                     Command="{Binding NavigateToAddPlayerCommand}"
+                    IsEnabled="{Binding CanInteract}"
                     BackgroundColor="{StaticResource Primary}"
                     CornerRadius="20"
                     HeightRequest="40" WidthRequest="40"
@@ -54,6 +54,7 @@
             <Button Grid.Column="3"
                     Text="{Binding L[Scoreboard_Reset]}"
                     Command="{Binding ResetScoresCommand}"
+                    IsEnabled="{Binding CanInteract}"
                     HorizontalOptions="End"
                     BackgroundColor="Transparent"
                     TextColor="Gray"
@@ -61,7 +62,6 @@
                     Padding="0" />
         </Grid>
 
-        <!-- Match target + inning -->
         <Grid Grid.Row="1" ColumnDefinitions="Auto, 90, Auto" ColumnSpacing="10" HorizontalOptions="Center">
             <Label Grid.Column="0" Text="{Binding L[Scoreboard_MatchTarget]}"
                    FontSize="14" TextColor="Gray"
@@ -78,10 +78,8 @@
                    VerticalOptions="Center" Margin="10,0,0,0" />
         </Grid>
 
-        <!-- Players: name + score box -->
         <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="24">
 
-            <!-- Player 1 -->
             <VerticalStackLayout Grid.Column="0" Spacing="10">
                 <Entry Text="{Binding Player1Name, Mode=TwoWay}"
                        HorizontalTextAlignment="Center"
@@ -104,7 +102,6 @@
                 </HorizontalStackLayout>
             </VerticalStackLayout>
 
-            <!-- Player 2 -->
             <VerticalStackLayout Grid.Column="1" Spacing="10">
                 <Entry Text="{Binding Player2Name, Mode=TwoWay}"
                        HorizontalTextAlignment="Center"
@@ -128,13 +125,13 @@
             </VerticalStackLayout>
         </Grid>
 
-        <!-- D-pad -->
         <Grid Grid.Row="3" VerticalOptions="Center" HorizontalOptions="Center"
               RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="Auto, Auto, Auto"
               RowSpacing="4" ColumnSpacing="4">
 
             <Button Grid.Row="0" Grid.Column="1"
                     Command="{Binding IncrementActiveScoreCommand}"
+                    IsEnabled="{Binding CanInteract}"
                     Text="&#x25B2;"
                     FontSize="20"
                     WidthRequest="64" HeightRequest="64" CornerRadius="12"
@@ -143,6 +140,7 @@
 
             <Button Grid.Row="1" Grid.Column="0"
                     Command="{Binding SelectPlayer1Command}"
+                    IsEnabled="{Binding CanInteract}"
                     Text="&#x25C0;"
                     FontSize="20"
                     WidthRequest="64" HeightRequest="64" CornerRadius="12"
@@ -151,6 +149,7 @@
 
             <Button Grid.Row="1" Grid.Column="1"
                     Command="{Binding ConfirmScoreCommand}"
+                    IsEnabled="{Binding CanInteract}"
                     Text="{Binding L[Scoreboard_Enter]}"
                     FontAttributes="Bold" FontSize="15"
                     WidthRequest="72" HeightRequest="72" CornerRadius="36"
@@ -158,6 +157,7 @@
 
             <Button Grid.Row="1" Grid.Column="2"
                     Command="{Binding SelectPlayer2Command}"
+                    IsEnabled="{Binding CanInteract}"
                     Text="&#x25B6;"
                     FontSize="20"
                     WidthRequest="64" HeightRequest="64" CornerRadius="12"
@@ -166,6 +166,7 @@
 
             <Button Grid.Row="2" Grid.Column="1"
                     Command="{Binding DecrementActiveScoreCommand}"
+                    IsEnabled="{Binding CanInteract}"
                     Text="&#x25BC;"
                     FontSize="20"
                     WidthRequest="64" HeightRequest="64" CornerRadius="12"
@@ -173,19 +174,26 @@
                     TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
         </Grid>
 
-        <!-- Timer control (remote-only: the Pi owns the actual clock/display) -->
         <Grid Grid.Row="4" ColumnDefinitions="*, *" ColumnSpacing="10">
-            <Button Grid.Column="0"
-                    Command="{Binding ToggleTimerCommand}"
-                    Text="{Binding TimerButtonText}"
-                    FontSize="14" FontAttributes="Bold"
-                    LineBreakMode="NoWrap"
-                    HeightRequest="44" CornerRadius="10"
-                    BackgroundColor="{Binding TimerButtonColor}"
-                    TextColor="White" />
+            <HorizontalStackLayout Grid.Column="0" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                <Label Text="{Binding TimerButtonText}"
+                       FontSize="14" FontAttributes="Bold"
+                       VerticalOptions="Center"
+                       TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
+                <Switch IsToggled="{Binding IsTimerRunning, Mode=TwoWay}"
+                        IsEnabled="{Binding CanInteract}"
+                        OnColor="#2E7D32">
+                    <Switch.Behaviors>
+                        <toolkit:EventToCommandBehavior
+                            EventName="Toggled"
+                            Command="{Binding ToggleTimerCommand}" />
+                    </Switch.Behaviors>
+                </Switch>
+            </HorizontalStackLayout>
 
             <Button Grid.Column="1"
                     Command="{Binding ResetTimerCommand}"
+                    IsEnabled="{Binding CanInteract}"
                     Text="{Binding L[Scoreboard_ResetTimer]}"
                     FontSize="14" FontAttributes="Bold"
                     LineBreakMode="NoWrap"
@@ -195,10 +203,10 @@
                     TextColor="White" />
         </Grid>
 
-        <!-- Game lifecycle -->
         <Grid Grid.Row="5" ColumnDefinitions="*, *" ColumnSpacing="10">
             <Button Grid.Column="0"
                     Command="{Binding StartNewGameCommand}"
+                    IsEnabled="{Binding CanInteract}"
                     Text="{Binding L[Scoreboard_StartNewGame]}"
                     FontAttributes="Bold" FontSize="14"
                     LineBreakMode="NoWrap"
@@ -207,6 +215,7 @@
 
             <Button Grid.Column="1"
                     Command="{Binding EndGameCommand}"
+                    IsEnabled="{Binding CanInteract}"
                     Text="{Binding L[Scoreboard_EndGame]}"
                     FontAttributes="Bold" FontSize="14"
                     LineBreakMode="NoWrap"

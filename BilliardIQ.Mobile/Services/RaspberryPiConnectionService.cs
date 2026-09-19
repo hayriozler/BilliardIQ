@@ -7,8 +7,6 @@ using System.Text;
 
 namespace BilliardIQ.Mobile.Services;
 
-// GATT UUIDs the Raspberry Pi firmware must expose (Nordic UART Service layout).
-// Update these to match the Pi's actual BLE peripheral once its firmware is defined.
 public sealed class RaspberryPiConnectionService : IRaspberryPiConnectionService, IDisposable
 {
     private static readonly Guid _piServiceUuid = Guid.Parse("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
@@ -24,8 +22,6 @@ public sealed class RaspberryPiConnectionService : IRaspberryPiConnectionService
     private ICharacteristic? _notifyCharacteristic;
     private EventHandler<CharacteristicUpdatedEventArgs>? _notifyHandler;
 
-    // Remembered so ReconnectAsync can retry the same transport — unlike
-    // ActiveConnectionType, these survive DisconnectAsync clearing state.
     private ConnectionType? _lastConnectionType;
     private string? _lastWebSocketUri;
     private BluetoothDeviceInfo? _lastBluetoothDevice;
@@ -50,7 +46,6 @@ public sealed class RaspberryPiConnectionService : IRaspberryPiConnectionService
         var adapter = _bluetoothLe.Adapter;
         var found = new List<BluetoothDeviceInfo>();
 
-        // Already-paired devices show up immediately, before the scan finds anything new.
         foreach (var bonded in adapter.BondedDevices)
         {
             if (string.IsNullOrWhiteSpace(bonded.Name)) continue;
@@ -121,9 +116,6 @@ public sealed class RaspberryPiConnectionService : IRaspberryPiConnectionService
                 messageBuffer.SetLength(0);
                 WebSocketReceiveResult result;
 
-                // A single logical message can arrive split across multiple frames
-                // (e.g. once it's bigger than the 4KB buffer) — keep reading until
-                // EndOfMessage, otherwise we'd hand incomplete JSON fragments upstream.
                 do
                 {
                     result = await socket.ReceiveAsync(buffer, cancellationToken);
@@ -142,7 +134,6 @@ public sealed class RaspberryPiConnectionService : IRaspberryPiConnectionService
         }
         catch (OperationCanceledException)
         {
-            // Expected when disconnecting.
         }
         catch (Exception ex)
         {
@@ -221,7 +212,6 @@ public sealed class RaspberryPiConnectionService : IRaspberryPiConnectionService
             }
             catch
             {
-                // Best-effort close.
             }
 
             _webSocket.Dispose();
@@ -242,7 +232,6 @@ public sealed class RaspberryPiConnectionService : IRaspberryPiConnectionService
             }
             catch
             {
-                // Best-effort disconnect.
             }
 
             _bluetoothDevice.Dispose();

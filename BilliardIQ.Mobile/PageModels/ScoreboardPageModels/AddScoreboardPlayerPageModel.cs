@@ -107,9 +107,6 @@ public partial class AddScoreboardPlayerPageModel : BasePageModel
 
     private bool CanSave() => !HasErrors;
 
-    // IRaspberryPiConnectionService.SendMessageAsync already dispatches over
-    // whichever transport (WebSocket or Bluetooth) is currently active.
-    // Stays on the page (rather than discarding the entered data) if the send fails.
     private async Task<bool> SendPlayerToRemoteAsync(ScoreboardPlayer player)
     {
         if (_connection.State != PiConnectionState.Connected)

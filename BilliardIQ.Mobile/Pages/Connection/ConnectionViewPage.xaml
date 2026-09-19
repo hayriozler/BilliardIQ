@@ -15,7 +15,6 @@
             <Label Text="{Binding L[Connect_Title]}"
                    FontSize="22" FontAttributes="Bold" HorizontalOptions="Center"/>
 
-            <!-- Status -->
             <Border BackgroundColor="{AppThemeBinding Light=#1E3A5F, Dark=#0D1F33}"
                     StrokeThickness="0" Padding="14,10">
                 <Border.StrokeShape>
@@ -39,13 +38,11 @@
                    IsVisible="{Binding HasConnectionHint}"
                    TextColor="#C62828" FontSize="13" />
 
-            <!-- Connection type selector -->
             <Label Text="{Binding L[Connect_TypeLabel]}" FontSize="13" TextColor="Gray"/>
             <Picker ItemsSource="{Binding ConnectionTypes}"
                     SelectedItem="{Binding SelectedConnectionType}"
                     IsEnabled="{Binding IsNotConnected}"/>
 
-            <!-- WebSocket -->
             <VerticalStackLayout Spacing="10" IsVisible="{Binding IsWebSocketSelected}">
                 <Label Text="{Binding L[Connect_WebSocketUrl]}" FontSize="13" TextColor="Gray"/>
                 <Entry Text="{Binding WebSocketUrl, Mode=TwoWay}"
@@ -61,7 +58,6 @@
                         HeightRequest="48"/>
             </VerticalStackLayout>
 
-            <!-- Bluetooth -->
             <VerticalStackLayout Spacing="10" IsVisible="{Binding IsBluetoothSelected}">
                 <Button Text="{Binding L[Connect_ScanBluetooth]}"
                         Command="{Binding ScanBluetoothCommand}"
