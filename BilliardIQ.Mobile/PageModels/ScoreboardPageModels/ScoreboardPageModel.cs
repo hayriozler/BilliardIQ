@@ -198,7 +198,7 @@ public partial class ScoreboardPageModel : BasePageModel
     public int DisplayedPlayer1Score => Player1Score + (IsPlayer1Active ? PendingDelta : 0);
     public int DisplayedPlayer2Score => Player2Score + (IsPlayer2Active ? PendingDelta : 0);
     public bool HasPendingDelta => PendingDelta != 0;
-    public string PendingDeltaText => PendingDelta > 0 ? $"+{PendingDelta}" : PendingDelta.ToString();
+    public string PendingDeltaText => PendingDelta.ToString();
     public Color PendingDeltaColor => PendingDelta >= 0 ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828");
 
     [ObservableProperty]
