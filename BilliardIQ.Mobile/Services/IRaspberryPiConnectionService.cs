@@ -11,9 +11,7 @@ public interface IRaspberryPiConnectionService
     event EventHandler<PiConnectionState>? StateChanged;
     event EventHandler<string>? MessageReceived;
 
-    Task<IReadOnlyList<BluetoothDeviceInfo>> ScanForBluetoothDevicesAsync(TimeSpan timeout, CancellationToken cancellationToken = default);
     Task<bool> ConnectViaWebSocketAsync(string uri, CancellationToken cancellationToken = default);
-    Task<bool> ConnectViaBluetoothAsync(BluetoothDeviceInfo device, CancellationToken cancellationToken = default);
     Task<bool> ReconnectAsync(CancellationToken cancellationToken = default);
 
     Task DisconnectAsync();

@@ -1,17 +1,21 @@
 
 using BilliardIQ.Mobile.Data;
+using BilliardIQ.Mobile.PageModels.Admin;
 using BilliardIQ.Mobile.PageModels.Analyzers;
 using BilliardIQ.Mobile.PageModels.ConnectionPageModels;
 using BilliardIQ.Mobile.PageModels.GamePageModels;
 using BilliardIQ.Mobile.PageModels.PlayerPageModels;
 using BilliardIQ.Mobile.PageModels.PlayPageModels;
 using BilliardIQ.Mobile.PageModels.ScoreboardPageModels;
+using BilliardIQ.Mobile.PageModels.Stats;
+using BilliardIQ.Mobile.Pages.Admin;
 using BilliardIQ.Mobile.Pages.Analyzers;
 using BilliardIQ.Mobile.Pages.Connection;
 using BilliardIQ.Mobile.Pages.Games;
 using BilliardIQ.Mobile.Pages.Play;
 using BilliardIQ.Mobile.Pages.Players;
 using BilliardIQ.Mobile.Pages.Scoreboard;
+using BilliardIQ.Mobile.Pages.Stats;
 using BilliardIQ.Mobile.Services;
 using Plugin.Maui.OCR;
 using CommunityToolkit.Maui;
@@ -28,8 +32,6 @@ using BilliardIQ.Mobile.Platforms.Android;
 #if IOS
 using BilliardIQ.Mobile.Platforms.iOS;
 #endif
-
-
 
 namespace BilliardIQ.Mobile;
 
@@ -80,17 +82,41 @@ public static class MauiProgram
         builder.Services.AddSingleton<IUnityBridgeService, UnityBridgeService>();
         builder.Services.AddSingleton<GamePlayPageModel>();
         builder.Services.AddSingleton<GamePlayViewPage>();
+        builder.Services.AddSingleton<IPiTransportFactory, PiTransportFactory>();
         builder.Services.AddSingleton<IRaspberryPiConnectionService, RaspberryPiConnectionService>();
         builder.Services.AddSingleton<ConnectionPageModel>();
         builder.Services.AddSingleton<ConnectionViewPage>();
         builder.Services.AddSingleton<ScoreboardPageModel>();
         builder.Services.AddSingleton<ScoreboardViewPage>();
+        builder.Services.AddSingleton<TeamRepository>();
+        builder.Services.AddSingleton<ScoreboardPlayerRepository>();
+        builder.Services.AddSingleton<MatchResultRepository>();
+        builder.Services.AddSingleton<TeamSession>();
+        builder.Services.AddSingleton<TeamListPageModel>();
+        builder.Services.AddSingleton<TeamListViewPage>();
+        builder.Services.AddSingleton<PlayerListPageModel>();
+        builder.Services.AddSingleton<PlayerListViewPage>();
+        builder.Services.AddSingleton<PlayerStatsListPageModel>();
+        builder.Services.AddSingleton<PlayerStatsListViewPage>();
         builder.Services.AddSingleton(FileSystem.Current);
         builder.Services.AddTransientWithShellRoute<NewGameViewPage, NewGamePageModel>("newgame");
         builder.Services.AddTransientWithShellRoute<AddScoreboardPlayerViewPage, AddScoreboardPlayerPageModel>("addscoreboardplayer");
+        builder.Services.AddTransientWithShellRoute<PlayerStatsDetailViewPage, PlayerStatsDetailPageModel>("playerstatsdetail");
         builder.Services.AddTransient<PhotoAnalyzerPageModel>();
         builder.Services.AddTransient<PhotoAnalyzerViewPage>();
         new DatabaseMigrationService(builder.Services.BuildServiceProvider().GetRequiredService<DatabaseExecutor>()).RunMigrationAsync().GetAwaiter().GetResult();
-        return builder.Build();
+
+        var app = builder.Build();
+
+        // Restore scoreboard teams/players from SQLite. Must run against the app's real
+        // service provider (not the throwaway one used above for migrations) so the
+        // singleton sessions used throughout the app actually get populated.
+        var teamSession = app.Services.GetRequiredService<TeamSession>();
+        teamSession.LoadExisting(app.Services.GetRequiredService<TeamRepository>().GetAllAsync().GetAwaiter().GetResult());
+
+        var playerSession = app.Services.GetRequiredService<ScoreboardPlayerSession>();
+        playerSession.LoadExisting(app.Services.GetRequiredService<ScoreboardPlayerRepository>().GetAllAsync().GetAwaiter().GetResult());
+
+        return app;
     }
 }

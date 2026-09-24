@@ -29,7 +29,7 @@ public static class ImagePreprocessor
     {
         try
         {
-            using var original = SKBitmap.Decode(imageBytes);
+            using var original = DecodeWithExifOrientation(imageBytes);
             if (original is null || original.IsNull) return [];
 
             float scale = Math.Min((float)maxWidth / original.Width, (float)maxHeight / original.Height);
@@ -44,5 +44,52 @@ public static class ImagePreprocessor
             return data?.ToArray() ?? [];
         }
         catch { return []; }
+    }
+
+    /// <summary>
+    /// Decodes an image and bakes in its EXIF orientation. SKBitmap.Decode ignores the EXIF
+    /// orientation tag, so photos captured in portrait on Android/iOS come out sideways unless
+    /// this correction is applied.
+    /// </summary>
+    private static SKBitmap? DecodeWithExifOrientation(byte[] imageBytes)
+    {
+        using var codec = SKCodec.Create(new SKMemoryStream(imageBytes));
+        var bitmap = SKBitmap.Decode(imageBytes);
+        if (bitmap is null || bitmap.IsNull || codec is null) return bitmap;
+
+        switch (codec.EncodedOrigin)
+        {
+            case SKEncodedOrigin.BottomRight:
+            {
+                var rotated = new SKBitmap(bitmap.Width, bitmap.Height);
+                using var canvas = new SKCanvas(rotated);
+                canvas.RotateDegrees(180, bitmap.Width / 2f, bitmap.Height / 2f);
+                canvas.DrawBitmap(bitmap, 0, 0);
+                bitmap.Dispose();
+                return rotated;
+            }
+            case SKEncodedOrigin.RightTop:
+            {
+                var rotated = new SKBitmap(bitmap.Height, bitmap.Width);
+                using var canvas = new SKCanvas(rotated);
+                canvas.Translate(rotated.Width, 0);
+                canvas.RotateDegrees(90);
+                canvas.DrawBitmap(bitmap, 0, 0);
+                bitmap.Dispose();
+                return rotated;
+            }
+            case SKEncodedOrigin.LeftBottom:
+            {
+                var rotated = new SKBitmap(bitmap.Height, bitmap.Width);
+                using var canvas = new SKCanvas(rotated);
+                canvas.Translate(0, rotated.Height);
+                canvas.RotateDegrees(270);
+                canvas.DrawBitmap(bitmap, 0, 0);
+                bitmap.Dispose();
+                return rotated;
+            }
+            default:
+                return bitmap;
+        }
     }
 }

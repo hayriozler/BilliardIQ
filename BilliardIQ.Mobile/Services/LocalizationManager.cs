@@ -47,6 +47,7 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["Action_Save"]   = "Save",
             ["Action_Update"] = "Update",
             ["Action_Ok"]     = "OK",
+            ["Action_Cancel"] = "Cancel",
 
             // Profile
             ["Profile_Title"]        = "Player Profile",
@@ -111,22 +112,26 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
 
             // Raspberry Pi connection
             ["Connect_Title"]             = "Connect to Table",
-            ["Connect_TypeLabel"]         = "Connection Type",
             ["Connect_WebSocketUrl"]      = "WebSocket URL",
             ["Connect_Connect"]           = "Connect",
             ["Connect_Disconnect"]        = "Disconnect",
             ["Connect_Cancel"]            = "Cancel",
-            ["Connect_Timeout"]           = "Connection timed out. Make sure the device is a BLE peripheral, powered on, and in range.",
-            ["Connect_ScanBluetooth"]     = "Scan for Devices",
+            ["Connect_Timeout"]           = "Connection timed out. Make sure the Pi is powered on, reachable on the network, and the URL is correct.",
             ["Connect_StatusConnected"]   = "Connected via {0}",
             ["Connect_StatusConnecting"]  = "Connecting...",
             ["Connect_StatusFailed"]      = "Connection failed: {0}",
             ["Connect_StatusDisconnected"]= "Not connected",
 
             // Scoreboard Players
-            ["AddPlayer_Title"]    = "Add Player",
-            ["AddPlayer_NickName"] = "Nickname",
-            ["AddPlayer_Name"]     = "Name",
+            ["AddPlayer_Title"]       = "Add Player",
+            ["AddPlayer_UpdateTitle"] = "Update Player",
+            ["AddPlayer_NickName"]    = "Nickname",
+            ["AddPlayer_Name"]        = "Name",
+            ["AddPlayer_Avatar"]      = "Avatar",
+            ["AddPlayer_Team"]        = "Team (optional)",
+            ["AddPlayer_ShortcutNumber"] = "Shortcut #",
+            ["AddPlayer_ShortcutNumberInvalid"] = "Enter a whole number greater than 0.",
+            ["AddPlayer_ShortcutNumberTaken"] = "That shortcut number is already used by {0}.",
 
             // Scoreboard
             ["Scoreboard_Title"]       = "Scoreboard",
@@ -138,7 +143,33 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["Scoreboard_MatchTarget"] = "Target",
             ["Scoreboard_StartNewGame"]= "Start New Game",
             ["Scoreboard_EndGame"]     = "End Game",
+            ["Scoreboard_WarmUp"]      = "Warm Up",
+            ["Scoreboard_WarmUpTitle"] = "Warm-up duration",
+            ["Scoreboard_MinutesFormat"] = "{0} min",
             ["Scoreboard_Reconnect"]   = "Reconnect",
+            ["Scoreboard_PickPlayer"] = "Select Player",
+            ["Scoreboard_NoPlayers"]  = "No players yet. Add one first.",
+            ["Admin_Teams"]             = "Teams",
+            ["Admin_TeamName"]          = "Team name",
+            ["Admin_AddTeam"]           = "Add Team",
+            ["Admin_TeamsEmpty"]        = "No teams yet. Add one above.",
+            ["Admin_Players"]           = "Players",
+            ["Admin_AddPlayer"]         = "Add Player",
+            ["Admin_PlayersEmpty"]      = "No players yet. Add one above.",
+            ["Admin_DeleteAllPlayers"]        = "Delete All Players",
+            ["Admin_DeleteAllPlayersConfirm"] = "This permanently deletes every player from the database. This cannot be undone.",
+
+            // Player match stats
+            ["PlayerStats_Title"]         = "Player Stats",
+            ["PlayerStats_Empty"]         = "No match results yet.",
+            ["PlayerStats_Wins"]          = "Wins",
+            ["PlayerStats_Losses"]        = "Losses",
+            ["PlayerStats_AvgInnings"]    = "Avg Innings",
+            ["PlayerStats_InningsChart"]  = "Innings per Match",
+            ["PlayerStats_MatchHistory"]  = "Match History",
+            ["PlayerStats_Opponent"]      = "Opponent",
+            ["PlayerStats_Win"]           = "W",
+            ["PlayerStats_Loss"]          = "L",
         },
         ["tr"] = new()
         {
@@ -173,6 +204,7 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["Action_Save"]   = "Kaydet",
             ["Action_Update"] = "Güncelle",
             ["Action_Ok"]     = "Tamam",
+            ["Action_Cancel"] = "İptal",
 
             ["Profile_Title"]         = "Oyuncu Profili",
             ["Profile_CreateHeader"]  = "Yeni Oyuncu Oluştur",
@@ -236,22 +268,26 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
 
             // Raspberry Pi bağlantısı
             ["Connect_Title"]             = "Masaya Bağlan",
-            ["Connect_TypeLabel"]         = "Bağlantı Türü",
             ["Connect_WebSocketUrl"]      = "WebSocket Adresi",
             ["Connect_Connect"]           = "Bağlan",
             ["Connect_Disconnect"]        = "Bağlantıyı Kes",
             ["Connect_Cancel"]            = "İptal",
-            ["Connect_Timeout"]           = "Bağlantı zaman aşımına uğradı. Cihazın BLE destekli, açık ve menzilde olduğundan emin olun.",
-            ["Connect_ScanBluetooth"]     = "Cihazları Tara",
+            ["Connect_Timeout"]           = "Bağlantı zaman aşımına uğradı. Pi'nin açık, ağda erişilebilir ve adresin doğru olduğundan emin olun.",
             ["Connect_StatusConnected"]   = "{0} ile bağlandı",
             ["Connect_StatusConnecting"]  = "Bağlanıyor...",
             ["Connect_StatusFailed"]      = "Bağlantı başarısız: {0}",
             ["Connect_StatusDisconnected"]= "Bağlı değil",
 
             // Skorbord Oyuncuları
-            ["AddPlayer_Title"]    = "Oyuncu Ekle",
-            ["AddPlayer_NickName"] = "Takma Ad",
-            ["AddPlayer_Name"]     = "İsim",
+            ["AddPlayer_Title"]       = "Oyuncu Ekle",
+            ["AddPlayer_UpdateTitle"] = "Oyuncuyu Güncelle",
+            ["AddPlayer_NickName"]    = "Takma Ad",
+            ["AddPlayer_Name"]        = "İsim",
+            ["AddPlayer_Avatar"]      = "Avatar",
+            ["AddPlayer_Team"]        = "Takım (opsiyonel)",
+            ["AddPlayer_ShortcutNumber"] = "Kısayol No",
+            ["AddPlayer_ShortcutNumberInvalid"] = "0'dan büyük bir tam sayı girin.",
+            ["AddPlayer_ShortcutNumberTaken"] = "Bu kısayol numarası {0} tarafından kullanılıyor.",
 
             // Skorbord
             ["Scoreboard_Title"]       = "Skorbord",
@@ -263,7 +299,33 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["Scoreboard_MatchTarget"] = "Hedef",
             ["Scoreboard_StartNewGame"]= "Yeni Oyun Başlat",
             ["Scoreboard_EndGame"]     = "Oyunu Bitir",
+            ["Scoreboard_WarmUp"]      = "Isınma",
+            ["Scoreboard_WarmUpTitle"] = "Isınma süresi",
+            ["Scoreboard_MinutesFormat"] = "{0} dk",
             ["Scoreboard_Reconnect"]   = "Yeniden Bağlan",
+            ["Scoreboard_PickPlayer"] = "Oyuncu Seç",
+            ["Scoreboard_NoPlayers"]  = "Henüz oyuncu yok. Önce ekleyin.",
+            ["Admin_Teams"]             = "Takımlar",
+            ["Admin_TeamName"]          = "Takım adı",
+            ["Admin_AddTeam"]           = "Takım Ekle",
+            ["Admin_TeamsEmpty"]        = "Henüz takım yok. Yukarıdan ekleyin.",
+            ["Admin_Players"]           = "Oyuncular",
+            ["Admin_AddPlayer"]         = "Oyuncu Ekle",
+            ["Admin_PlayersEmpty"]      = "Henüz oyuncu yok. Yukarıdan ekleyin.",
+            ["Admin_DeleteAllPlayers"]        = "Tüm Oyuncuları Sil",
+            ["Admin_DeleteAllPlayersConfirm"] = "Bu, veritabanındaki tüm oyuncuları kalıcı olarak siler. Bu işlem geri alınamaz.",
+
+            // Oyuncu maç istatistikleri
+            ["PlayerStats_Title"]         = "Oyuncu İstatistikleri",
+            ["PlayerStats_Empty"]         = "Henüz maç sonucu yok.",
+            ["PlayerStats_Wins"]          = "Galibiyet",
+            ["PlayerStats_Losses"]        = "Mağlubiyet",
+            ["PlayerStats_AvgInnings"]    = "Ort. El",
+            ["PlayerStats_InningsChart"]  = "Maça Göre El Sayısı",
+            ["PlayerStats_MatchHistory"]  = "Maç Geçmişi",
+            ["PlayerStats_Opponent"]      = "Rakip",
+            ["PlayerStats_Win"]           = "G",
+            ["PlayerStats_Loss"]          = "M",
         }
     };
     public string CurrentLanguage => _language;

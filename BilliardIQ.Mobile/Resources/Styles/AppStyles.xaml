@@ -109,6 +109,18 @@
                 Color="{StaticResource White}"
                 Size="{StaticResource IconSize}" />
 
+    <OnIdiom x:Key="IconSizePersonPick"
+             x:TypeArguments="x:Double"
+             Default="16">
+        <OnIdiom.Desktop>20</OnIdiom.Desktop>
+    </OnIdiom>
+
+    <FontImageSource x:Key="IconPersonPick"
+                Glyph="{x:Static f:FluentUI.person_24_regular}"
+                FontFamily="{x:Static f:FluentUI.FontFamily}"
+                Color="{StaticResource White}"
+                Size="{StaticResource IconSizePersonPick}" />
+
     <FontImageSource x:Key="IconPhotoLibrary"
                 Glyph="{x:Static f:FluentUI.image_multiple_24_regular}"
                 FontFamily="{x:Static f:FluentUI.FontFamily}"

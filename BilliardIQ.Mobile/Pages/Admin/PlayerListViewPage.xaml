@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Admin"
+    xmlns:models="clr-namespace:BilliardIQ.Mobile.Models"
+    x:DataType="pageModels:PlayerListPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Admin.PlayerListViewPage"
+    x:Name="PlayerList"
+    Title="{Binding L[Admin_Players]}">
+
+    <basePages:BasePage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=PlayerList}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </basePages:BasePage.Behaviors>
+
+    <Grid Padding="20" RowDefinitions="Auto, Auto, *" RowSpacing="10">
+
+        <Button Grid.Row="0"
+                Text="{Binding L[Admin_AddPlayer]}"
+                Command="{Binding AddPlayerCommand}"
+                BackgroundColor="#2E7D32" TextColor="White"
+                FontAttributes="Bold"
+                CornerRadius="10" HeightRequest="44" />
+
+        <Button Grid.Row="1"
+                Text="{Binding L[Admin_DeleteAllPlayers]}"
+                Command="{Binding DeleteAllCommand}"
+                IsVisible="{Binding Players.Count, Converter={toolkit:IntToBoolConverter}}"
+                BackgroundColor="#C62828" TextColor="White"
+                FontAttributes="Bold"
+                CornerRadius="10" HeightRequest="40" FontSize="13" />
+
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Players}" SelectionMode="None">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="6"/>
+            </CollectionView.ItemsLayout>
+            <CollectionView.EmptyView>
+                <Label Text="{Binding L[Admin_PlayersEmpty]}"
+                       TextColor="Gray" FontSize="14"
+                       HorizontalOptions="Center" VerticalOptions="Center" Margin="0,40,0,0"/>
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ScoreboardPlayer">
+                    <Border Stroke="LightGray" StrokeThickness="1" Padding="12" Margin="0,3">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10"/>
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type pageModels:PlayerListPageModel}}, Path=SelectPlayerCommand}"
+                                CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="48, *" ColumnSpacing="12">
+                            <Border Grid.Column="0"
+                                    WidthRequest="48" HeightRequest="48"
+                                    StrokeThickness="1"
+                                    Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}"
+                                    BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="24"/>
+                                </Border.StrokeShape>
+                                <Image Source="{Binding DisplayImageSource}" Aspect="AspectFill" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <HorizontalStackLayout Spacing="6">
+                                    <Label Text="{Binding NickName}" FontSize="16" FontAttributes="Bold" />
+                                    <Border IsVisible="{Binding ShortcutNumber, Converter={toolkit:IsNotNullConverter}}"
+                                            BackgroundColor="{StaticResource Primary}"
+                                            StrokeThickness="0"
+                                            Padding="6,1"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding ShortcutNumber, StringFormat='#{0}'}"
+                                               TextColor="White" FontSize="11" FontAttributes="Bold" />
+                                    </Border>
+                                </HorizontalStackLayout>
+                                <Label Text="{Binding Name}" FontSize="13" TextColor="Gray" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+
+</basePages:BasePage>

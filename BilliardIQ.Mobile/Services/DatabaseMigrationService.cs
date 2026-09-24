@@ -31,6 +31,8 @@ internal sealed class DatabaseMigrationService(DatabaseExecutor dbExecutor)
         new LocationTableMigrationService(dbExecutor),
         new GameTableMigrationService(dbExecutor),
         new PlayerTableMigrationService(dbExecutor),
+        new ScoreboardTableMigrationService(dbExecutor),
+        new MatchResultTableMigrationService(dbExecutor),
     ];
 
     private static async Task InitializeDatabaseAsync()
@@ -210,5 +212,72 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
              );";
 
         internal async override Task RunAsync() =>await dbExecutor.ExecuteAsync(_tableCreationSql);
+    }
+
+    private sealed class ScoreboardTableMigrationService(DatabaseExecutor dbExecutor) : BaseDatabaseMigrationService
+    {
+        private readonly string _tableCreationSql = @"
+CREATE TABLE IF NOT EXISTS Teams (
+    Id INTEGER PRIMARY KEY,
+    RemoteId INTEGER,
+    Name TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ScoreboardPlayers (
+    Id INTEGER PRIMARY KEY,
+    RemoteId INTEGER,
+    NickName TEXT NOT NULL,
+    Name TEXT NOT NULL,
+    Photo BLOB,
+    AvatarKey TEXT,
+    TeamId INTEGER NOT NULL DEFAULT 0,
+    ShortcutNumber INTEGER
+);";
+
+        internal override async Task RunAsync()
+        {
+            await dbExecutor.ExecuteAsync(_tableCreationSql);
+
+            if (!await ColumnExistsAsync("ScoreboardPlayers", "ShortcutNumber"))
+                await dbExecutor.ExecuteAsync("ALTER TABLE ScoreboardPlayers ADD COLUMN ShortcutNumber INTEGER;");
+
+            if (!await ColumnExistsAsync("ScoreboardPlayers", "RemoteId"))
+                await dbExecutor.ExecuteAsync("ALTER TABLE ScoreboardPlayers ADD COLUMN RemoteId INTEGER;");
+
+            if (!await ColumnExistsAsync("Teams", "RemoteId"))
+                await dbExecutor.ExecuteAsync("ALTER TABLE Teams ADD COLUMN RemoteId INTEGER;");
+        }
+
+        private static async Task<bool> ColumnExistsAsync(string table, string column)
+        {
+            using var connection = DatabaseExecutor.GetNewDbConnection();
+            await connection.OpenAsync();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name='{column}'";
+            return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+        }
+    }
+
+    private sealed class MatchResultTableMigrationService(DatabaseExecutor dbExecutor) : BaseDatabaseMigrationService
+    {
+        private readonly string _tableCreationSql = @"
+CREATE TABLE IF NOT EXISTS match_result (
+    Id INTEGER PRIMARY KEY,
+    PlayedAt TEXT NOT NULL,
+    Player1Id INTEGER NULL,
+    Player1Name TEXT NOT NULL DEFAULT '',
+    Player1Score INTEGER NOT NULL,
+    Player1Avg REAL NOT NULL,
+    Player1HighRun INTEGER NOT NULL,
+    Player2Id INTEGER NULL,
+    Player2Name TEXT NOT NULL DEFAULT '',
+    Player2Score INTEGER NOT NULL,
+    Player2Avg REAL NOT NULL,
+    Player2HighRun INTEGER NOT NULL,
+    Inning INTEGER NOT NULL,
+    MatchTarget INTEGER NOT NULL,
+    Winner INTEGER NOT NULL
+);";
+
+        internal override async Task RunAsync() => await dbExecutor.ExecuteAsync(_tableCreationSql);
     }
 }

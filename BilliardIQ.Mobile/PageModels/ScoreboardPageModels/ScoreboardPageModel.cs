@@ -1,5 +1,7 @@
+using BilliardIQ.Mobile.Data;
 using BilliardIQ.Mobile.Models;
 using BilliardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Text.Json;
@@ -9,13 +11,36 @@ namespace BilliardIQ.Mobile.PageModels.ScoreboardPageModels;
 
 public partial class ScoreboardPageModel : BasePageModel
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
 
     private readonly IRaspberryPiConnectionService _connection;
+    private readonly ScoreboardPlayerSession _playerSession;
+    private readonly ScoreboardPlayerRepository _playerRepository;
+    private readonly TeamSession _teamSession;
+    private readonly TeamRepository _teamRepository;
+    private readonly MatchResultRepository _matchResultRepository;
+    private readonly IErrorHandler _errorHandler;
 
-    public ScoreboardPageModel(IRaspberryPiConnectionService connection)
+    public ScoreboardPageModel(
+        IRaspberryPiConnectionService connection,
+        ScoreboardPlayerSession playerSession,
+        ScoreboardPlayerRepository playerRepository,
+        TeamSession teamSession,
+        TeamRepository teamRepository,
+        MatchResultRepository matchResultRepository,
+        IErrorHandler errorHandler)
     {
         _connection = connection;
+        _playerSession = playerSession;
+        _playerRepository = playerRepository;
+        _teamSession = teamSession;
+        _teamRepository = teamRepository;
+        _matchResultRepository = matchResultRepository;
+        _errorHandler = errorHandler;
         _connection.MessageReceived += OnMessageReceived;
         _connection.StateChanged += OnConnectionStateChanged;
 
@@ -65,6 +90,12 @@ public partial class ScoreboardPageModel : BasePageModel
     [RelayCommand]
     private async Task Appearing()
     {
+        if (_connection.State != PiConnectionState.Connected)
+        {
+            await Shell.Current.GoToAsync("//connect");
+            return;
+        }
+
         var req = new ScoreBoardRequest
         {
             Type = "state",
@@ -85,6 +116,28 @@ public partial class ScoreboardPageModel : BasePageModel
 
     private void OnMessageReceived(object? sender, string message)
     {
+        string? type;
+        try
+        {
+            using var doc = JsonDocument.Parse(message);
+            type = doc.RootElement.TryGetProperty("type", out var typeProp) ? typeProp.GetString() : null;
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        switch (type)
+        {
+            case "state": HandleStateMessage(message); break;
+            case "players": HandlePlayersMessage(message); break;
+            case "teams": HandleTeamsMessage(message); break;
+            case "matchResult": HandleMatchResultMessage(message); break;
+        }
+    }
+
+    private void HandleStateMessage(string message)
+    {
         ScoreboardStateEnvelope? envelope;
         try
         {
@@ -95,7 +148,7 @@ public partial class ScoreboardPageModel : BasePageModel
             return;
         }
 
-        if (envelope?.Type != "state" || envelope.State is not { } state) return;
+        if (envelope?.State is not { } state) return;
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -113,19 +166,6 @@ public partial class ScoreboardPageModel : BasePageModel
             if (state.Inning is { } inning) Inning = inning;
             PendingDelta = 0;
         });
-    }
-    private sealed class ScoreBoardRequest
-    {
-        [JsonPropertyName("type")] public string Type { get; set; } = "command";
-        [JsonPropertyName("commands")] public ScoreBoardCommand[] Commands { get; set; } = [];
-    }
-    private sealed class ScoreBoardCommand(string commandName, int? payload = null)
-    {
-        [JsonPropertyName("command")]
-        public string CommandName { get; } = commandName;
-
-        [JsonPropertyName("payload")]
-        public int? Payload { get; } = payload;
     }
     private sealed class ScoreboardStateEnvelope
     {
@@ -148,6 +188,193 @@ public partial class ScoreboardPageModel : BasePageModel
         [JsonPropertyName("shotClockActive")] public bool? ShotClockActive { get; set; }
         [JsonPropertyName("currentPoints")] public int? CurrentPoints { get; set; }
         [JsonPropertyName("shotClockSeconds")] public int? ShotClockSeconds { get; set; }
+    }
+
+    // Players/teams pushed from the Pi are matched to local records by RemoteId: update in place if
+    // something changed, skip if not, insert a new local record if no match exists yet.
+    private void HandlePlayersMessage(string message)
+    {
+        PlayersEnvelope? envelope;
+        try
+        {
+            envelope = JsonSerializer.Deserialize<PlayersEnvelope>(message, _jsonOptions);
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (envelope?.Players is not { } players) return;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            foreach (var payload in players)
+            {
+                if (payload.RemoteId is { } remoteId) UpsertPlayer(remoteId, payload);
+            }
+        });
+    }
+
+    private void UpsertPlayer(int remoteId, PlayerSyncPayload payload)
+    {
+        var teamId = payload.TeamId is { } remoteTeamId ? _teamSession.FindByRemoteId(remoteTeamId)?.Id : null;
+        var existing = _playerSession.FindByRemoteId(remoteId);
+
+        if (existing is not null)
+        {
+            var nickName = payload.NickName ?? existing.NickName;
+            var name = payload.Name ?? existing.Name;
+            var avatar = payload.Avatar ?? existing.AvatarKey;
+            var shortcut = payload.ShortcutNumber ?? existing.ShortcutNumber;
+
+            var changed = existing.NickName != nickName
+                || existing.Name != name
+                || existing.AvatarKey != avatar
+                || existing.TeamId != teamId
+                || existing.ShortcutNumber != shortcut;
+            if (!changed) return;
+
+            existing.NickName = nickName;
+            existing.Name = name;
+            existing.AvatarKey = avatar;
+            existing.TeamId = teamId;
+            existing.ShortcutNumber = shortcut;
+            _playerRepository.UpsertAsync(existing).FireAndForgetSafeAsync(_errorHandler);
+            return;
+        }
+
+        var player = new ScoreboardPlayer
+        {
+            Id = _playerSession.NextId(),
+            RemoteId = remoteId,
+            NickName = payload.NickName ?? string.Empty,
+            Name = payload.Name ?? string.Empty,
+            AvatarKey = payload.Avatar,
+            TeamId = teamId,
+            ShortcutNumber = payload.ShortcutNumber,
+        };
+        _playerSession.Add(player);
+        _playerRepository.UpsertAsync(player).FireAndForgetSafeAsync(_errorHandler);
+    }
+
+    private sealed class PlayersEnvelope
+    {
+        [JsonPropertyName("players")] public List<PlayerSyncPayload>? Players { get; set; }
+    }
+    private sealed class PlayerSyncPayload
+    {
+        [JsonPropertyName("remoteId")] public int? RemoteId { get; set; }
+        [JsonPropertyName("nickName")] public string? NickName { get; set; }
+        [JsonPropertyName("name")] public string? Name { get; set; }
+        [JsonPropertyName("avatar")] public string? Avatar { get; set; }
+        [JsonPropertyName("teamId")] public int? TeamId { get; set; }
+        [JsonPropertyName("shortcutNumber")] public int? ShortcutNumber { get; set; }
+    }
+
+    private void HandleTeamsMessage(string message)
+    {
+        TeamsEnvelope? envelope;
+        try
+        {
+            envelope = JsonSerializer.Deserialize<TeamsEnvelope>(message, _jsonOptions);
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (envelope?.Teams is not { } teams) return;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            foreach (var payload in teams)
+            {
+                if (payload.RemoteId is { } remoteId && payload.Name is { } name) UpsertTeam(remoteId, name);
+            }
+        });
+    }
+
+    private void UpsertTeam(int remoteId, string name)
+    {
+        var existing = _teamSession.FindByRemoteId(remoteId);
+        if (existing is not null)
+        {
+            if (existing.Name == name) return;
+
+            existing.Name = name;
+            _teamRepository.UpsertAsync(existing).FireAndForgetSafeAsync(_errorHandler);
+            return;
+        }
+
+        var team = new ScoreboardTeam { Id = _teamSession.NextId(), RemoteId = remoteId, Name = name };
+        _teamSession.Add(team);
+        _teamRepository.UpsertAsync(team).FireAndForgetSafeAsync(_errorHandler);
+    }
+
+    private sealed class TeamsEnvelope
+    {
+        [JsonPropertyName("teams")] public List<TeamSyncPayload>? Teams { get; set; }
+    }
+    private sealed class TeamSyncPayload
+    {
+        [JsonPropertyName("remoteId")] public int? RemoteId { get; set; }
+        [JsonPropertyName("name")] public string? Name { get; set; }
+    }
+
+    private void HandleMatchResultMessage(string message)
+    {
+        MatchResultEnvelope? envelope;
+        try
+        {
+            envelope = JsonSerializer.Deserialize<MatchResultEnvelope>(message, _jsonOptions);
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (envelope?.Result is not { } r) return;
+
+        var result = new MatchResult
+        {
+            PlayedAt = r.PlayedAt,
+            Player1Id = r.Player1Id,
+            Player1Name = r.Player1Name,
+            Player1Score = r.Player1Score,
+            Player1Avg = r.Player1Avg,
+            Player1HighRun = r.Player1HighRun,
+            Player2Id = r.Player2Id,
+            Player2Name = r.Player2Name,
+            Player2Score = r.Player2Score,
+            Player2Avg = r.Player2Avg,
+            Player2HighRun = r.Player2HighRun,
+            Inning = r.Inning,
+            MatchTarget = r.MatchTarget,
+            Winner = r.Winner,
+        };
+        _matchResultRepository.InsertAsync(result).FireAndForgetSafeAsync(_errorHandler);
+    }
+
+    private sealed class MatchResultEnvelope
+    {
+        [JsonPropertyName("result")] public MatchResultSyncPayload? Result { get; set; }
+    }
+    private sealed class MatchResultSyncPayload
+    {
+        [JsonPropertyName("playedAt")] public DateTime PlayedAt { get; set; }
+        [JsonPropertyName("player1Id")] public int Player1Id { get; set; }
+        [JsonPropertyName("player1Name")] public string Player1Name { get; set; } = "";
+        [JsonPropertyName("player1Score")] public int Player1Score { get; set; }
+        [JsonPropertyName("player1Avg")] public double Player1Avg { get; set; }
+        [JsonPropertyName("player1HighRun")] public int Player1HighRun { get; set; }
+        [JsonPropertyName("player2Id")] public int? Player2Id { get; set; }
+        [JsonPropertyName("player2Name")] public string Player2Name { get; set; } = "";
+        [JsonPropertyName("player2Score")] public int Player2Score { get; set; }
+        [JsonPropertyName("player2Avg")] public double Player2Avg { get; set; }
+        [JsonPropertyName("player2HighRun")] public int Player2HighRun { get; set; }
+        [JsonPropertyName("inning")] public int Inning { get; set; }
+        [JsonPropertyName("matchTarget")] public int MatchTarget { get; set; }
+        [JsonPropertyName("winner")] public int Winner { get; set; }
     }
 
     [ObservableProperty]
@@ -187,13 +414,15 @@ public partial class ScoreboardPageModel : BasePageModel
     public partial int MatchTarget { get; set; } = 40;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsPlayer1Active), nameof(IsPlayer2Active), nameof(Player1StrokeColor), nameof(Player2StrokeColor), nameof(DisplayedPlayer1Score), nameof(DisplayedPlayer2Score))]
+    [NotifyPropertyChangedFor(nameof(IsPlayer1Active), nameof(IsPlayer2Active), nameof(Player1StrokeColor), nameof(Player2StrokeColor), nameof(Player1ArrowColor), nameof(Player2ArrowColor), nameof(DisplayedPlayer1Score), nameof(DisplayedPlayer2Score))]
     public partial int ActivePlayer { get; set; } = 1;
 
     public bool IsPlayer1Active => ActivePlayer == 1;
     public bool IsPlayer2Active => ActivePlayer == 2;
     public Color Player1StrokeColor => IsPlayer1Active ? Color.FromArgb("#2E7D32") : Colors.Transparent;
-    public Color Player2StrokeColor => IsPlayer2Active ? Color.FromArgb("#C62828") : Colors.Transparent;
+    public Color Player2StrokeColor => IsPlayer2Active ? Color.FromArgb("#F9A825") : Colors.Transparent;
+    public Color Player1ArrowColor => IsPlayer1Active ? Color.FromArgb("#2E7D32") : Color.FromArgb("#9E9E9E");
+    public Color Player2ArrowColor => IsPlayer2Active ? Color.FromArgb("#F9A825") : Color.FromArgb("#9E9E9E");
 
     public int DisplayedPlayer1Score => Player1Score + (IsPlayer1Active ? PendingDelta : 0);
     public int DisplayedPlayer2Score => Player2Score + (IsPlayer2Active ? PendingDelta : 0);
@@ -210,13 +439,30 @@ public partial class ScoreboardPageModel : BasePageModel
     private int GetActivePlayerId() => IsPlayer1Active ? 1 : 2;
 
     [RelayCommand]
-    private void IncrementActiveScore() => PendingDelta++;
+    private async Task IncrementActiveScore()
+    {
+        PendingDelta++;
+        var req = new ScoreBoardRequest
+        {
+            Type = "command",
+            Commands = [new("IncrementPoints")]
+        };
+        await SendAsync(req);
+    }
 
     [RelayCommand]
-    private void DecrementActiveScore()
+    private async Task DecrementActiveScore()
     {
         var confirmed = IsPlayer1Active ? Player1Score : Player2Score;
-        if (confirmed + PendingDelta > 0) PendingDelta--;
+        if (confirmed + PendingDelta <= 0) return;
+
+        PendingDelta--;
+        var req = new ScoreBoardRequest
+        {
+            Type = "command",
+            Commands = [new("DecrementPoints")]
+        };
+        await SendAsync(req);
     }
 
     [RelayCommand]
@@ -342,12 +588,101 @@ public partial class ScoreboardPageModel : BasePageModel
     }
 
     [RelayCommand]
-    private static async Task NavigateToAddPlayer() => await Shell.Current.GoToAsync("addscoreboardplayer");
+    private async Task PickPlayer1() => await PickPlayerAsync(1);
 
-    private Task SendAsync(ScoreBoardRequest request)
+    [RelayCommand]
+    private async Task PickPlayer2() => await PickPlayerAsync(2);
+
+    [RelayCommand]
+    private async Task ResolvePlayer1() => await ResolvePlayerAsync(1);
+
+    [RelayCommand]
+    private async Task ResolvePlayer2() => await ResolvePlayerAsync(2);
+
+    private async Task PickPlayerAsync(int slot)
     {
-        if (_connection.State != PiConnectionState.Connected) return Task.CompletedTask;
-        var json = JsonSerializer.Serialize(request, _jsonOptions);
-        return _connection.SendMessageAsync(json);
+        var players = _playerSession.Players;
+        if (players.Count == 0)
+        {
+            await Shell.Current.DisplayAlertAsync(L["Scoreboard_PickPlayer"], L["Scoreboard_NoPlayers"], L["Action_Ok"]);
+            return;
+        }
+
+        var labels = players.Select(DisplayPlayerLabel).ToArray();
+        var choice = await Shell.Current.DisplayActionSheetAsync(L["Scoreboard_PickPlayer"], L["Action_Cancel"], null, labels);
+        var index = Array.IndexOf(labels, choice);
+        if (index < 0) return;
+
+        await ApplyPlayerAsync(slot, players[index]);
+    }
+
+    private async Task ResolvePlayerAsync(int slot)
+    {
+        var text = slot == 1 ? Player1Name : Player2Name;
+        if (!int.TryParse(text?.Trim(), out var number)) return;
+
+        var player = _playerSession.FindByShortcut(number) ?? _playerSession.FindById(number);
+        if (player is not null) await ApplyPlayerAsync(slot, player);
+    }
+
+    private async Task ApplyPlayerAsync(int slot, ScoreboardPlayer player)
+    {
+        if (slot == 1) Player1Name = DisplayPlayerName(player);
+        else Player2Name = DisplayPlayerName(player);
+
+        var req = new ScoreBoardRequest
+        {
+            Type = "command",
+            Commands = [new($"SetPlayer{slot}", new
+            {
+                id = player.Id,
+                remoteId = player.RemoteId,
+                shortcutNumber = player.ShortcutNumber,
+            })]
+        };
+        await SendAsync(req);
+    }
+
+    private static string DisplayPlayerName(ScoreboardPlayer player) =>
+        string.IsNullOrWhiteSpace(player.NickName) ? player.Name : player.NickName;
+
+    private static string DisplayPlayerLabel(ScoreboardPlayer player) =>
+        player.ShortcutNumber is { } n ? $"#{n} {DisplayPlayerName(player)}" : DisplayPlayerName(player);
+
+    private static readonly int[] _warmUpMinuteOptions = [5, 10, 15];
+
+    [RelayCommand]
+    private async Task StartWarmUp()
+    {
+        var labels = _warmUpMinuteOptions.Select(m => string.Format(L["Scoreboard_MinutesFormat"], m)).ToArray();
+        var choice = await Shell.Current.DisplayActionSheetAsync(L["Scoreboard_WarmUpTitle"], L["Action_Cancel"], null, labels);
+        var index = Array.IndexOf(labels, choice);
+        if (index < 0) return;
+
+        var req = new ScoreBoardRequest
+        {
+            Type = "command",
+            Commands = [new("WarmUp", _warmUpMinuteOptions[index])]
+        };
+        await SendAsync(req);
+    }
+
+    private async Task SendAsync(ScoreBoardRequest request)
+    {
+        if (_connection.State != PiConnectionState.Connected)
+        {
+            _errorHandler.HandleError(new InvalidOperationException("Not connected to the scoreboard."));
+            return;
+        }
+
+        try
+        {
+            var json = JsonSerializer.Serialize(request, _jsonOptions);
+            await _connection.SendMessageAsync(json);
+        }
+        catch (Exception ex)
+        {
+            _errorHandler.HandleError(ex);
+        }
     }
 }

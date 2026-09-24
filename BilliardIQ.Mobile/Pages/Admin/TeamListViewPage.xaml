@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Admin"
+    xmlns:models="clr-namespace:BilliardIQ.Mobile.Models"
+    x:DataType="pageModels:TeamListPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Admin.TeamListViewPage"
+    x:Name="TeamList"
+    Title="{Binding L[Admin_Teams]}">
+
+    <basePages:BasePage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=TeamList}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </basePages:BasePage.Behaviors>
+
+    <Grid Padding="20" RowDefinitions="Auto, Auto, *" RowSpacing="10">
+
+        <Entry Grid.Row="0"
+               Text="{Binding Name, Mode=TwoWay}"
+               Placeholder="{Binding L[Admin_TeamName]}" />
+        <Label Grid.Row="0" Text="{Binding NameError}" TextColor="Red"
+               IsVisible="{Binding HasNameError}" FontSize="12"
+               VerticalOptions="End" Margin="0,0,0,-20" />
+
+        <Grid Grid.Row="1" ColumnDefinitions="*, Auto" ColumnSpacing="10">
+            <Button Grid.Column="0"
+                    Text="{Binding SaveButtonText}"
+                    Command="{Binding AddTeamCommand}"
+                    BackgroundColor="#2E7D32" TextColor="White"
+                    FontAttributes="Bold"
+                    CornerRadius="10" HeightRequest="44" />
+            <Button Grid.Column="1"
+                    Text="{Binding L[Action_Cancel]}"
+                    Command="{Binding CancelEditCommand}"
+                    IsVisible="{Binding IsEditing}"
+                    BackgroundColor="#616161" TextColor="White"
+                    FontAttributes="Bold"
+                    CornerRadius="10" HeightRequest="44" Padding="14,0" />
+        </Grid>
+
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Teams}" SelectionMode="None">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="6"/>
+            </CollectionView.ItemsLayout>
+            <CollectionView.EmptyView>
+                <Label Text="{Binding L[Admin_TeamsEmpty]}"
+                       TextColor="Gray" FontSize="14"
+                       HorizontalOptions="Center" VerticalOptions="Center" Margin="0,40,0,0"/>
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ScoreboardTeam">
+                    <Border Stroke="LightGray" StrokeThickness="1" Padding="12" Margin="0,3">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10"/>
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type pageModels:TeamListPageModel}}, Path=SelectTeamCommand}"
+                                CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <Label Text="{Binding Name}" FontSize="16" />
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+
+</basePages:BasePage>

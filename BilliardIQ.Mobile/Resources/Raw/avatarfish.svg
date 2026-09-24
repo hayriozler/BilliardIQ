@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <radialGradient id="fishball" cx="36%" cy="30%" r="62%">
+      <stop offset="0%" stop-color="#B6F3EF"/>
+      <stop offset="40%" stop-color="#2FB8AE"/>
+      <stop offset="80%" stop-color="#12786F"/>
+      <stop offset="100%" stop-color="#06423D"/>
+    </radialGradient>
+    <radialGradient id="fishshadow" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.2)"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="62" cy="108" rx="42" ry="8" fill="rgba(0,0,0,0.18)"/>
+  <circle cx="60" cy="60" r="52" fill="url(#fishball)"/>
+  <circle cx="60" cy="60" r="52" fill="url(#fishshadow)"/>
+
+  <g fill="#FFFFFF" opacity="0.92">
+    <ellipse cx="56" cy="62" rx="24" ry="14"/>
+    <polygon points="78,62 98,47 98,77"/>
+    <polygon points="48,49 56,49 52,38"/>
+    <polygon points="46,74 54,74 50,84"/>
+  </g>
+  <circle cx="42" cy="58" r="3" fill="#06423D"/>
+  <path d="M32,64 Q38,68 44,65" stroke="#06423D" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6"/>
+</svg>

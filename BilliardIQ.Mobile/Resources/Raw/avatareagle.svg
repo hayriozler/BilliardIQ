@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <radialGradient id="eagleball" cx="36%" cy="30%" r="62%">
+      <stop offset="0%" stop-color="#FBE7B8"/>
+      <stop offset="40%" stop-color="#D69A3B"/>
+      <stop offset="80%" stop-color="#966418"/>
+      <stop offset="100%" stop-color="#4F3208"/>
+    </radialGradient>
+    <radialGradient id="eagleshadow" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.2)"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="62" cy="108" rx="42" ry="8" fill="rgba(0,0,0,0.18)"/>
+  <circle cx="60" cy="60" r="52" fill="url(#eagleball)"/>
+  <circle cx="60" cy="60" r="52" fill="url(#eagleshadow)"/>
+
+  <g fill="#FFFFFF" opacity="0.92">
+    <!-- right wing -->
+    <polygon points="62,58 78,50 72,55 92,42 84,50 104,38 90,56 74,62 62,66"/>
+    <!-- left wing (mirror) -->
+    <polygon points="58,58 42,50 48,55 28,42 36,50 16,38 30,56 46,62 58,66"/>
+    <!-- body -->
+    <ellipse cx="60" cy="60" rx="8" ry="11"/>
+    <!-- head -->
+    <circle cx="60" cy="46" r="8"/>
+    <!-- tail fan -->
+    <path d="M50,72 L60,90 L60,72 Z"/>
+    <path d="M70,72 L60,90 L60,72 Z"/>
+  </g>
+  <polygon points="55,52 65,52 60,60" fill="#4F3208"/>
+  <circle cx="57" cy="45" r="1.5" fill="#4F3208"/>
+</svg>

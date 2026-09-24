@@ -2,14 +2,32 @@
 <basePages:BasePage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
     xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.ScoreboardPageModels"
+    xmlns:models="clr-namespace:BilliardIQ.Mobile.Models"
     x:DataType="pageModels:AddScoreboardPlayerPageModel"
     x:Class="BilliardIQ.Mobile.Pages.Scoreboard.AddScoreboardPlayerViewPage"
-    Title="{Binding L[AddPlayer_Title]}">
+    x:Name="AddPlayer"
+    Title="{Binding PageTitle}">
+
+    <basePages:BasePage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=AddPlayer}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </basePages:BasePage.Behaviors>
 
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="12">
+
+            <Button Text="{Binding L[Scoreboard_PickPlayer]}"
+                    Command="{Binding SelectExistingPlayerCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    FontAttributes="Bold" FontSize="13"
+                    HorizontalOptions="Center"
+                    Padding="0" />
 
             <Border WidthRequest="140" HeightRequest="140"
                     HorizontalOptions="Center"
@@ -42,6 +60,40 @@
                         HeightRequest="48" />
             </Grid>
 
+            <Label Text="{Binding L[AddPlayer_Avatar]}" FontSize="13" Opacity="0.7" />
+            <CollectionView ItemsSource="{Binding AvatarOptions}"
+                            SelectionMode="Single"
+                            SelectedItem="{Binding SelectedAvatarOption, Mode=TwoWay}"
+                            HeightRequest="64">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:AvatarOption">
+                        <Border WidthRequest="56" HeightRequest="56"
+                                StrokeThickness="2"
+                                Stroke="Transparent">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroupList>
+                                    <VisualStateGroup Name="CommonStates">
+                                        <VisualState Name="Normal" />
+                                        <VisualState Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="Stroke" Value="#1565C0" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateGroupList>
+                            </VisualStateManager.VisualStateGroups>
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="28"/>
+                            </Border.StrokeShape>
+                            <Image Source="{Binding Source}" Aspect="AspectFit" />
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
             <Entry Text="{Binding NickName, Mode=TwoWay}" Placeholder="{Binding L[AddPlayer_NickName]}" />
             <Label Text="{Binding NickNameError}" TextColor="Red"
                    IsVisible="{Binding HasNickNameError}" FontSize="12" Margin="4,-6,0,0" />
@@ -50,7 +102,22 @@
             <Label Text="{Binding NameError}" TextColor="Red"
                    IsVisible="{Binding HasNameError}" FontSize="12" Margin="4,-6,0,0" />
 
-            <Button Text="{Binding L[Action_Save]}"
+            <Grid ColumnDefinitions="Auto, 70" ColumnSpacing="10" HorizontalOptions="Center">
+                <Label Text="{Binding L[AddPlayer_ShortcutNumber]}" FontSize="13" TextColor="Gray"
+                       VerticalOptions="Center" />
+                <Entry Grid.Column="1"
+                       Text="{Binding ShortcutNumberText, Mode=TwoWay}"
+                       Keyboard="Numeric"
+                       HorizontalTextAlignment="Center"
+                       FontAttributes="Bold" />
+            </Grid>
+
+            <Picker Title="{Binding L[AddPlayer_Team]}"
+                    ItemsSource="{Binding Teams}"
+                    ItemDisplayBinding="{Binding Name}"
+                    SelectedItem="{Binding SelectedTeam, Mode=TwoWay}" />
+
+            <Button Text="{Binding SaveButtonText}"
                     ImageSource="{StaticResource IconSave}"
                     ContentLayout="Left,10"
                     Command="{Binding SaveCommand}"

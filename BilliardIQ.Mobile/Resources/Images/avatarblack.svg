@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <radialGradient id="kball" cx="36%" cy="30%" r="62%">
+      <stop offset="0%" stop-color="#606060"/>
+      <stop offset="40%" stop-color="#202020"/>
+      <stop offset="80%" stop-color="#0C0C0C"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <radialGradient id="kshadow" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.25)"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="62" cy="108" rx="42" ry="8" fill="rgba(0,0,0,0.18)"/>
+  <circle cx="60" cy="60" r="52" fill="url(#kball)"/>
+  <circle cx="60" cy="60" r="52" fill="url(#kshadow)"/>
+  <circle cx="60" cy="60" r="20" fill="white"/>
+  <text x="60" y="68" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#101010">8</text>
+  <ellipse cx="40" cy="38" rx="14" ry="9" fill="white" opacity="0.5"/>
+  <ellipse cx="36" cy="34" rx="6" ry="4" fill="white" opacity="0.7"/>
+</svg>

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <radialGradient id="dragonball" cx="36%" cy="30%" r="62%">
+      <stop offset="0%" stop-color="#F7B3B3"/>
+      <stop offset="40%" stop-color="#D33B3B"/>
+      <stop offset="80%" stop-color="#8E1A1A"/>
+      <stop offset="100%" stop-color="#4A0A0A"/>
+    </radialGradient>
+    <radialGradient id="dragonshadow" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.2)"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="62" cy="108" rx="42" ry="8" fill="rgba(0,0,0,0.18)"/>
+  <circle cx="60" cy="60" r="52" fill="url(#dragonball)"/>
+  <circle cx="60" cy="60" r="52" fill="url(#dragonshadow)"/>
+
+  <g fill="#FFFFFF" opacity="0.92">
+    <!-- neck/body taper -->
+    <path d="M40,66 Q22,80 20,96 Q34,84 44,70 Z"/>
+    <!-- head -->
+    <ellipse cx="58" cy="58" rx="22" ry="16"/>
+    <!-- snout -->
+    <polygon points="76,54 100,58 76,66"/>
+    <!-- horn -->
+    <polygon points="46,44 54,26 58,46"/>
+    <!-- back spikes -->
+    <polygon points="34,44 38,32 42,46"/>
+    <polygon points="24,50 28,40 32,52"/>
+  </g>
+  <!-- fang -->
+  <polygon points="86,64 90,64 88,70" fill="#4A0A0A"/>
+  <circle cx="64" cy="54" r="3" fill="#4A0A0A"/>
+</svg>

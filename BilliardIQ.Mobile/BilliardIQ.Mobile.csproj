@@ -77,7 +77,6 @@
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.100" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.11" />
-		<PackageReference Include="Plugin.BLE" Version="3.2.1" />
 		<PackageReference Include="Plugin.Maui.OCR" Version="1.1.1" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.100" />
 		<!-- ONNX Runtime: YOLOv8 ball detection + future on-device models (Android, iOS) -->
@@ -86,6 +85,7 @@
 		<PackageReference Include="SkiaSharp" Version="4.151.1" />
 		<!-- EmguCV: OpenCV .NET wrapper — HoughCircles + findContours for ball/corner detection -->
 		<PackageReference Include="Emgu.CV" Version="4.13.0.5924" />
+		<PackageReference Include="Svg.Skia" Version="5.2.3" />
 	</ItemGroup>
 
 	<ItemGroup>

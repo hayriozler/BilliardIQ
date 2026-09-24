@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Stats"
+    xmlns:models="clr-namespace:BilliardIQ.Mobile.Models"
+    x:DataType="pageModels:PlayerStatsDetailPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Stats.PlayerStatsDetailViewPage"
+    Title="{Binding DisplayName}">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="16">
+
+            <Grid ColumnDefinitions="64, *" ColumnSpacing="14">
+                <Border Grid.Column="0"
+                        WidthRequest="64" HeightRequest="64"
+                        StrokeThickness="1"
+                        Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}"
+                        BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="32"/>
+                    </Border.StrokeShape>
+                    <Image Source="{Binding Player.DisplayImageSource}" Aspect="AspectFill" />
+                </Border>
+                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                    <Label Text="{Binding DisplayName}" FontSize="20" FontAttributes="Bold" />
+                    <Label Text="{Binding Player.Name}" FontSize="14" TextColor="Gray" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <Grid ColumnDefinitions="*, *, *, *, *" ColumnSpacing="6">
+                <VerticalStackLayout Grid.Column="0" Spacing="0" HorizontalOptions="Center">
+                    <Label Text="{Binding L[Stats_Matches]}" FontSize="10" TextColor="Gray" HorizontalOptions="Center" />
+                    <Label Text="{Binding GamesPlayed}" FontSize="17" FontAttributes="Bold" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="0" HorizontalOptions="Center">
+                    <Label Text="{Binding L[PlayerStats_Wins]}" FontSize="10" TextColor="Gray" HorizontalOptions="Center" />
+                    <Label Text="{Binding Wins}" FontSize="17" FontAttributes="Bold" TextColor="#2E7D32" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2" Spacing="0" HorizontalOptions="Center">
+                    <Label Text="{Binding L[PlayerStats_Losses]}" FontSize="10" TextColor="Gray" HorizontalOptions="Center" />
+                    <Label Text="{Binding Losses}" FontSize="17" FontAttributes="Bold" TextColor="#C62828" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="3" Spacing="0" HorizontalOptions="Center">
+                    <Label Text="{Binding L[PlayerStats_AvgInnings]}" FontSize="10" TextColor="Gray" HorizontalOptions="Center" />
+                    <Label Text="{Binding AverageInnings, StringFormat='{0:F1}'}" FontSize="17" FontAttributes="Bold" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="4" Spacing="0" HorizontalOptions="Center">
+                    <Label Text="{Binding L[Stats_HighRun]}" FontSize="10" TextColor="Gray" HorizontalOptions="Center" />
+                    <Label Text="{Binding BestHighRun}" FontSize="17" FontAttributes="Bold" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <VerticalStackLayout Spacing="6" IsVisible="{Binding IsEmpty, Converter={toolkit:InvertedBoolConverter}}">
+                <Label Text="{Binding L[PlayerStats_InningsChart]}" FontSize="14" FontAttributes="Bold" />
+                <GraphicsView x:Name="Chart"
+                              Drawable="{Binding ChartDrawable}"
+                              HeightRequest="160"
+                              BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1C1C1E}" />
+            </VerticalStackLayout>
+
+            <Label Text="{Binding L[PlayerStats_MatchHistory]}" FontSize="14" FontAttributes="Bold" />
+
+            <Label Text="{Binding L[PlayerStats_Empty]}"
+                   IsVisible="{Binding IsEmpty}"
+                   TextColor="Gray" FontSize="14"
+                   HorizontalOptions="Center" Margin="0,20,0,0"/>
+
+            <CollectionView ItemsSource="{Binding Matches}" SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="6"/>
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:PlayerMatchEntry">
+                        <Border Stroke="LightGray" StrokeThickness="1" Padding="12" Margin="0,3">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10"/>
+                            </Border.StrokeShape>
+                            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
+                                <Border Grid.Column="0"
+                                        WidthRequest="26" HeightRequest="26"
+                                        StrokeThickness="0"
+                                        BackgroundColor="{Binding ResultColor}"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="13"/>
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding ResultLetter}"
+                                           TextColor="White" FontAttributes="Bold" FontSize="12"
+                                           HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                    <Label Text="{Binding OpponentName}" FontSize="15" FontAttributes="Bold" />
+                                    <Label Text="{Binding PlayedAt, StringFormat='{0:d}'}" FontSize="11" TextColor="Gray" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Grid.Column="2" VerticalOptions="Center" HorizontalOptions="End" Spacing="2">
+                                    <Label FontSize="15" FontAttributes="Bold" HorizontalOptions="End">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="{Binding PlayerScore}" />
+                                                <Span Text=" - " />
+                                                <Span Text="{Binding OpponentScore}" />
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
+                                    <Label Text="{Binding Inning}" FontSize="11" TextColor="Gray" HorizontalOptions="End" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</basePages:BasePage>

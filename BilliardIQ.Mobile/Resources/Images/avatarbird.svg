@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <radialGradient id="birdball" cx="36%" cy="30%" r="62%">
+      <stop offset="0%" stop-color="#E3F6FF"/>
+      <stop offset="40%" stop-color="#5FBEF0"/>
+      <stop offset="80%" stop-color="#2C7FC2"/>
+      <stop offset="100%" stop-color="#144B7D"/>
+    </radialGradient>
+    <radialGradient id="birdshadow" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.2)"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="62" cy="108" rx="42" ry="8" fill="rgba(0,0,0,0.18)"/>
+  <circle cx="60" cy="60" r="52" fill="url(#birdball)"/>
+  <circle cx="60" cy="60" r="52" fill="url(#birdshadow)"/>
+
+  <path d="M18,66 C32,44 44,44 60,60 C76,44 88,44 102,66 C88,60 76,66 60,52 C44,66 32,60 18,66 Z"
+        fill="#FFFFFF" opacity="0.92"/>
+  <circle cx="60" cy="46" r="7" fill="#FFFFFF" opacity="0.92"/>
+  <polygon points="66,45 75,42 66,49" fill="#FFFFFF" opacity="0.92"/>
+  <circle cx="63" cy="44" r="1.4" fill="#144B7D"/>
+</svg>

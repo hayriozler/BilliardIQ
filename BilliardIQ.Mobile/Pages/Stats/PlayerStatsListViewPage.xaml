@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Stats"
+    xmlns:models="clr-namespace:BilliardIQ.Mobile.Models"
+    x:DataType="pageModels:PlayerStatsListPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Stats.PlayerStatsListViewPage"
+    x:Name="PlayerStatsList"
+    Title="{Binding L[PlayerStats_Title]}">
+
+    <basePages:BasePage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=PlayerStatsList}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </basePages:BasePage.Behaviors>
+
+    <Grid RowDefinitions="Auto, Auto, *" Padding="0,4">
+
+        <ActivityIndicator Grid.Row="0"
+                            IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"
+                            HorizontalOptions="Center" Margin="0,10" />
+
+        <Grid Grid.Row="1" ColumnDefinitions="48, *, 46, 46, 60" ColumnSpacing="12" Padding="12,0" Margin="0,0,0,4">
+            <Label Grid.Column="2" Text="{Binding L[Stats_Matches]}" FontSize="10" TextColor="Gray" HorizontalOptions="Center" />
+            <Label Grid.Column="3" Text="{Binding L[PlayerStats_Wins]}" FontSize="10" TextColor="Gray" HorizontalOptions="Center" />
+            <Label Grid.Column="4" Text="{Binding L[PlayerStats_AvgInnings]}" FontSize="10" TextColor="Gray" HorizontalOptions="Center" />
+        </Grid>
+
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Stats}" SelectionMode="None">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="6"/>
+            </CollectionView.ItemsLayout>
+            <CollectionView.EmptyView>
+                <Label Text="{Binding L[PlayerStats_Empty]}"
+                       TextColor="Gray" FontSize="14"
+                       HorizontalOptions="Center" VerticalOptions="Center" Margin="0,40,0,0"/>
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:PlayerMatchStats">
+                    <Border Stroke="LightGray" StrokeThickness="1" Padding="12" Margin="0,3">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10"/>
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type pageModels:PlayerStatsListPageModel}}, Path=SelectPlayerCommand}"
+                                CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="48, *, 46, 46, 60" ColumnSpacing="12">
+                            <Border Grid.Column="0"
+                                    WidthRequest="48" HeightRequest="48"
+                                    StrokeThickness="1"
+                                    Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}"
+                                    BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="24"/>
+                                </Border.StrokeShape>
+                                <Image Source="{Binding Player.DisplayImageSource}" Aspect="AspectFill" />
+                            </Border>
+
+                            <Label Grid.Column="1" Text="{Binding Player.NickName}" FontSize="16" FontAttributes="Bold" VerticalOptions="Center" />
+
+                            <Label Grid.Column="2" Text="{Binding GamesPlayed}" FontSize="15" FontAttributes="Bold"
+                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                            <Label Grid.Column="3" Text="{Binding Wins}" FontSize="15" FontAttributes="Bold" TextColor="#2E7D32"
+                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                            <Label Grid.Column="4" Text="{Binding AverageInnings, StringFormat='{0:F1}'}" FontSize="15" FontAttributes="Bold"
+                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+
+</basePages:BasePage>

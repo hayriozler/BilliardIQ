@@ -4,7 +4,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
     xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.ConnectionPageModels"
-    xmlns:models="clr-namespace:BilliardIQ.Mobile.Models"
     x:DataType="pageModels:ConnectionPageModel"
     x:Class="BilliardIQ.Mobile.Pages.Connection.ConnectionViewPage"
     Title="{Binding L[Connect_Title]}">
@@ -38,12 +37,7 @@
                    IsVisible="{Binding HasConnectionHint}"
                    TextColor="#C62828" FontSize="13" />
 
-            <Label Text="{Binding L[Connect_TypeLabel]}" FontSize="13" TextColor="Gray"/>
-            <Picker ItemsSource="{Binding ConnectionTypes}"
-                    SelectedItem="{Binding SelectedConnectionType}"
-                    IsEnabled="{Binding IsNotConnected}"/>
-
-            <VerticalStackLayout Spacing="10" IsVisible="{Binding IsWebSocketSelected}">
+            <VerticalStackLayout Spacing="10">
                 <Label Text="{Binding L[Connect_WebSocketUrl]}" FontSize="13" TextColor="Gray"/>
                 <Entry Text="{Binding WebSocketUrl, Mode=TwoWay}"
                        IsEnabled="{Binding IsNotConnected}"
@@ -56,46 +50,6 @@
                         FontAttributes="Bold"
                         CornerRadius="24"
                         HeightRequest="48"/>
-            </VerticalStackLayout>
-
-            <VerticalStackLayout Spacing="10" IsVisible="{Binding IsBluetoothSelected}">
-                <Button Text="{Binding L[Connect_ScanBluetooth]}"
-                        Command="{Binding ScanBluetoothCommand}"
-                        IsEnabled="{Binding IsNotConnected}"
-                        BackgroundColor="#1565C0"
-                        TextColor="White"
-                        FontAttributes="Bold"
-                        CornerRadius="24"
-                        HeightRequest="48"/>
-
-                <VerticalStackLayout Spacing="10" IsVisible="{Binding IsScanning}">
-                    <ActivityIndicator IsRunning="{Binding IsScanning}" HorizontalOptions="Center"/>
-                    <Button Text="{Binding L[Connect_Cancel]}"
-                            Command="{Binding CancelConnectCommand}"
-                            BackgroundColor="#C62828"
-                            TextColor="White"
-                            FontAttributes="Bold"
-                            CornerRadius="24"
-                            HeightRequest="48"/>
-                </VerticalStackLayout>
-
-                <CollectionView ItemsSource="{Binding DiscoveredDevices}" SelectionMode="None">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:BluetoothDeviceInfo">
-                            <Border Stroke="LightGray" StrokeThickness="1" Padding="12" Margin="0,4">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10"/>
-                                </Border.StrokeShape>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ConnectToDeviceCommand}"
-                                        CommandParameter="{Binding .}"/>
-                                </Border.GestureRecognizers>
-                                <Label Text="{Binding Name}" FontSize="16"/>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
             </VerticalStackLayout>
 
             <VerticalStackLayout Spacing="10" IsVisible="{Binding IsBusy}">

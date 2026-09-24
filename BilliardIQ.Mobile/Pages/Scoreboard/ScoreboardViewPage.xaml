@@ -18,9 +18,9 @@
             Command="{Binding AppearingCommand}" />
     </basePages:BasePage.Behaviors>
 
-    <Grid Padding="24" RowDefinitions="Auto, Auto, Auto, *, Auto, Auto" RowSpacing="20">
+    <Grid Padding="12,6" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto" RowSpacing="6">
 
-        <Grid Grid.Row="0" ColumnDefinitions="Auto, Auto, Auto, *" ColumnSpacing="10">
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, Auto, *" ColumnSpacing="10">
             <Ellipse Grid.Column="0"
                      WidthRequest="12" HeightRequest="12"
                      Fill="{Binding ConnectionStatusColor}"
@@ -40,31 +40,19 @@
                     Padding="10,0" />
 
             <Button Grid.Column="2"
-                    Text="+"
-                    FontSize="22" FontAttributes="Bold"
-                    TextColor="White"
-                    Command="{Binding NavigateToAddPlayerCommand}"
-                    IsEnabled="{Binding CanInteract}"
-                    BackgroundColor="{StaticResource Primary}"
-                    CornerRadius="20"
-                    HeightRequest="40" WidthRequest="40"
-                    Padding="0"
-                    SemanticProperties.Description="{Binding L[AddPlayer_Title]}" />
-
-            <Button Grid.Column="3"
                     Text="{Binding L[Scoreboard_Reset]}"
                     Command="{Binding ResetScoresCommand}"
                     IsEnabled="{Binding CanInteract}"
                     HorizontalOptions="End"
                     BackgroundColor="Transparent"
                     TextColor="Gray"
-                    FontSize="13"
+                    FontSize="12"
                     Padding="0" />
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="Auto, 90, Auto" ColumnSpacing="10" HorizontalOptions="Center">
+        <Grid Grid.Row="1" ColumnDefinitions="Auto, 80, Auto" ColumnSpacing="10" HorizontalOptions="Center">
             <Label Grid.Column="0" Text="{Binding L[Scoreboard_MatchTarget]}"
-                   FontSize="14" TextColor="Gray"
+                   FontSize="13" TextColor="Gray"
                    VerticalOptions="Center" />
             <Entry Grid.Column="1"
                    Text="{Binding MatchTarget, Mode=TwoWay}"
@@ -74,31 +62,50 @@
                    ReturnType="Done"
                    ReturnCommand="{Binding SendMatchTargetCommand}" />
             <Label Grid.Column="2" Text="{Binding Inning, StringFormat='{0:D0}. Inning'}"
-                   FontSize="14" TextColor="Gray"
+                   FontSize="13" TextColor="Gray"
                    VerticalOptions="Center" Margin="10,0,0,0" />
         </Grid>
 
-        <Grid Grid.Row="2" ColumnDefinitions="*, Auto, *" ColumnSpacing="12">
+        <Grid Grid.Row="2" ColumnDefinitions="*, Auto, *" ColumnSpacing="10">
 
-            <VerticalStackLayout Grid.Column="0" Spacing="10">
-                <Entry Text="{Binding Player1Name, Mode=TwoWay}"
-                       HorizontalTextAlignment="Center"
-                       FontAttributes="Bold" FontSize="16"
-                       TextColor="{AppThemeBinding Light=#212121, Dark=White}"
-                       BackgroundColor="Transparent" />
-                <Border BackgroundColor="Transparent"
+            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="2">
+                    <Entry Grid.Column="0"
+                           Text="{Binding Player1Name, Mode=TwoWay}"
+                           HorizontalTextAlignment="Center"
+                           FontAttributes="Bold" FontSize="14"
+                           TextColor="{AppThemeBinding Light=#212121, Dark=White}"
+                           BackgroundColor="Transparent"
+                           ReturnType="Done"
+                           ReturnCommand="{Binding ResolvePlayer1Command}" />
+                    <Button Grid.Column="1"
+                            ImageSource="{StaticResource IconPersonPick}"
+                            Command="{Binding PickPlayer1Command}"
+                            IsEnabled="{Binding CanInteract}"
+                            BackgroundColor="{StaticResource Primary}"
+                            CornerRadius="18"
+                            WidthRequest="36" HeightRequest="36"
+                            MinimumWidthRequest="36" MinimumHeightRequest="36"
+                            Padding="0"
+                            VerticalOptions="Center" />
+                </Grid>
+                <Border BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1C1C1E}"
                         Stroke="{Binding Player1StrokeColor}"
-                        StrokeThickness="2" Padding="0,14">
+                        StrokeThickness="3" Padding="0,8"
+                        SemanticProperties.Hint="{Binding L[Game_Player1]}">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="8" />
+                        <RoundRectangle CornerRadius="12" />
                     </Border.StrokeShape>
-                    <Label Text="{Binding DisplayedPlayer1Score}" FontSize="32" FontAttributes="Bold"
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SelectPlayer1Command}" />
+                    </Border.GestureRecognizers>
+                    <Label Text="{Binding DisplayedPlayer1Score}" FontSize="26" FontAttributes="Bold"
                            LineBreakMode="NoWrap"
                            HorizontalOptions="Center" VerticalOptions="Center" />
                 </Border>
-                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                    <Label Text="{Binding Player1Average, StringFormat='Avg {0:F3}'}" FontSize="11" TextColor="Gray" />
-                    <Label Text="{Binding Player1HighRun, StringFormat='HR {0}'}" FontSize="11" TextColor="Gray" />
+                <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
+                    <Label Text="{Binding Player1Average, StringFormat='Avg {0:F3}'}" FontSize="10" TextColor="Gray" />
+                    <Label Text="{Binding Player1HighRun, StringFormat='HR {0}'}" FontSize="10" TextColor="Gray" />
                 </HorizontalStackLayout>
             </VerticalStackLayout>
 
@@ -106,136 +113,152 @@
                     IsVisible="{Binding HasPendingDelta}"
                     BackgroundColor="{Binding PendingDeltaColor}"
                     StrokeThickness="0"
-                    Padding="10,4"
+                    Padding="8,3"
                     VerticalOptions="Center">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12" />
+                    <RoundRectangle CornerRadius="10" />
                 </Border.StrokeShape>
                 <Label Text="{Binding PendingDeltaText}"
-                       FontSize="16" FontAttributes="Bold"
+                       FontSize="14" FontAttributes="Bold"
                        TextColor="White" />
             </Border>
 
-            <VerticalStackLayout Grid.Column="2" Spacing="10">
-                <Entry Text="{Binding Player2Name, Mode=TwoWay}"
-                       HorizontalTextAlignment="Center"
-                       FontAttributes="Bold" FontSize="16"
-                       TextColor="{AppThemeBinding Light=#212121, Dark=White}"
-                       BackgroundColor="Transparent" />
-                <Border BackgroundColor="Transparent"
+            <VerticalStackLayout Grid.Column="2" Spacing="4">
+                <Grid ColumnDefinitions="Auto, *" ColumnSpacing="2">
+                    <Button Grid.Column="0"
+                            ImageSource="{StaticResource IconPersonPick}"
+                            Command="{Binding PickPlayer2Command}"
+                            IsEnabled="{Binding CanInteract}"
+                            BackgroundColor="{StaticResource Primary}"
+                            CornerRadius="18"
+                            WidthRequest="36" HeightRequest="36"
+                            MinimumWidthRequest="36" MinimumHeightRequest="36"
+                            Padding="0"
+                            VerticalOptions="Center" />
+                    <Entry Grid.Column="1"
+                           Text="{Binding Player2Name, Mode=TwoWay}"
+                           HorizontalTextAlignment="Center"
+                           FontAttributes="Bold" FontSize="14"
+                           TextColor="{AppThemeBinding Light=#212121, Dark=White}"
+                           BackgroundColor="Transparent"
+                           ReturnType="Done"
+                           ReturnCommand="{Binding ResolvePlayer2Command}" />
+                </Grid>
+                <Border BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1C1C1E}"
                         Stroke="{Binding Player2StrokeColor}"
-                        StrokeThickness="2" Padding="0,14">
+                        StrokeThickness="3" Padding="0,8"
+                        SemanticProperties.Hint="{Binding L[Game_Player2]}">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="8" />
+                        <RoundRectangle CornerRadius="12" />
                     </Border.StrokeShape>
-                    <Label Text="{Binding DisplayedPlayer2Score}" FontSize="32" FontAttributes="Bold"
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SelectPlayer2Command}" />
+                    </Border.GestureRecognizers>
+                    <Label Text="{Binding DisplayedPlayer2Score}" FontSize="26" FontAttributes="Bold"
                            LineBreakMode="NoWrap"
                            HorizontalOptions="Center" VerticalOptions="Center" />
                 </Border>
-                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                    <Label Text="{Binding Player2Average, StringFormat='Avg {0:F3}'}" FontSize="11" TextColor="Gray" />
-                    <Label Text="{Binding Player2HighRun, StringFormat='HR {0}'}" FontSize="11" TextColor="Gray" />
+                <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
+                    <Label Text="{Binding Player2Average, StringFormat='Avg {0:F3}'}" FontSize="10" TextColor="Gray" />
+                    <Label Text="{Binding Player2HighRun, StringFormat='HR {0}'}" FontSize="10" TextColor="Gray" />
                 </HorizontalStackLayout>
             </VerticalStackLayout>
         </Grid>
 
-        <Grid Grid.Row="3" VerticalOptions="Center" HorizontalOptions="Center"
-              RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="Auto, Auto, Auto"
-              RowSpacing="4" ColumnSpacing="4">
+        <VerticalStackLayout Grid.Row="3" HorizontalOptions="Center" Spacing="3">
 
-            <Button Grid.Row="0" Grid.Column="1"
-                    Command="{Binding IncrementActiveScoreCommand}"
+            <Button Command="{Binding IncrementActiveScoreCommand}"
                     IsEnabled="{Binding CanInteract}"
                     Text="&#x25B2;"
-                    FontSize="20"
-                    WidthRequest="64" HeightRequest="64" CornerRadius="12"
+                    FontSize="14"
+                    WidthRequest="42" HeightRequest="42" CornerRadius="9"
+                    HorizontalOptions="Center"
                     BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}"
                     TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
 
-            <Button Grid.Row="1" Grid.Column="0"
-                    Command="{Binding SelectPlayer1Command}"
-                    IsEnabled="{Binding CanInteract}"
-                    Text="&#x25C0;"
-                    FontSize="20"
-                    WidthRequest="64" HeightRequest="64" CornerRadius="12"
-                    BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}"
-                    TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
-
-            <Button Grid.Row="1" Grid.Column="1"
-                    Command="{Binding ConfirmScoreCommand}"
-                    IsEnabled="{Binding CanInteract}"
-                    Text="{Binding L[Scoreboard_Enter]}"
-                    FontAttributes="Bold" FontSize="15"
-                    WidthRequest="72" HeightRequest="72" CornerRadius="36"
-                    BackgroundColor="#2E7D32" TextColor="White" />
-
-            <Button Grid.Row="1" Grid.Column="2"
-                    Command="{Binding SelectPlayer2Command}"
-                    IsEnabled="{Binding CanInteract}"
-                    Text="&#x25B6;"
-                    FontSize="20"
-                    WidthRequest="64" HeightRequest="64" CornerRadius="12"
-                    BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}"
-                    TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
-
-            <Button Grid.Row="2" Grid.Column="1"
-                    Command="{Binding DecrementActiveScoreCommand}"
-                    IsEnabled="{Binding CanInteract}"
-                    Text="&#x25BC;"
-                    FontSize="20"
-                    WidthRequest="64" HeightRequest="64" CornerRadius="12"
-                    BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}"
-                    TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
-        </Grid>
-
-        <Grid Grid.Row="4" ColumnDefinitions="*, *" ColumnSpacing="10">
-            <HorizontalStackLayout Grid.Column="0" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
-                <Label Text="{Binding TimerButtonText}"
-                       FontSize="14" FontAttributes="Bold"
-                       VerticalOptions="Center"
-                       TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
-                <Switch IsToggled="{Binding IsTimerRunning, Mode=TwoWay}"
+            <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
+                <Button Text="&#x25C0;"
+                        Command="{Binding SelectPlayer1Command}"
                         IsEnabled="{Binding CanInteract}"
-                        OnColor="#2E7D32">
-                    <Switch.Behaviors>
-                        <toolkit:EventToCommandBehavior
-                            EventName="Toggled"
-                            Command="{Binding ToggleTimerCommand}" />
-                    </Switch.Behaviors>
-                </Switch>
+                        BackgroundColor="{Binding Player1ArrowColor}"
+                        TextColor="White"
+                        FontSize="16" FontAttributes="Bold"
+                        CornerRadius="19"
+                        WidthRequest="38" HeightRequest="38"
+                        MinimumWidthRequest="38" MinimumHeightRequest="38"
+                        VerticalOptions="Center"
+                        Padding="0" />
+
+                <Button Command="{Binding ConfirmScoreCommand}"
+                        IsEnabled="{Binding CanInteract}"
+                        Text="&#x2713;"
+                        SemanticProperties.Description="{Binding L[Scoreboard_Enter]}"
+                        FontAttributes="Bold" FontSize="19"
+                        WidthRequest="50" HeightRequest="50" CornerRadius="25"
+                        HorizontalOptions="Center"
+                        BackgroundColor="#2E7D32" TextColor="White" />
+
+                <Button Text="&#x25B6;"
+                        Command="{Binding SelectPlayer2Command}"
+                        IsEnabled="{Binding CanInteract}"
+                        BackgroundColor="{Binding Player2ArrowColor}"
+                        TextColor="White"
+                        FontSize="16" FontAttributes="Bold"
+                        CornerRadius="19"
+                        WidthRequest="38" HeightRequest="38"
+                        MinimumWidthRequest="38" MinimumHeightRequest="38"
+                        VerticalOptions="Center"
+                        Padding="0" />
             </HorizontalStackLayout>
 
-            <Button Grid.Column="1"
-                    Command="{Binding ResetTimerCommand}"
+            <Button Command="{Binding DecrementActiveScoreCommand}"
                     IsEnabled="{Binding CanInteract}"
-                    Text="{Binding L[Scoreboard_ResetTimer]}"
-                    FontSize="14" FontAttributes="Bold"
-                    LineBreakMode="NoWrap"
-                    Padding="14,0"
-                    HeightRequest="44" CornerRadius="10"
-                    BackgroundColor="#616161"
-                    TextColor="White" />
-        </Grid>
+                    Text="&#x25BC;"
+                    FontSize="14"
+                    WidthRequest="42" HeightRequest="42" CornerRadius="9"
+                    HorizontalOptions="Center"
+                    BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}"
+                    TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
+        </VerticalStackLayout>
+
+        <HorizontalStackLayout Grid.Row="4" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+            <Label Text="{Binding TimerButtonText}"
+                   FontSize="13" FontAttributes="Bold"
+                   VerticalOptions="Center"
+                   TextColor="{AppThemeBinding Light=#37474F, Dark=White}" />
+            <Switch IsToggled="{Binding IsTimerRunning, Mode=TwoWay}"
+                    IsEnabled="{Binding CanInteract}"
+                    OnColor="#2E7D32"
+                    Scale="0.85" />
+        </HorizontalStackLayout>
 
         <Grid Grid.Row="5" ColumnDefinitions="*, *" ColumnSpacing="10">
             <Button Grid.Column="0"
                     Command="{Binding StartNewGameCommand}"
                     IsEnabled="{Binding CanInteract}"
                     Text="{Binding L[Scoreboard_StartNewGame]}"
-                    FontAttributes="Bold" FontSize="14"
+                    FontAttributes="Bold" FontSize="12"
                     LineBreakMode="NoWrap"
-                    HeightRequest="48" CornerRadius="10"
+                    HeightRequest="34" CornerRadius="8"
                     BackgroundColor="#2E7D32" TextColor="White" />
 
             <Button Grid.Column="1"
                     Command="{Binding EndGameCommand}"
                     IsEnabled="{Binding CanInteract}"
                     Text="{Binding L[Scoreboard_EndGame]}"
-                    FontAttributes="Bold" FontSize="14"
+                    FontAttributes="Bold" FontSize="12"
                     LineBreakMode="NoWrap"
-                    HeightRequest="48" CornerRadius="10"
+                    HeightRequest="34" CornerRadius="8"
                     BackgroundColor="#C62828" TextColor="White" />
         </Grid>
+
+        <Button Grid.Row="6"
+                Command="{Binding StartWarmUpCommand}"
+                IsEnabled="{Binding CanInteract}"
+                Text="{Binding L[Scoreboard_WarmUp]}"
+                FontAttributes="Bold" FontSize="12"
+                HeightRequest="32" CornerRadius="8"
+                BackgroundColor="#1565C0" TextColor="White" />
 
     </Grid>
 
