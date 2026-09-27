@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Zeymera.Scoreboard.Client.Services;
 
-public class RemoteWsPushService(
+public partial class RemoteWsPushService(
     IDbContextFactory<DataContext> dbFactory,
     ScoreboardCommandHub hub,
     SystemPowerService systemPower,
@@ -50,7 +50,7 @@ public class RemoteWsPushService(
 
     private async Task PushTeamsAsync(DataContext db, CancellationToken ct)
     {
-        var pending = await db.Teams.Where(t => !t.SyncedWS).ToListAsync(ct);
+        var pending = await db.TeamSet.Where(t => !t.SyncedWS).ToListAsync(ct);
         foreach (var team in pending)
         {
             var json = JsonSerializer.Serialize(new
@@ -59,16 +59,15 @@ public class RemoteWsPushService(
                 team = new { id = team.Id, name = team.Name }
             }, _jsonOptions);
 
-            logger.LogInformation("SEND WS team {TeamId}: {Json}", team.Id, json);
+            LogSendTeam(team.Id, json);
             await hub.BroadcastJsonAsync(json);
             team.SyncedWS = true;
             await db.SaveChangesAsync(ct);
         }
     }
-
     private async Task PushPlayersAsync(DataContext db, CancellationToken ct)
     {
-        var pending = await db.Players.Where(p => !p.SyncedWS).ToListAsync(ct);
+        var pending = await db.PlayerSet.Where(p => !p.SyncedWS).ToListAsync(ct);
         foreach (var player in pending)
         {
             var json = JsonSerializer.Serialize(new
@@ -85,7 +84,7 @@ public class RemoteWsPushService(
                 }
             }, _jsonOptions);
 
-            logger.LogInformation("SEND WS player {PlayerId}: {Json}", player.Id, json);
+            LogSendPlayer(player.Id, json);
             await hub.BroadcastJsonAsync(json);
             player.SyncedWS = true;
             await db.SaveChangesAsync(ct);
@@ -94,10 +93,10 @@ public class RemoteWsPushService(
 
     private async Task PushStatsAsync(DataContext db, CancellationToken ct)
     {
-        var pending = await db.MatchResults.Where(m => !m.SyncedWS).ToListAsync(ct);
+        var pending = await db.MatchResultSet.Where(m => !m.SyncedWS).ToListAsync(ct);
         foreach (var match in pending)
         {
-            var scoreDistribution = await db.MatchScoreStats
+            var scoreDistribution = await db.MatchScoreStatSet
                 .Where(s => s.MatchResultId == match.Id)
                 .OrderBy(s => s.PlayerSlot).ThenBy(s => s.BucketIndex)
                 .Select(s => new { playerSlot = s.PlayerSlot, bucketIndex = s.BucketIndex, totalPoints = s.TotalPoints })
@@ -122,25 +121,36 @@ public class RemoteWsPushService(
                     matchTarget = match.MatchTarget,
                     winner = match.Winner,
                     playedAt = match.PlayedAt,
+                    startedAt = match.StartedAt,
+                    endedAt = match.EndedAt,
                     scoreDistributionBucketMinutes = 5,
                     scoreDistribution
                 }
             }, _jsonOptions);
 
-            logger.LogInformation("SEND WS matchResult {MatchId}: {Json}", match.Id, json);
+            LogSendMatchResult(match.Id, json);
             await hub.BroadcastJsonAsync(json);
             match.SyncedWS = true;
             await db.SaveChangesAsync(ct);
         }
 
-        var finished = await db.MatchResults.Where(m => m.SyncedWS).ToListAsync(ct);
+        var finished = await db.MatchResultSet.Where(m => m.SyncedWS).ToListAsync(ct);
         if (finished.Count > 0)
         {
             var finishedIds = finished.Select(m => m.Id).ToList();
-            var finishedStats = await db.MatchScoreStats.Where(s => finishedIds.Contains(s.MatchResultId)).ToListAsync(ct);
-            db.MatchScoreStats.RemoveRange(finishedStats);
-            db.MatchResults.RemoveRange(finished);
+            var finishedStats = await db.MatchScoreStatSet.Where(s => finishedIds.Contains(s.MatchResultId)).ToListAsync(ct);
+            db.MatchScoreStatSet.RemoveRange(finishedStats);
+            db.MatchResultSet.RemoveRange(finished);
             await db.SaveChangesAsync(ct);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "SEND WS team {TeamId}: {Json}")]
+    private partial void LogSendTeam(int teamId, string json);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "SEND WS player {PlayerId}: {Json}")]
+    private partial void LogSendPlayer(int playerId, string json);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "SEND WS matchResult {MatchId}: {Json}")]
+    private partial void LogSendMatchResult(int matchId, string json);
 }

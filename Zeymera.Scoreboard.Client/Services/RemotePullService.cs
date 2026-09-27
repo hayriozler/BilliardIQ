@@ -6,7 +6,7 @@ using Zeymera.Scoreboard.Client.Models;
 
 namespace Zeymera.Scoreboard.Client.Services;
 
-public class RemotePullService(
+public partial class RemotePullService(
     IDbContextFactory<DataContext> dbFactory,
     IHttpClientFactory httpClientFactory,
     IOptions<RemoteSyncOptions> options,
@@ -23,13 +23,13 @@ public class RemotePullService(
         {
             if (!_options.Enabled)
             {
-                logger.LogInformation("RemotePull is disabled (RemoteSync:Enabled=false) - skipping remote data pull.");
+                LogPullDisabled();
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(_options.BaseUrl))
             {
-                logger.LogWarning("RemotePull is enabled but RemoteSync:BaseUrl is empty - skipping remote data pull.");
+                LogPullNoBaseUrl();
                 return;
             }
 
@@ -48,7 +48,7 @@ public class RemotePullService(
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    logger.LogWarning(ex, "Remote pull tick failed; will retry next interval.");
+                    LogPullTickFailed(ex);
                 }
             } while (await timer.WaitForNextTickAsync(stoppingToken));
         }
@@ -57,7 +57,7 @@ public class RemotePullService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "RemotePull could not start; remote data pull is disabled for this run.");
+            LogPullStartFailed(ex);
         }
     }
 
@@ -75,9 +75,9 @@ public class RemotePullService(
     }
     private async Task PullTeamsAsync(DataContext db, HttpClient http, CancellationToken ct)
     {
-        logger.LogInformation("SEND GET teams request");
+        LogSendGetTeams();
         var remoteTeams = await http.GetFromJsonAsync<List<RemoteTeam>>("teams", _jsonOptions, ct);
-        logger.LogInformation("RECEIVED {Count} team(s) from remote", remoteTeams?.Count ?? 0);
+        LogReceivedTeams(remoteTeams?.Count ?? 0);
         if (remoteTeams is null)
         {
             return;
@@ -85,24 +85,24 @@ public class RemotePullService(
 
         foreach (var remote in remoteTeams)
         {
-            var team = await db.Teams.FirstOrDefaultAsync(t => t.RemoteId == remote.Id, ct);
+            var team = await db.TeamSet.FirstOrDefaultAsync(t => t.RemoteId == remote.Id, ct);
             if (team is null)
             {
                 team = new Team { RemoteId = remote.Id, SyncedAPI = true };
-                db.Teams.Add(team);
+                db.TeamSet.Add(team);
             }
 
             team.Name = remote.Name;
             await db.SaveChangesAsync(ct);
 
             var memberRemoteIds = remote.Players.Select(p => p.Id).ToHashSet();
-            var members = await db.Players.Where(p => p.RemoteId != null && memberRemoteIds.Contains(p.RemoteId!.Value)).ToListAsync(ct);
+            var members = await db.PlayerSet.Where(p => p.RemoteId != null && memberRemoteIds.Contains(p.RemoteId!.Value)).ToListAsync(ct);
             foreach (var member in members)
             {
                 member.TeamId = team.Id;
             }
 
-            var formerMembers = await db.Players.Where(p => p.TeamId == team.Id && !memberRemoteIds.Contains(p.RemoteId ?? -1)).ToListAsync(ct);
+            var formerMembers = await db.PlayerSet.Where(p => p.TeamId == team.Id && !memberRemoteIds.Contains(p.RemoteId ?? -1)).ToListAsync(ct);
             foreach (var former in formerMembers)
             {
                 former.TeamId = null;
@@ -114,9 +114,9 @@ public class RemotePullService(
 
     private async Task PullPlayersAsync(DataContext db, HttpClient http, CancellationToken ct)
     {
-        logger.LogInformation("SEND GET players request");
+        LogSendGetPlayers();
         var remotePlayers = await http.GetFromJsonAsync<List<RemotePlayer>>("players", _jsonOptions, ct);
-        logger.LogInformation("RECEIVED {Count} player(s) from remote", remotePlayers?.Count ?? 0);
+        LogReceivedPlayers(remotePlayers?.Count ?? 0);
         if (remotePlayers is null)
         {
             return;
@@ -132,17 +132,17 @@ public class RemotePullService(
 
     private async Task<Player> UpsertPulledPlayerAsync(DataContext db, RemotePlayer remote, CancellationToken ct)
     {
-        var player = await db.Players.FirstOrDefaultAsync(p => p.RemoteId == remote.Id, ct);
+        var player = await db.PlayerSet.FirstOrDefaultAsync(p => p.RemoteId == remote.Id, ct);
 
         if (player is null && remote.ClientId == _options.ClientId)
         {
-            player = await db.Players.FirstOrDefaultAsync(p => p.Id == remote.ExternalId && p.RemoteId == null, ct);
+            player = await db.PlayerSet.FirstOrDefaultAsync(p => p.Id == remote.ExternalId && p.RemoteId == null, ct);
         }
 
         if (player is null)
         {
             player = new Player { SyncedAPI = true };
-            db.Players.Add(player);
+            db.PlayerSet.Add(player);
         }
 
         player.RemoteId = remote.Id;
@@ -159,4 +159,28 @@ public class RemotePullService(
     private record RemotePlayer(int Id, string ClientId, int ExternalId, string Nickname, string Name, int? AvatarId);
     private record RemoteTeam(int Id, string ClientId, int ExternalId, string Name, List<RemoteTeamPlayer> Players);
     private record RemoteTeamPlayer(int Id, int PlayerId, string Nickname, string Name);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "RemotePull is disabled (RemoteSync:Enabled=false) - skipping remote data pull.")]
+    private partial void LogPullDisabled();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "RemotePull is enabled but RemoteSync:BaseUrl is empty - skipping remote data pull.")]
+    private partial void LogPullNoBaseUrl();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Remote pull tick failed; will retry next interval.")]
+    private partial void LogPullTickFailed(Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "RemotePull could not start; remote data pull is disabled for this run.")]
+    private partial void LogPullStartFailed(Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "SEND GET teams request")]
+    private partial void LogSendGetTeams();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "RECEIVED {Count} team(s) from remote")]
+    private partial void LogReceivedTeams(int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "SEND GET players request")]
+    private partial void LogSendGetPlayers();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "RECEIVED {Count} player(s) from remote")]
+    private partial void LogReceivedPlayers(int count);
 }

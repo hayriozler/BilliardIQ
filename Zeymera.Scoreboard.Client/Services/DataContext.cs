@@ -5,12 +5,12 @@ namespace Zeymera.Scoreboard.Client.Services;
 
 public class DataContext(DbContextOptions<DataContext> options) : DbContext(options)
 {
-    public DbSet<ScoreboardState> ScoreboardStates { get; set; }
-    public DbSet<Player> Players { get; set; }
-    public DbSet<MatchResult> MatchResults { get; set; }
-    public DbSet<Team> Teams { get; set; }
-    public DbSet<ScoreEvent> ScoreEvents { get; set; }
-    public DbSet<MatchScoreStat> MatchScoreStats { get; set; }
+    public DbSet<ScoreboardState> ScoreboardStateSet { get; set; }
+    public DbSet<Player> PlayerSet { get; set; }
+    public DbSet<MatchResult> MatchResultSet { get; set; }
+    public DbSet<Team> TeamSet { get; set; }
+    public DbSet<ScoreEvent> ScoreEventSet { get; set; }
+    public DbSet<MatchScoreStat> MatchScoreStatSet { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
 

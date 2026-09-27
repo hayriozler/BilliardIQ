@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace Zeymera.Scoreboard.Client.Services;
 
-public class SystemPowerService(IDbContextFactory<DataContext> dbFactory, ILogger<SystemPowerService> logger)
+public partial class SystemPowerService(IDbContextFactory<DataContext> dbFactory, ILogger<SystemPowerService> logger)
 {
     public const int HoldMilliseconds = 4000;
 
@@ -72,13 +72,13 @@ public class SystemPowerService(IDbContextFactory<DataContext> dbFactory, ILogge
         }
         IsShuttingDown = true;
 
-        logger.LogWarning("System {Action} triggered from keyboard hold combo.", label);
+        LogPowerActionTriggered(label);
 
         await CheckpointDatabaseAsync(label);
 
         if (!OperatingSystem.IsLinux())
         {
-            logger.LogWarning("Skipping actual system {Action} - not running on Linux.", label);
+            LogPowerActionSkipped(label);
             return;
         }
 
@@ -95,11 +95,20 @@ public class SystemPowerService(IDbContextFactory<DataContext> dbFactory, ILogge
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Database checkpoint before system {Action} failed.", label);
+            LogCheckpointFailed(ex, label);
         }
         finally
         {
             SqliteConnection.ClearAllPools();
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "System {Action} triggered from keyboard hold combo.")]
+    private partial void LogPowerActionTriggered(string action);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Skipping actual system {Action} - not running on Linux.")]
+    private partial void LogPowerActionSkipped(string action);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Database checkpoint before system {Action} failed.")]
+    private partial void LogCheckpointFailed(Exception ex, string action);
 }

@@ -165,7 +165,7 @@ else
     </footer>
 
     <div class="shot-clock @(Current.ShotClockActive ? "active" : "") @(Current.ShotClockActive && Current.ShotClockRemaining <= 10 ? "urgent" : "")">
-        <div class="shot-clock-bar" style="width:@ShotClockPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></div>
+        <div class="shot-clock-bar" style="width:@(ShotClockPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div>
     </div>
 
     <div class="sync-dot @(IsOnline ? "online" : "offline")" title="@(IsOnline ? "Control link connected" : "No control device connected")"></div>
@@ -353,9 +353,12 @@ else
         Hub.ConnectionChanged += OnHubConnectionChanged;
         IsOnline = Hub.HasActiveConnection;
         _ = RunShotClockAsync(_shotClockCts.Token);
-        var game = await DbContext.ScoreboardStates.Where(p => p.Id == 1).FirstOrDefaultAsync();
+        var game = await DbContext.ScoreboardStateSet.Where(p => p.Id == 1).FirstOrDefaultAsync();
         if (game is null)
         {
+            var player1Name  = await DbContext.PlayerSet.Where(p => p.Id == 1).Select(p => p.Nickname).FirstOrDefaultAsync();
+            var player2Name =  await DbContext.PlayerSet.Where(p => p.Id == 2).Select(p => p.Nickname).FirstOrDefaultAsync();
+            
             var saved = new ScoreboardState
             {
                 Inning = 0,
@@ -368,13 +371,13 @@ else
                 Player2HighRun = 0,
                 ActivePlayer = 1,
                 MatchTarget = 20,
-                Player1Name = "Player 1",
-                Player2Name = "Player 2",
+                Player1Name =  L.T("Player1Label"),
+                Player2Name = L.T("Player2Label"),
                 ShotClockActive  =false,
                 ShotClockRemaining = 40,
                 ShotClockSeconds = 40
             };
-            DbContext.ScoreboardStates.Add(saved);
+            DbContext.ScoreboardStateSet.Add(saved);
             await DbContext.SaveChangesAsync();
             Current= saved;
         }
@@ -386,10 +389,10 @@ else
 
     private void ResolvePlayers()
     {
-        _resolvedPlayer1 = Current.Player1Id is int id1 ? DbContext.Players.FirstOrDefault(p => p.Id == id1) : null;
-        _resolvedPlayer2 = Current.Player2Id is int id2 ? DbContext.Players.FirstOrDefault(p => p.Id == id2) : null;
-        _resolvedTeam1 = _resolvedPlayer1?.TeamId is int teamId1 ? DbContext.Teams.FirstOrDefault(t => t.Id == teamId1) : null;
-        _resolvedTeam2 = _resolvedPlayer2?.TeamId is int teamId2 ? DbContext.Teams.FirstOrDefault(t => t.Id == teamId2) : null;
+        _resolvedPlayer1 = Current.Player1Id is int id1 ? DbContext.PlayerSet.FirstOrDefault(p => p.Id == id1) : null;
+        _resolvedPlayer2 = Current.Player2Id is int id2 ? DbContext.PlayerSet.FirstOrDefault(p => p.Id == id2) : null;
+        _resolvedTeam1 = _resolvedPlayer1?.TeamId is int teamId1 ? DbContext.TeamSet.FirstOrDefault(t => t.Id == teamId1) : null;
+        _resolvedTeam2 = _resolvedPlayer2?.TeamId is int teamId2 ? DbContext.TeamSet.FirstOrDefault(t => t.Id == teamId2) : null;
     }
 
     private string? GetTeamName(int slot) => (slot == 1 ? _resolvedTeam1 : _resolvedTeam2)?.Name;
@@ -442,7 +445,7 @@ else
 
     private async Task OpenPlayerPickerAsync(int slot)
     {
-        _rosterPlayers = await DbContext.Players.OrderBy(p => p.Id).ToListAsync();
+        _rosterPlayers = await DbContext.PlayerSet.OrderBy(p => p.Id).ToListAsync();
         _showPlayerPicker = slot;
         StateHasChanged();
     }
@@ -487,10 +490,10 @@ else
             return;
         }
 
-        var player = DbContext.Players.FirstOrDefault(p => p.RemoteId == data.Id);
+        var player = DbContext.PlayerSet.FirstOrDefault(p => p.RemoteId == data.Id);
         if (player is null && data.ShortcutNumber is not null)
         {
-            player = DbContext.Players.FirstOrDefault(p => p.ShortcutNumber == data.ShortcutNumber);
+            player = DbContext.PlayerSet.FirstOrDefault(p => p.ShortcutNumber == data.ShortcutNumber);
         }
 
         if (player is null)
@@ -508,7 +511,7 @@ else
             return;
         }
 
-        var player = DbContext.Players.FirstOrDefault(p => p.RemoteId == remoteId);
+        var player = DbContext.PlayerSet.FirstOrDefault(p => p.RemoteId == remoteId);
         if (player is null)
         {
             return;
@@ -526,7 +529,7 @@ else
             }
         }
 
-        DbContext.Players.Remove(player);
+        DbContext.PlayerSet.Remove(player);
         ResolvePlayers();
     }
 
@@ -537,19 +540,19 @@ else
             return;
         }
 
-        var team = DbContext.Teams.FirstOrDefault(t => t.RemoteId == remoteId);
+        var team = DbContext.TeamSet.FirstOrDefault(t => t.RemoteId == remoteId);
         if (team is null)
         {
             return;
         }
 
-        var members = DbContext.Players.Where(p => p.TeamId == team.Id).ToList();
+        var members = DbContext.PlayerSet.Where(p => p.TeamId == team.Id).ToList();
         foreach (var member in members)
         {
             member.TeamId = null;
         }
 
-        DbContext.Teams.Remove(team);
+        DbContext.TeamSet.Remove(team);
         ResolvePlayers();
     }
 
@@ -591,7 +594,7 @@ else
     {
         if (int.TryParse(name, out var maybeShortcutNumber))
         {
-            var player = DbContext.Players.FirstOrDefault(p => p.ShortcutNumber == maybeShortcutNumber);
+            var player = DbContext.PlayerSet.FirstOrDefault(p => p.ShortcutNumber == maybeShortcutNumber);
             if (player is not null)
             {
                 SelectRosterPlayer(slot, player.Id);
@@ -682,7 +685,7 @@ else
         Current.CurrentPoints = 0;
         RecalculateAverages();
 
-        DbContext.ScoreEvents.Add(new ScoreEvent
+        DbContext.ScoreEventSet.Add(new ScoreEvent
         {
             Timestamp = DateTime.Now,
             PlayerSlot = scoringSlot,
@@ -705,7 +708,6 @@ else
         var winner = Current.Player1Score > Current.Player2Score ? 1
             : Current.Player2Score > Current.Player1Score ? 2
             : 0;
-
         var matchResult = new MatchResult
         {
             PlayedAt = DateTime.Now,
@@ -721,12 +723,14 @@ else
             Player2HighRun = Current.Player2HighRun,
             Inning = Current.Inning,
             MatchTarget = Current.MatchTarget,
-            Winner = winner
+            Winner = winner,
+            StartedAt = _gameStartedAt,
+            EndedAt = DateTime.Now
         };
-        DbContext.MatchResults.Add(matchResult);
+        DbContext.MatchResultSet.Add(matchResult);
         DbContext.SaveChanges();
 
-        var events = DbContext.ScoreEvents.ToList();
+        var events = DbContext.ScoreEventSet.ToList();
         var buckets = events
             .GroupBy(e => (PlayerSlot: e.PlayerSlot, BucketIndex: (int)((e.Timestamp - _gameStartedAt).TotalMinutes / ScoreStatBucketMinutes)))
             .Select(g => new MatchScoreStat
@@ -736,8 +740,8 @@ else
                 BucketIndex = Math.Max(0, g.Key.BucketIndex),
                 TotalPoints = g.Sum(e => e.Points)
             });
-        DbContext.MatchScoreStats.AddRange(buckets);
-        DbContext.ScoreEvents.RemoveRange(events);
+        DbContext.MatchScoreStatSet.AddRange(buckets);
+        DbContext.ScoreEventSet.RemoveRange(events);
 
         Current.ShotClockActive = false;
         _gameEnded = true;
@@ -762,7 +766,6 @@ else
         Current.Player2Name = "";
         Current.ShotClockActive = false;
         Current.ShotClockRemaining = Current.ShotClockSeconds;
-
         ResolvePlayers();
     }
 
@@ -982,13 +985,13 @@ else
         }
 
         var localTeamId = data.TeamId is int remoteTeamId
-            ? DbContext.Teams.FirstOrDefault(t => t.RemoteId == remoteTeamId)?.Id
+            ? DbContext.TeamSet.FirstOrDefault(t => t.RemoteId == remoteTeamId)?.Id
             : null;
 
-        var existing = DbContext.Players.FirstOrDefault(p => p.RemoteId == data.Id);
+        var existing = DbContext.PlayerSet.FirstOrDefault(p => p.RemoteId == data.Id);
         if (existing is null)
         {
-            DbContext.Players.Add(new Player
+            DbContext.PlayerSet.Add(new Player
             {
                 RemoteId = data.Id,
                 Nickname = data.Nickname ?? "",
@@ -1039,10 +1042,10 @@ else
             return;
         }
 
-        var existing = DbContext.Teams.FirstOrDefault(t => t.RemoteId == data.Id);
+        var existing = DbContext.TeamSet.FirstOrDefault(t => t.RemoteId == data.Id);
         if (existing is null)
         {
-            DbContext.Teams.Add(new Team { RemoteId = data.Id, Name = data.Name });
+            DbContext.TeamSet.Add(new Team { RemoteId = data.Id, Name = data.Name });
         }
         else
         {

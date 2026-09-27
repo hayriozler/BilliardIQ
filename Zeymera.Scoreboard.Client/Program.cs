@@ -51,7 +51,7 @@ if (!Directory.Exists(folder))
     Directory.CreateDirectory(folder);
 var dbName = Path.Combine(folder, "scoreboard.db3");
 
-string playerPhotosFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Players");
+string playerPhotosFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "PlayerSet");
 if (!Directory.Exists(playerPhotosFolder))
     Directory.CreateDirectory(playerPhotosFolder);
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7153/";
@@ -71,105 +71,7 @@ builder.Services.AddHostedService<RemoteWsPushService>();
 
 var app = builder.Build();
 app.UseAntiforgery();
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<DataContext>();
-    db.Database.EnsureCreated();
-
-    // EnsureCreated() is a no-op once the database file already exists, so it won't add
-    // tables introduced after the first run - create them here explicitly.
-    db.Database.ExecuteSqlRaw("""
-        CREATE TABLE IF NOT EXISTS scoreboard_state (
-            Id INTEGER PRIMARY KEY,
-            Player1Name TEXT NOT NULL DEFAULT '',
-            Player2Name TEXT NOT NULL DEFAULT '',
-            Player1Id INTEGER NULL,
-            Player2Id INTEGER NULL,
-            Player1Score INTEGER NOT NULL,
-            Player2Score INTEGER NOT NULL,
-            Inning INTEGER NOT NULL,
-            MatchTarget INTEGER NOT NULL,
-            Player1Avg REAL NOT NULL,
-            Player1HighRun INTEGER NOT NULL,
-            CurrentPoints INTEGER NOT NULL,
-            Player2Avg REAL NOT NULL,
-            Player2HighRun INTEGER NOT NULL,
-            ShotClockSeconds INTEGER NOT NULL,
-            ShotClockRemaining REAL NOT NULL,
-            ShotClockActive INTEGER NOT NULL,
-            ActivePlayer INTEGER NOT NULL
-        );
-        """);
-
-    db.Database.ExecuteSqlRaw("""
-        CREATE TABLE IF NOT EXISTS player (
-            Id INTEGER PRIMARY KEY,
-            Nickname TEXT NOT NULL,
-            Name TEXT NOT NULL DEFAULT '',
-            RemoteId INTEGER NULL,
-            PhotoPath TEXT NULL,
-            AvatarId INTEGER NULL,
-            AvatarName TEXT NULL,
-            TeamId INTEGER NULL,
-            ShortcutNumber INTEGER NULL,
-            SyncedAPI INTEGER NOT NULL DEFAULT 0,
-            SyncedWS INTEGER NOT NULL DEFAULT 0
-        );
-        """);
-
-
-    db.Database.ExecuteSqlRaw("""
-        CREATE TABLE IF NOT EXISTS match_result (
-            Id INTEGER PRIMARY KEY,
-            PlayedAt TEXT NOT NULL,
-            Player1Id INTEGER NULL,
-            Player1Name TEXT NOT NULL DEFAULT '',
-            Player1Score INTEGER NOT NULL,
-            Player1Avg REAL NOT NULL,
-            Player1HighRun INTEGER NOT NULL,
-            Player2Id INTEGER NULL,
-            Player2Name TEXT NOT NULL DEFAULT '',
-            Player2Score INTEGER NOT NULL,
-            Player2Avg REAL NOT NULL,
-            Player2HighRun INTEGER NOT NULL,
-            Inning INTEGER NOT NULL,
-            MatchTarget INTEGER NOT NULL,
-            Winner INTEGER NOT NULL,
-            SyncedAPI INTEGER NOT NULL DEFAULT 0,
-            SyncedWS INTEGER NOT NULL DEFAULT 0
-        );
-        """);
-
-    db.Database.ExecuteSqlRaw("""
-        CREATE TABLE IF NOT EXISTS team (
-            Id INTEGER PRIMARY KEY,
-            Name TEXT NOT NULL DEFAULT '',
-            RemoteId INTEGER NULL,
-            SyncedAPI INTEGER NOT NULL DEFAULT 0,
-            SyncedWS INTEGER NOT NULL DEFAULT 0
-        );
-        """);
-
-    db.Database.ExecuteSqlRaw("""
-        CREATE TABLE IF NOT EXISTS score_event (
-            Id INTEGER PRIMARY KEY,
-            Timestamp TEXT NOT NULL,
-            PlayerSlot INTEGER NOT NULL,
-            Points INTEGER NOT NULL
-        );
-        """);
-
-    db.Database.ExecuteSqlRaw("""
-        CREATE TABLE IF NOT EXISTS match_score_stat (
-            Id INTEGER PRIMARY KEY,
-            MatchResultId INTEGER NOT NULL,
-            PlayerSlot INTEGER NOT NULL,
-            BucketIndex INTEGER NOT NULL,
-            TotalPoints INTEGER NOT NULL
-        );
-        """);
-
-}
+app.Services.InitializeDbAsync();
 app.UseStaticFiles();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

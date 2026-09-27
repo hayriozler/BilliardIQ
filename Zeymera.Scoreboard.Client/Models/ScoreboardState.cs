@@ -5,8 +5,6 @@ public class ScoreboardState
     public int Id { get; set; }
     public string Player1Name { get; set; } = "";
     public string Player2Name { get; set; } = "";
-
-    /// <summary>Optional link to a roster Player - when set, their Nickname (falling back to Name) and photo are shown instead of the free-text Player1Name/Player2Name above.</summary>
     public int? Player1Id { get; set; }
     public int? Player2Id { get; set; }
     public int Player1Score { get; set; }
@@ -22,4 +20,5 @@ public class ScoreboardState
     public double ShotClockRemaining { get; set; } = 40;
     public bool ShotClockActive { get; set; }
     public int ActivePlayer { get; set; } = 1;
+
 }

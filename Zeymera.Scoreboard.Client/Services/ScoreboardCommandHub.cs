@@ -6,7 +6,7 @@ using Zeymera.Scoreboard.Client.Models;
 
 namespace Zeymera.Scoreboard.Client.Services;
 
-public class ScoreboardCommandHub(ILogger<ScoreboardCommandHub> logger)
+public partial class ScoreboardCommandHub(ILogger<ScoreboardCommandHub> logger)
 {
     private sealed record Connection(SemaphoreSlim Gate, string RemoteIp);
 
@@ -24,7 +24,7 @@ public class ScoreboardCommandHub(ILogger<ScoreboardCommandHub> logger)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Publishing {Count} command(s) to the board: {Commands}", messages.Count, string.Join(", ", messages.Select(m => m.Command)));
+            LogPublishing(messages.Count, string.Join(", ", messages.Select(m => m.Command)));
         }
 
         CommandReceived?.Invoke(sender, messages);
@@ -33,7 +33,7 @@ public class ScoreboardCommandHub(ILogger<ScoreboardCommandHub> logger)
     public void ControllerConnected(WebSocket socket, string remoteIp)
     {
         _sockets[socket] = new Connection(new SemaphoreSlim(1, 1), remoteIp);
-        logger.LogInformation("Hub: registered client {RemoteIp} ({Count} total)", remoteIp, _sockets.Count);
+        LogClientRegistered(remoteIp, _sockets.Count);
         ConnectionChanged?.Invoke();
     }
 
@@ -42,7 +42,7 @@ public class ScoreboardCommandHub(ILogger<ScoreboardCommandHub> logger)
         if (_sockets.TryRemove(socket, out var connection))
         {
             connection.Gate.Dispose();
-            logger.LogInformation("Hub: unregistered client {RemoteIp} ({Count} remaining)", connection.RemoteIp, _sockets.Count);
+            LogClientUnregistered(connection.RemoteIp, _sockets.Count);
         }
 
         ConnectionChanged?.Invoke();
@@ -54,7 +54,7 @@ public class ScoreboardCommandHub(ILogger<ScoreboardCommandHub> logger)
     {
         if (!_sockets.TryGetValue(socket, out var connection))
         {
-            logger.LogWarning("Hub: SendAsync called for an unregistered socket - message dropped");
+            LogSendToUnregisteredSocket();
             return;
         }
 
@@ -67,24 +67,24 @@ public class ScoreboardCommandHub(ILogger<ScoreboardCommandHub> logger)
                 using var timeoutCts = new CancellationTokenSource(_sendTimeout);
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
                 await socket.SendAsync(Encoding.UTF8.GetBytes(json), WebSocketMessageType.Text, true, linkedCts.Token);
-                logger.LogInformation("[#{Seq}] SENT to {RemoteIp}: {Json}", seq, connection.RemoteIp, json);
+                LogSent(seq, connection.RemoteIp, json);
             }
             else
             {
-                logger.LogWarning("[#{Seq}] Skipped send to {RemoteIp} - socket state is {State}", seq, connection.RemoteIp, socket.State);
+                LogSendSkippedSocketState(seq, connection.RemoteIp, socket.State);
             }
         }
         catch (WebSocketException ex)
         {
-            logger.LogWarning(ex, "[#{Seq}] Send to {RemoteIp} failed (WebSocketException)", seq, connection.RemoteIp);
+            LogSendFailedWebSocketException(ex, seq, connection.RemoteIp);
         }
         catch (ObjectDisposedException)
         {
-            logger.LogWarning("[#{Seq}] Send to {RemoteIp} failed - socket already disposed", seq, connection.RemoteIp);
+            LogSendFailedSocketDisposed(seq, connection.RemoteIp);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogWarning("[#{Seq}] Send to {RemoteIp} timed out after {Timeout}", seq, connection.RemoteIp, _sendTimeout);
+            LogSendTimedOut(seq, connection.RemoteIp, _sendTimeout);
         }
         finally
         {
@@ -103,7 +103,7 @@ public class ScoreboardCommandHub(ILogger<ScoreboardCommandHub> logger)
         var json = ScoreboardStateSnapshotFactory.ToWireJson(snapshot);
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Broadcasting state to {Count} client(s): {RemoteIps}", targets.Count, string.Join(", ", targets.Select(socket => _sockets[socket].RemoteIp)));
+            LogBroadcasting(targets.Count, string.Join(", ", targets.Select(socket => _sockets[socket].RemoteIp)));
         }
 
         await Task.WhenAll(targets.Select(socket => SendAsync(socket, json)));
@@ -119,4 +119,34 @@ public class ScoreboardCommandHub(ILogger<ScoreboardCommandHub> logger)
 
         await Task.WhenAll(targets.Select(socket => SendAsync(socket, json)));
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Publishing {Count} command(s) to the board: {Commands}")]
+    private partial void LogPublishing(int count, string commands);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Hub: registered client {RemoteIp} ({Count} total)")]
+    private partial void LogClientRegistered(string remoteIp, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Hub: unregistered client {RemoteIp} ({Count} remaining)")]
+    private partial void LogClientUnregistered(string remoteIp, int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Hub: SendAsync called for an unregistered socket - message dropped")]
+    private partial void LogSendToUnregisteredSocket();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "[#{Seq}] SENT to {RemoteIp}: {Json}")]
+    private partial void LogSent(long seq, string remoteIp, string json);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "[#{Seq}] Skipped send to {RemoteIp} - socket state is {State}")]
+    private partial void LogSendSkippedSocketState(long seq, string remoteIp, WebSocketState state);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "[#{Seq}] Send to {RemoteIp} failed (WebSocketException)")]
+    private partial void LogSendFailedWebSocketException(Exception ex, long seq, string remoteIp);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "[#{Seq}] Send to {RemoteIp} failed - socket already disposed")]
+    private partial void LogSendFailedSocketDisposed(long seq, string remoteIp);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "[#{Seq}] Send to {RemoteIp} timed out after {Timeout}")]
+    private partial void LogSendTimedOut(long seq, string remoteIp, TimeSpan timeout);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Broadcasting state to {Count} client(s): {RemoteIps}")]
+    private partial void LogBroadcasting(int count, string remoteIps);
 }
