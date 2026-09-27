@@ -4,6 +4,8 @@ public class MatchResult
 {
     public int Id { get; set; }
     public DateTime PlayedAt { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? EndedAt { get; set; }
     public int? Player1Id { get; set; }
     public string Player1Name { get; set; } = string.Empty;
     public int Player1Score { get; set; }
@@ -17,4 +19,5 @@ public class MatchResult
     public int Inning { get; set; }
     public int MatchTarget { get; set; }
     public int Winner { get; set; }
+    public int ScoreDistributionBucketMinutes { get; set; }
 }

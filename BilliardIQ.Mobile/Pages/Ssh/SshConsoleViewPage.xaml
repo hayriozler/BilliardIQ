@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Ssh"
+    x:DataType="pageModels:SshConsolePageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Ssh.SshConsoleViewPage"
+    x:Name="SshConsole"
+    Title="{Binding L[Ssh_Title]}">
+
+    <basePages:BasePage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=SshConsole}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </basePages:BasePage.Behaviors>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <Label Text="{Binding L[Ssh_Title]}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center"/>
+
+            <VerticalStackLayout Spacing="10">
+                <Label Text="{Binding L[Ssh_Host]}" FontSize="13" TextColor="Gray"/>
+                <Entry Text="{Binding Host, Mode=TwoWay}" Placeholder="192.168.1.50" Keyboard="Url"/>
+
+                <Label Text="{Binding L[Ssh_Port]}" FontSize="13" TextColor="Gray"/>
+                <Entry Text="{Binding PortText, Mode=TwoWay}" Placeholder="22" Keyboard="Numeric"/>
+
+                <Label Text="{Binding L[Ssh_Username]}" FontSize="13" TextColor="Gray"/>
+                <Entry Text="{Binding Username, Mode=TwoWay}" Placeholder="pi"/>
+
+                <Label Text="{Binding L[Ssh_Password]}" FontSize="13" TextColor="Gray"/>
+                <Entry Text="{Binding Password, Mode=TwoWay}" IsPassword="True"/>
+
+                <Button Text="{Binding L[Ssh_SaveCredentials]}"
+                        Command="{Binding SaveCredentialsCommand}"
+                        BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold"
+                        CornerRadius="24" HeightRequest="48"/>
+            </VerticalStackLayout>
+
+            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}"/>
+
+            <VerticalStackLayout Spacing="10">
+                <Label Text="{Binding L[Ssh_Command]}" FontSize="13" TextColor="Gray"/>
+                <Entry Text="{Binding Command, Mode=TwoWay}" Placeholder="uptime"/>
+
+                <Button Text="{Binding L[Ssh_Run]}"
+                        Command="{Binding RunCommandCommand}"
+                        IsEnabled="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}"
+                        BackgroundColor="#1565C0" TextColor="White" FontAttributes="Bold"
+                        CornerRadius="24" HeightRequest="48"/>
+
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center"/>
+
+                <Label Text="{Binding L[Ssh_Output]}" FontSize="13" TextColor="Gray"/>
+                <Editor Text="{Binding Output}"
+                        IsReadOnly="True"
+                        AutoSize="TextChanges"
+                        MinimumHeightRequest="160"
+                        BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1C1C1E}"
+                        FontFamily="Courier"/>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</basePages:BasePage>

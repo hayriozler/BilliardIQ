@@ -69,6 +69,14 @@ public partial class ScoreboardPageModel : BasePageModel
     public bool ShowReconnect => ConnectionState is PiConnectionState.Disconnected or PiConnectionState.Failed;
     public bool CanInteract => ConnectionState == PiConnectionState.Connected;
 
+    // Pressing End Game twice (or after the game already ended) confuses the Pi's game state,
+    // so the button stays disabled until Start New Game is pressed again.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEndGame))]
+    public partial bool IsGameEnded { get; set; }
+
+    public bool CanEndGame => CanInteract && !IsGameEnded;
+
     [ObservableProperty]
     public partial bool IsReconnecting { get; set; }
 
@@ -112,6 +120,7 @@ public partial class ScoreboardPageModel : BasePageModel
             OnPropertyChanged(nameof(ConnectionStatusColor));
             OnPropertyChanged(nameof(ShowReconnect));
             OnPropertyChanged(nameof(CanInteract));
+            OnPropertyChanged(nameof(CanEndGame));
         });
 
     private void OnMessageReceived(object? sender, string message)
@@ -158,7 +167,6 @@ public partial class ScoreboardPageModel : BasePageModel
             if (state.Player2Score is { } p2) Player2Score = p2;
             if (state.ActivePlayer is { } active) ActivePlayer = active;
             if (state.MatchTarget is { } target) MatchTarget = target;
-            if (state.ShotClockActive is { } running) IsTimerRunning = running;
             if (state.Player1Avg is { } avg1) Player1Average = avg1;
             if (state.Player2Avg is { } avg2) Player2Average = avg2;
             if (state.Player1HighRun is { } hr1) Player1HighRun = hr1;
@@ -185,9 +193,7 @@ public partial class ScoreboardPageModel : BasePageModel
         [JsonPropertyName("activePlayer")] public int? ActivePlayer { get; set; }
         [JsonPropertyName("inning")] public int? Inning { get; set; }
         [JsonPropertyName("matchTarget")] public int? MatchTarget { get; set; }
-        [JsonPropertyName("shotClockActive")] public bool? ShotClockActive { get; set; }
         [JsonPropertyName("currentPoints")] public int? CurrentPoints { get; set; }
-        [JsonPropertyName("shotClockSeconds")] public int? ShotClockSeconds { get; set; }
     }
 
     // Players/teams pushed from the Pi are matched to local records by RemoteId: update in place if
@@ -333,7 +339,7 @@ public partial class ScoreboardPageModel : BasePageModel
             return;
         }
 
-        if (envelope?.Result is not { } r) return;
+        if (envelope?.MatchResult is not { } r) return;
 
         var result = new MatchResult
         {
@@ -351,13 +357,24 @@ public partial class ScoreboardPageModel : BasePageModel
             Inning = r.Inning,
             MatchTarget = r.MatchTarget,
             Winner = r.Winner,
+            ScoreDistributionBucketMinutes = r.ScoreDistributionBucketMinutes,
         };
-        _matchResultRepository.InsertAsync(result).FireAndForgetSafeAsync(_errorHandler);
+
+        var scoreDistribution = (r.ScoreDistribution ?? [])
+            .Select(d => new MatchScoreStat
+            {
+                PlayerSlot = d.PlayerSlot,
+                BucketIndex = d.BucketIndex,
+                TotalPoints = d.TotalPoints,
+            })
+            .ToList();
+
+        _matchResultRepository.InsertAsync(result, scoreDistribution).FireAndForgetSafeAsync(_errorHandler);
     }
 
     private sealed class MatchResultEnvelope
     {
-        [JsonPropertyName("result")] public MatchResultSyncPayload? Result { get; set; }
+        [JsonPropertyName("matchResult")] public MatchResultSyncPayload? MatchResult { get; set; }
     }
     private sealed class MatchResultSyncPayload
     {
@@ -374,7 +391,17 @@ public partial class ScoreboardPageModel : BasePageModel
         [JsonPropertyName("player2HighRun")] public int Player2HighRun { get; set; }
         [JsonPropertyName("inning")] public int Inning { get; set; }
         [JsonPropertyName("matchTarget")] public int MatchTarget { get; set; }
+        [JsonPropertyName("startedAt")] public DateTime? StartedAt { get; set; }
+        [JsonPropertyName("endedAt")] public DateTime? EndedAt { get; set; }
         [JsonPropertyName("winner")] public int Winner { get; set; }
+        [JsonPropertyName("scoreDistributionBucketMinutes")] public int ScoreDistributionBucketMinutes { get; set; }
+        [JsonPropertyName("scoreDistribution")] public List<ScoreDistributionEntry>? ScoreDistribution { get; set; }
+    }
+    private sealed class ScoreDistributionEntry
+    {
+        [JsonPropertyName("playerSlot")] public int PlayerSlot { get; set; }
+        [JsonPropertyName("bucketIndex")] public int BucketIndex { get; set; }
+        [JsonPropertyName("totalPoints")] public int TotalPoints { get; set; }
     }
 
     [ObservableProperty]
@@ -429,12 +456,6 @@ public partial class ScoreboardPageModel : BasePageModel
     public bool HasPendingDelta => PendingDelta != 0;
     public string PendingDeltaText => PendingDelta.ToString();
     public Color PendingDeltaColor => PendingDelta >= 0 ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828");
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(TimerButtonText))]
-    public partial bool IsTimerRunning { get; set; }
-
-    public string TimerButtonText => IsTimerRunning ? L["Scoreboard_Pause"] : L["Scoreboard_Start"];
 
     private int GetActivePlayerId() => IsPlayer1Active ? 1 : 2;
 
@@ -537,37 +558,13 @@ public partial class ScoreboardPageModel : BasePageModel
     }
 
     [RelayCommand]
-    private async Task ToggleTimer()
-    {
-        var req = new ScoreBoardRequest
-        {
-            Type = "command",
-            Commands = [new("ToggleShotClock")]
-        };
-        await SendAsync(req);
-    }
-
-    [RelayCommand]
-    private async Task ResetTimer()
-    {
-        IsTimerRunning = false;
-        var req = new ScoreBoardRequest
-        {
-            Type = "command",
-            Commands = [new("ResetShotClock")]
-        };
-        await SendAsync(req);
-    }
-
-
-    [RelayCommand]
     private async Task StartNewGame()
     {
         Player1Score = 0;
         Player2Score = 0;
         ActivePlayer = 1;
-        IsTimerRunning = false;
         PendingDelta = 0;
+        IsGameEnded = false;
         var req = new ScoreBoardRequest
         {
             Type = "command",
@@ -579,12 +576,15 @@ public partial class ScoreboardPageModel : BasePageModel
     [RelayCommand]
     private async Task EndGame()
     {
+        if (IsGameEnded) return;
+
         var req = new ScoreBoardRequest
         {
             Type = "command",
             Commands = [new("EndGame")]
         };
         await SendAsync(req);
+        IsGameEnded = true;
     }
 
     [RelayCommand]

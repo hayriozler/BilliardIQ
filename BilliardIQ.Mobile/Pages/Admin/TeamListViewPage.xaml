@@ -60,10 +60,22 @@
                         </Border.StrokeShape>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type pageModels:TeamListPageModel}}, Path=SelectTeamCommand}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectTeamCommand}"
                                 CommandParameter="{Binding .}" />
                         </Border.GestureRecognizers>
-                        <Label Text="{Binding Name}" FontSize="16" />
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
+                            <Label Grid.Column="0" Text="{Binding Name}" FontSize="16" VerticalOptions="Center" />
+                            <Button Grid.Column="1"
+                                    ImageSource="{StaticResource IconDeleteWhite}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteTeamCommand}"
+                                    CommandParameter="{Binding .}"
+                                    BackgroundColor="#C62828"
+                                    CornerRadius="17"
+                                    WidthRequest="34" HeightRequest="34"
+                                    MinimumWidthRequest="34" MinimumHeightRequest="34"
+                                    Padding="0"
+                                    VerticalOptions="Center" />
+                        </Grid>
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>

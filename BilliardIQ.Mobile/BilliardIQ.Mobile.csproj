@@ -85,6 +85,7 @@
 		<PackageReference Include="SkiaSharp" Version="4.151.1" />
 		<!-- EmguCV: OpenCV .NET wrapper — HoughCircles + findContours for ball/corner detection -->
 		<PackageReference Include="Emgu.CV" Version="4.13.0.5924" />
+		<PackageReference Include="SSH.NET" Version="2026.0.0" />
 		<PackageReference Include="Svg.Skia" Version="5.2.3" />
 	</ItemGroup>
 

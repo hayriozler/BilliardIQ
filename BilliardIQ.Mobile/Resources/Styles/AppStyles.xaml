@@ -91,6 +91,12 @@
                 Color="{AppThemeBinding Light={StaticResource DarkOnLightBackground}, Dark={StaticResource LightOnDarkBackground}}"
                 Size="{StaticResource IconSize}" />
 
+    <FontImageSource x:Key="IconDeleteWhite"
+                Glyph="{x:Static f:FluentUI.delete_32_regular}"
+                FontFamily="{x:Static f:FluentUI.FontFamily}"
+                Color="{StaticResource White}"
+                Size="{StaticResource IconSizeSmall}" />
+
     <FontImageSource x:Key="IconSave"
                 Glyph="{x:Static f:FluentUI.checkmark_circle_24_regular}"
                 FontFamily="{x:Static f:FluentUI.FontFamily}"

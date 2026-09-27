@@ -12,11 +12,13 @@ public partial class PlayerStatsDetailPageModel : BasePageModel, IQueryAttributa
 {
     private readonly ScoreboardPlayerSession _playerSession;
     private readonly MatchResultRepository _matchResultRepository;
+    private readonly MatchScoreStatRepository _matchScoreStatRepository;
 
-    public PlayerStatsDetailPageModel(ScoreboardPlayerSession playerSession, MatchResultRepository matchResultRepository)
+    public PlayerStatsDetailPageModel(ScoreboardPlayerSession playerSession, MatchResultRepository matchResultRepository, MatchScoreStatRepository matchScoreStatRepository)
     {
         _playerSession = playerSession;
         _matchResultRepository = matchResultRepository;
+        _matchScoreStatRepository = matchScoreStatRepository;
     }
 
     public event Action? ChartUpdated;
@@ -32,6 +34,10 @@ public partial class PlayerStatsDetailPageModel : BasePageModel, IQueryAttributa
     public ObservableCollection<PlayerMatchEntry> Matches { get; } = [];
 
     public InningsChartDrawable ChartDrawable { get; } = new();
+    public ScoringPaceChartDrawable ScoringPaceChartDrawable { get; } = new();
+
+    [ObservableProperty]
+    public partial bool HasScoringPace { get; set; }
 
     [ObservableProperty]
     public partial int GamesPlayed { get; set; }
@@ -98,11 +104,41 @@ public partial class PlayerStatsDetailPageModel : BasePageModel, IQueryAttributa
             BestHighRun = Matches.Count > 0 ? Matches.Max(m => m.HighRun) : 0;
 
             ChartDrawable.Values = Matches.Select(m => (float)m.Inning).ToList();
+            await LoadScoringPaceAsync(playerId, playerMatches.Count > 0 ? playerMatches[^1] : null);
             ChartUpdated?.Invoke();
         }
         finally
         {
             IsLoading = false;
         }
+    }
+
+    // Scoring pace shows the player's most recent match only — match_score_stat is bucketed
+    // per match, so averaging across matches of different lengths isn't a like-for-like comparison.
+    private async Task LoadScoringPaceAsync(int playerId, MatchResult? latestMatch)
+    {
+        if (latestMatch is null)
+        {
+            HasScoringPace = false;
+            return;
+        }
+
+        var slot = latestMatch.Player1Id == playerId ? 1 : 2;
+        var stats = await _matchScoreStatRepository.GetByMatchResultIdAsync(latestMatch.Id);
+        var slotStats = stats.Where(s => s.PlayerSlot == slot).ToList();
+        if (slotStats.Count == 0)
+        {
+            HasScoringPace = false;
+            return;
+        }
+
+        // Rows are sparse (no row for a bucket with zero points), so fill the gaps up to the
+        // highest bucket index the match actually reported.
+        var buckets = new int[slotStats.Max(s => s.BucketIndex) + 1];
+        foreach (var stat in slotStats) buckets[stat.BucketIndex] += stat.TotalPoints;
+
+        ScoringPaceChartDrawable.BucketPoints = buckets;
+        ScoringPaceChartDrawable.BucketMinutes = latestMatch.ScoreDistributionBucketMinutes > 0 ? latestMatch.ScoreDistributionBucketMinutes : 5;
+        HasScoringPace = true;
     }
 }

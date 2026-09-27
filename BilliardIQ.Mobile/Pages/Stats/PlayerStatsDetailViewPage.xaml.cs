@@ -13,5 +13,9 @@ public partial class PlayerStatsDetailViewPage : BasePage
         _model.ChartUpdated += OnChartUpdated;
     }
 
-    private void OnChartUpdated() => MainThread.BeginInvokeOnMainThread(() => Chart.Invalidate());
+    private void OnChartUpdated() => MainThread.BeginInvokeOnMainThread(() =>
+    {
+        Chart.Invalidate();
+        ScoringPaceChart.Invalidate();
+    });
 }

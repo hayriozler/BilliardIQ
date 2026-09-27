@@ -10,6 +10,7 @@
     xmlns:scoreboard="clr-namespace:BilliardIQ.Mobile.Pages.Scoreboard"
     xmlns:admin="clr-namespace:BilliardIQ.Mobile.Pages.Admin"
     xmlns:stats="clr-namespace:BilliardIQ.Mobile.Pages.Stats"
+    xmlns:ssh="clr-namespace:BilliardIQ.Mobile.Pages.Ssh"
     Shell.FlyoutBehavior="Flyout"
     Title="BilliardIQ">
 
@@ -43,6 +44,11 @@
             <ShellContent
                 ContentTemplate="{DataTemplate stats:PlayerStatsListViewPage}"
                 Route="admin-stats" />
+        </Tab>
+        <Tab Title="SSH">
+            <ShellContent
+                ContentTemplate="{DataTemplate ssh:SshConsoleViewPage}"
+                Route="admin-ssh" />
         </Tab>
     </FlyoutItem>
 

@@ -135,9 +135,6 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
 
             // Scoreboard
             ["Scoreboard_Title"]       = "Scoreboard",
-            ["Scoreboard_Start"]       = "Start Timer",
-            ["Scoreboard_Pause"]       = "Stop Timer",
-            ["Scoreboard_ResetTimer"]  = "Reset Timer",
             ["Scoreboard_Reset"]       = "Reset Scores",
             ["Scoreboard_Enter"]       = "Enter",
             ["Scoreboard_MatchTarget"] = "Target",
@@ -156,8 +153,10 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["Admin_Players"]           = "Players",
             ["Admin_AddPlayer"]         = "Add Player",
             ["Admin_PlayersEmpty"]      = "No players yet. Add one above.",
-            ["Admin_DeleteAllPlayers"]        = "Delete All Players",
-            ["Admin_DeleteAllPlayersConfirm"] = "This permanently deletes every player from the database. This cannot be undone.",
+            ["Admin_DeletePlayer"]        = "Delete Player",
+            ["Admin_DeletePlayerConfirm"] = "Permanently delete {0}? This cannot be undone.",
+            ["Admin_DeleteTeam"]          = "Delete Team",
+            ["Admin_DeleteTeamConfirm"]   = "Permanently delete {0}? This cannot be undone.",
 
             // Player match stats
             ["PlayerStats_Title"]         = "Player Stats",
@@ -166,6 +165,18 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["PlayerStats_Losses"]        = "Losses",
             ["PlayerStats_AvgInnings"]    = "Avg Innings",
             ["PlayerStats_InningsChart"]  = "Innings per Match",
+            ["PlayerStats_ScoringPace"]   = "Scoring Pace (Last Match)",
+
+            // SSH console
+            ["Ssh_Title"]           = "SSH Console",
+            ["Ssh_Host"]            = "Host",
+            ["Ssh_Port"]            = "Port",
+            ["Ssh_Username"]        = "Username",
+            ["Ssh_Password"]        = "Password",
+            ["Ssh_SaveCredentials"] = "Save Credentials",
+            ["Ssh_Command"]         = "Command",
+            ["Ssh_Run"]             = "Run",
+            ["Ssh_Output"]          = "Output",
             ["PlayerStats_MatchHistory"]  = "Match History",
             ["PlayerStats_Opponent"]      = "Opponent",
             ["PlayerStats_Win"]           = "W",
@@ -291,9 +302,6 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
 
             // Skorbord
             ["Scoreboard_Title"]       = "Skorbord",
-            ["Scoreboard_Start"]       = "Süreyi Başlat",
-            ["Scoreboard_Pause"]       = "Süreyi Durdur",
-            ["Scoreboard_ResetTimer"]  = "Süreyi Sıfırla",
             ["Scoreboard_Reset"]       = "Skorları Sıfırla",
             ["Scoreboard_Enter"]       = "Onayla",
             ["Scoreboard_MatchTarget"] = "Hedef",
@@ -312,8 +320,10 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["Admin_Players"]           = "Oyuncular",
             ["Admin_AddPlayer"]         = "Oyuncu Ekle",
             ["Admin_PlayersEmpty"]      = "Henüz oyuncu yok. Yukarıdan ekleyin.",
-            ["Admin_DeleteAllPlayers"]        = "Tüm Oyuncuları Sil",
-            ["Admin_DeleteAllPlayersConfirm"] = "Bu, veritabanındaki tüm oyuncuları kalıcı olarak siler. Bu işlem geri alınamaz.",
+            ["Admin_DeletePlayer"]        = "Oyuncuyu Sil",
+            ["Admin_DeletePlayerConfirm"] = "{0} kalıcı olarak silinsin mi? Bu işlem geri alınamaz.",
+            ["Admin_DeleteTeam"]          = "Takımı Sil",
+            ["Admin_DeleteTeamConfirm"]   = "{0} kalıcı olarak silinsin mi? Bu işlem geri alınamaz.",
 
             // Oyuncu maç istatistikleri
             ["PlayerStats_Title"]         = "Oyuncu İstatistikleri",
@@ -322,6 +332,18 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["PlayerStats_Losses"]        = "Mağlubiyet",
             ["PlayerStats_AvgInnings"]    = "Ort. El",
             ["PlayerStats_InningsChart"]  = "Maça Göre El Sayısı",
+            ["PlayerStats_ScoringPace"]   = "Skor Temposu (Son Maç)",
+
+            // SSH konsolu
+            ["Ssh_Title"]           = "SSH Konsolu",
+            ["Ssh_Host"]            = "Sunucu",
+            ["Ssh_Port"]            = "Port",
+            ["Ssh_Username"]        = "Kullanıcı Adı",
+            ["Ssh_Password"]        = "Parola",
+            ["Ssh_SaveCredentials"] = "Bilgileri Kaydet",
+            ["Ssh_Command"]         = "Komut",
+            ["Ssh_Run"]             = "Çalıştır",
+            ["Ssh_Output"]          = "Çıktı",
             ["PlayerStats_MatchHistory"]  = "Maç Geçmişi",
             ["PlayerStats_Opponent"]      = "Rakip",
             ["PlayerStats_Win"]           = "G",

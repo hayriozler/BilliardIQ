@@ -32,6 +32,13 @@ public class TeamRepository(ILogger<TeamRepository> Logger, DatabaseExecutor dbE
         else Logger.LogDebug("Something went wrong upserting team {Id}", team.Id);
     }
 
+    public async Task DeleteAsync(int id)
+    {
+        var ok = await dbExecutor.ExecuteAsync("DELETE FROM Teams WHERE Id = @Id;", [new("@Id", id)]);
+        if (ok) Logger.LogInformation("Team {Id} deleted", id);
+        else Logger.LogDebug("Something went wrong deleting team {Id}", id);
+    }
+
     public async Task<IReadOnlyList<ScoreboardTeam>> GetAllAsync()
     {
         var rows = await dbExecutor.ReadDataAsync<TeamRow>("SELECT Id, RemoteId, Name FROM Teams ORDER BY Id");

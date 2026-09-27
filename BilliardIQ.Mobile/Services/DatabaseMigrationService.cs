@@ -33,6 +33,7 @@ internal sealed class DatabaseMigrationService(DatabaseExecutor dbExecutor)
         new PlayerTableMigrationService(dbExecutor),
         new ScoreboardTableMigrationService(dbExecutor),
         new MatchResultTableMigrationService(dbExecutor),
+        new SshConnectionTableMigrationService(dbExecutor),
     ];
 
     private static async Task InitializeDatabaseAsync()
@@ -102,7 +103,7 @@ CREATE TABLE IF NOT EXISTS Cities (
 
         internal async override Task RunAsync()
         {
-            await dbExecutor.ExecuteAsync(_tableCreationSql);            
+            await dbExecutor.ExecuteAsync(_tableCreationSql);
             if (!await ColumnExistsAsync("Cities", "CountryCode"))
             {
                 await dbExecutor.ExecuteAsync("DROP TABLE IF EXISTS Cities;");
@@ -191,7 +192,7 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
             );
 ";
 
-        internal override async Task RunAsync() =>await dbExecutor.ExecuteAsync(_tableCreationSql);
+        internal override async Task RunAsync() => await dbExecutor.ExecuteAsync(_tableCreationSql);
     }
 
     private sealed class PlayerTableMigrationService(DatabaseExecutor dbExecutor) : BaseDatabaseMigrationService
@@ -211,7 +212,7 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
                  CreatedAt DateTime NOT NULL
              );";
 
-        internal async override Task RunAsync() =>await dbExecutor.ExecuteAsync(_tableCreationSql);
+        internal async override Task RunAsync() => await dbExecutor.ExecuteAsync(_tableCreationSql);
     }
 
     private sealed class ScoreboardTableMigrationService(DatabaseExecutor dbExecutor) : BaseDatabaseMigrationService
@@ -263,6 +264,8 @@ CREATE TABLE IF NOT EXISTS ScoreboardPlayers (
 CREATE TABLE IF NOT EXISTS match_result (
     Id INTEGER PRIMARY KEY,
     PlayedAt TEXT NOT NULL,
+    StartedAt TEXT NULL,
+    EndedAt TEXT NULL,
     Player1Id INTEGER NULL,
     Player1Name TEXT NOT NULL DEFAULT '',
     Player1Score INTEGER NOT NULL,
@@ -276,6 +279,42 @@ CREATE TABLE IF NOT EXISTS match_result (
     Inning INTEGER NOT NULL,
     MatchTarget INTEGER NOT NULL,
     Winner INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS match_score_stat (
+    Id INTEGER PRIMARY KEY,
+    MatchResultId INTEGER NOT NULL,
+    PlayerSlot INTEGER NOT NULL,
+    BucketIndex INTEGER NOT NULL,
+    TotalPoints INTEGER NOT NULL
+);";
+
+        internal override async Task RunAsync()
+        {
+            await dbExecutor.ExecuteAsync(_tableCreationSql);
+
+            if (!await ColumnExistsAsync("match_result", "ScoreDistributionBucketMinutes"))
+                await dbExecutor.ExecuteAsync("ALTER TABLE match_result ADD COLUMN ScoreDistributionBucketMinutes INTEGER NOT NULL DEFAULT 5;");
+        }
+
+        private static async Task<bool> ColumnExistsAsync(string table, string column)
+        {
+            using var connection = DatabaseExecutor.GetNewDbConnection();
+            await connection.OpenAsync();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name='{column}'";
+            return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+        }
+    }
+
+    // Password isn't stored here — see SshConsolePageModel, which keeps it in SecureStorage instead.
+    private sealed class SshConnectionTableMigrationService(DatabaseExecutor dbExecutor) : BaseDatabaseMigrationService
+    {
+        private readonly string _tableCreationSql = @"
+CREATE TABLE IF NOT EXISTS SshConnection (
+    Id INTEGER PRIMARY KEY,
+    Host TEXT NOT NULL DEFAULT '',
+    Port INTEGER NOT NULL DEFAULT 22,
+    Username TEXT NOT NULL DEFAULT ''
 );";
 
         internal override async Task RunAsync() => await dbExecutor.ExecuteAsync(_tableCreationSql);

@@ -47,7 +47,7 @@
                         </Border.StrokeShape>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type pageModels:PlayerStatsListPageModel}}, Path=SelectPlayerCommand}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectPlayerCommand}"
                                 CommandParameter="{Binding .}" />
                         </Border.GestureRecognizers>
                         <Grid ColumnDefinitions="48, *, 46, 46, 60" ColumnSpacing="12">

@@ -17,6 +17,8 @@ public class TeamSession
 
     public void Add(ScoreboardTeam team) => Teams.Add(team);
 
+    public void Remove(ScoreboardTeam team) => Teams.Remove(team);
+
     public void LoadExisting(IEnumerable<ScoreboardTeam> teams)
     {
         foreach (var team in teams) Teams.Add(team);

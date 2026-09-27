@@ -69,6 +69,51 @@ public partial class TeamListPageModel : BasePageModel
         ClearErrors();
     }
 
+    [RelayCommand]
+    private async Task DeleteTeam(ScoreboardTeam? team)
+    {
+        if (team is null) return;
+
+        var confirmed = await Shell.Current.DisplayAlertAsync(
+            L["Admin_DeleteTeam"], string.Format(L["Admin_DeleteTeamConfirm"], team.Name), L["Action_Ok"], L["Action_Cancel"]);
+        if (!confirmed) return;
+
+        if (!await SendDeleteTeamToRemoteAsync(team.Id)) return;
+
+        if (EditingTeamId == team.Id) CancelEdit();
+
+        // Post the removal to a fresh UI-dispatcher tick rather than mutating the CollectionView's
+        // bound collection immediately after DisplayAlertAsync's ContentDialog closes — doing it
+        // synchronously races the dialog's own teardown on Windows and can NullReferenceException.
+        MainThread.BeginInvokeOnMainThread(() => _session.Remove(team));
+        await _repository.DeleteAsync(team.Id);
+    }
+
+    private async Task<bool> SendDeleteTeamToRemoteAsync(int id)
+    {
+        if (_connection.State != PiConnectionState.Connected)
+        {
+            _errorHandler.HandleError(new InvalidOperationException("Not connected to the scoreboard."));
+            return false;
+        }
+
+        try
+        {
+            var request = new ScoreBoardRequest
+            {
+                Type = "command",
+                Commands = [new("DeleteTeam", id)]
+            };
+            await _connection.SendMessageAsync(JsonSerializer.Serialize(request, _jsonOptions));
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _errorHandler.HandleError(ex);
+            return false;
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanAdd))]
     private async Task AddTeam()
     {

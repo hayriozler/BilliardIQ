@@ -52,11 +52,11 @@ public class ScoreboardPlayerRepository(ILogger<ScoreboardPlayerRepository> Logg
         else Logger.LogDebug("Something went wrong upserting scoreboard player {Id}", player.Id);
     }
 
-    public async Task DeleteAllAsync()
+    public async Task DeleteAsync(int id)
     {
-        var ok = await dbExecutor.ExecuteAsync("DELETE FROM ScoreboardPlayers;");
-        if (ok) Logger.LogInformation("All scoreboard players deleted");
-        else Logger.LogDebug("Something went wrong deleting all scoreboard players");
+        var ok = await dbExecutor.ExecuteAsync("DELETE FROM ScoreboardPlayers WHERE Id = @Id;", [new("@Id", id)]);
+        if (ok) Logger.LogInformation("Scoreboard player {Id} deleted", id);
+        else Logger.LogDebug("Something went wrong deleting scoreboard player {Id}", id);
     }
 
     public async Task<IReadOnlyList<ScoreboardPlayer>> GetAllAsync()
