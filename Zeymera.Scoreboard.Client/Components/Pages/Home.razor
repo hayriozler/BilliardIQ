@@ -587,7 +587,6 @@ else
         }
         catch
         {
-            // best-effort broadcast; a failed send to one client shouldn't affect the board itself
         }
     }
     private void SetPlayerName(int slot, string? name)
@@ -763,7 +762,7 @@ else
         Current.Player1Id = null;
         Current.Player2Id = null;
         Current.Player1Name = "";
-        Current.Player2Name = "";
+        Current.Player2Name = "";        
         Current.ShotClockActive = false;
         Current.ShotClockRemaining = Current.ShotClockSeconds;
         ResolvePlayers();

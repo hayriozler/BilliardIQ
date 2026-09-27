@@ -15,6 +15,6 @@ set -euo pipefail
 #   bash install-kiosk-deps.sh
 
 sudo apt-get update
-sudo apt-get install -y wmctrl x11-xserver-utils chromium-browser
+sudo apt-get install -y wmctrl x11-apps x11-xserver-utils chromium-browser
 
 echo "Done. Verify with: wmctrl -m; xset q; command -v chromium || command -v chromium-browser"
