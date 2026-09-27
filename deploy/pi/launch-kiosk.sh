@@ -23,11 +23,6 @@ xset s off
 xset -dpms
 xset s noblank
 
-# Hide the cursor when idle. Deliberately no flags: their syntax differs between classic
-# `unclutter` and the `unclutter-xfixes` fork shipped on some Pi OS versions - the no-flag
-# defaults work on both.
-unclutter &
-
 # wmctrl-based watchdog to keep Chromium focused/on top. This is an X11 tool and may be a
 # no-op under native Wayland - left in place, untested whether it's actually doing anything
 # post-labwc-migration, but it's harmless either way.
@@ -50,4 +45,6 @@ exec "$CHROMIUM_BIN" \
     --disable-session-crashed-bubble \
     --disable-translate \
     --password-store=basic \
+    --start-fullscreen \
+    --hide-scrollbars \
     "$APP_URL"

@@ -9,20 +9,5 @@ ps aux | grep -E 'chromium|dotnet'
 ## the following command kills the chromium process
 pkill -f chromium
 
-
-## connect to wifi with CLI
-First SSH
-sudo iwlist wlan0 scan | grep ESSID
-sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
-country=US
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-network={
-ssid=”Your_SSID”
-psk=”Your_Password”
-key_mgmt=WPA-PSK
-}
-
-sudo wpa_cli -i wlan0 reconfigure
-
-sudo reboot
+## Copy files from windows to linux vice versa
+scp -r "SourceDirectory" "${PiUser}@${PiHost}:${RemoteAppDir}/"

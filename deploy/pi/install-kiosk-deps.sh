@@ -4,7 +4,6 @@ set -euo pipefail
 # One-time: installs the apt packages launch-kiosk.sh depends on but that aren't guaranteed
 # to be present on a fresh Raspberry Pi OS (Bookworm) image.
 #
-#   unclutter          - hides the cursor when idle (see launch-kiosk.sh)
 #   wmctrl              - keeps Chromium focused/on top under X11 fallback
 #   x11-xserver-utils   - provides `xset` (screen-blanking disable)
 #   chromium-browser    - the kiosk browser itself (metapackage; pulls in `chromium` on
@@ -16,6 +15,6 @@ set -euo pipefail
 #   bash install-kiosk-deps.sh
 
 sudo apt-get update
-sudo apt-get install -y unclutter wmctrl x11-xserver-utils chromium-browser
+sudo apt-get install -y wmctrl x11-xserver-utils chromium-browser
 
-echo "Done. Verify with: unclutter -help; wmctrl -m; xset q; command -v chromium || command -v chromium-browser"
+echo "Done. Verify with: wmctrl -m; xset q; command -v chromium || command -v chromium-browser"
