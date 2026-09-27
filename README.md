@@ -33,6 +33,8 @@ Every shortcut also has a numpad-friendly alternate, so a bare numeric keypad (n
 | `P` | `0` | Insert | Open the player picker for whichever player is currently active |
 | `W` | `5` | | Open the warm-up duration picker |
 | `+` / `-` | *(already numeric)* | | Adjust the current-points counter |
+| `E` | `4` | Left Arrow | End Game |
+| `N` | `8` | Up Arrow | New Game |
 
 The warm-up timer page (`/warmup/{minutes}`) has its own shortcuts: `T`/`3`/Page Down to pause/resume, `R`/`6`/Right Arrow to reset, `Enter` to restart, `C`/`Esc`/`9`/Page Up to return to the board.
 
