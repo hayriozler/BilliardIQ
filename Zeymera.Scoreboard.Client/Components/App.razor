@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@inject IWebHostEnvironment Env
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -8,6 +10,14 @@
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Zeymera.Scoreboard.Client.styles.css"]" />
+    @if (!Env.IsDevelopment())
+    {
+        <style>
+            html, body {
+                cursor: none !important;
+            }
+        </style>
+    }
     <ImportMap />
     <HeadOutlet />
 </head>

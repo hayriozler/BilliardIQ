@@ -822,6 +822,8 @@ else
             "+" or "=" => ScoreboardCommand.IncrementPoints,
             "-" or "_" => ScoreboardCommand.DecrementPoints,
             "Enter" => ScoreboardCommand.CommitPoints,
+            "e" or "E" or "4" or "ArrowLeft" => ScoreboardCommand.EndGame,
+            "n" or "N" or "8" or "ArrowUp" => ScoreboardCommand.NewGame,
             _ => null
         };
 
