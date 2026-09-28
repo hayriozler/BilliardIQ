@@ -1,0 +1,160 @@
+.warmup {
+    box-sizing: border-box;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 4vh 4vw;
+    background: radial-gradient(ellipse at center, #141414 0%, #000 70%);
+    color: #f2f2f2;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3vh;
+    overflow: hidden;
+    user-select: none;
+    outline: none;
+    position: relative;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.warmup-label {
+    font-size: clamp(1.4rem, 3vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #c9202c;
+    text-shadow: 0 0 12px rgba(201, 32, 44, 0.6);
+}
+
+.hourglass-wrap {
+    width: clamp(150px, 20vw, 300px);
+}
+
+.hourglass {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.glass {
+    fill: none;
+    stroke: #d8d8d8;
+    stroke-width: 4;
+    stroke-linejoin: round;
+}
+
+.cap {
+    stroke: #7a1017;
+    stroke-width: 10;
+    stroke-linecap: round;
+}
+
+.sand {
+    fill: #f4c430;
+    transition: transform 0.15s linear;
+}
+
+.sand-grain {
+    fill: #f4c430;
+    animation: sand-fall 0.6s linear infinite;
+}
+
+.g2 {
+    animation-delay: 0.2s;
+}
+
+.g3 {
+    animation-delay: 0.4s;
+}
+
+@keyframes sand-fall {
+    0% {
+        transform: translateY(0);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(130px);
+        opacity: 0;
+    }
+}
+
+.digital-timer {
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(4rem, 13vw, 10rem);
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: #f2f2f2;
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(242, 242, 242, 0.25);
+}
+
+.digital-timer.urgent {
+    color: #c9202c;
+    animation: digital-pulse 1s ease-in-out infinite;
+}
+
+.digital-timer.done {
+    color: #c9202c;
+}
+
+@keyframes digital-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.time-up {
+    font-size: clamp(1.6rem, 4vw, 3rem);
+    font-weight: 800;
+    letter-spacing: 0.25em;
+    color: #c9202c;
+    animation: digital-pulse 1s ease-in-out infinite;
+}
+
+.back-button {
+    position: fixed;
+    left: 1.2vw;
+    bottom: 1.2vh;
+    background: #7a1017;
+    color: #f2f2f2;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6rem 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.back-button:hover {
+    background: #c9202c;
+}
+
+.warmup-hint {
+    position: fixed;
+    right: 1.2vw;
+    bottom: 1.2vh;
+    margin: 0;
+    color: #9c9c9c;
+    font-size: 0.8rem;
+    max-width: 40vw;
+    text-align: right;
+}

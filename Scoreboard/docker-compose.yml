@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: billardiq-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: billardIQ
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - billardiq-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d billardIQ"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  webapp:
+    build:
+      context: .
+      dockerfile: Zeymera.BillardIQ.WebApp/Dockerfile
+    container_name: billardiq-webapp
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__Default: Host=postgres;Database=billardIQ;Username=postgres;Password=postgres
+    ports:
+      - "8080:8080"
+    volumes:
+      - billardiq-webapp-keys:/home/app/.aspnet/DataProtection-Keys
+
+volumes:
+  billardiq-postgres-data:
+  billardiq-webapp-keys:

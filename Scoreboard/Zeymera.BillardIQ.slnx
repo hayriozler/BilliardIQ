@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Zeymera.BillardIQ.WebApp\Zeymera.BillardIQ.WebApp.csproj" />
+  <Project Path="Zeymera.BillardIQ.Client/Zeymera.BillardIQ.Client.csproj" Id="8c29da62-9ffd-461b-ad55-40856aa00fd1" />
+</Solution>

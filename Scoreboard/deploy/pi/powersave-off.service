@@ -1,0 +1,18 @@
+
+# One-time install (as a sudoer on the Pi):
+#   sudo cp deploy/pi/powersave-off.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now powersave-off.service
+
+[Unit]
+Description=Disable Wi-Fi power saving
+After=network-pre.target
+Before=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/iw dev wlan0 set power_save off
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

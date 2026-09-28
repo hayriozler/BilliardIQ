@@ -1,0 +1,1152 @@
+﻿@page "/"
+@implements IAsyncDisposable
+@inject LocalizationService L
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject DataContext DbContext
+@inject ScoreboardCommandHub Hub
+@inject IWebHostEnvironment Env
+@inject SystemPowerService SystemPower
+@inject BoardSessionGuard BoardSession
+@using Zeymera.BillardIQ.Client.Models
+@using Zeymera.BillardIQ.Client.Services
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.EntityFrameworkCore
+@using System.Text.Json
+@using System.Net.WebSockets
+
+@if (_boardOccupiedElsewhere)
+{
+    <div class="board-occupied">
+        <div class="board-occupied-message">@L.T("BoardOccupiedElsewhere")</div>
+    </div>
+}
+else
+{
+<div @ref="board" class="board" tabindex="0" @onkeydown="HandleKeyDown" @onkeyup="HandleKeyUp" @onclick="RequestFullscreenAsync">
+
+    <header class="board-header">
+        <div class="header-brand">
+            <img class="header-logo" src="images/zeymera-ram.png" alt="Zeymera" />
+            <span class="header-brand-label">Zeymera</span>
+        </div>
+
+        <div class="header-title-group">
+            <h1 class="title">@L.T("Title")</h1>
+            <div class="balls" aria-hidden="true">
+                <span class="ball yellow"></span>
+                <span class="ball white"></span>
+                <span class="ball red"></span>
+            </div>
+        </div>
+
+        <div class="header-brand">
+            <img class="header-logo" src="images/zeymera-ram.png" alt="Zeymera" />
+            <span class="header-brand-label">Zeymera</span>
+        </div>
+    </header>
+
+    <main class="scores">
+        <section class="player-panel @(Current.ActivePlayer == 1 ? "active-white" : "")">
+            <div class="player-name-bar">
+                <div class="player-name-content">
+                    @if (Current.ActivePlayer == 1)
+                    {
+                        <span class="ball white turn-ball" aria-hidden="true"></span>
+                    }
+                    @if (!string.IsNullOrEmpty(GetPhotoPath(1)))
+                    {
+                        <img class="player-photo" src="@GetPhotoPath(1)" alt="" />
+                    }
+                    <span>@GetHeaderLabel(1)</span>
+                    @if (GetAvatarDataUri(1) is { } avatar1)
+                    {
+                        <img class="player-photo" src="@avatar1" alt="" />
+                    }
+                    else
+                    {
+                        <div class="player-avatar-fallback" style="background:@GetAvatarColor(1)">@GetAvatarInitials(1)</div>
+                    }
+                </div>
+                @if (Current.ActivePlayer == 1)
+                {
+                    <span class="current-points-badge">@Current.CurrentPoints</span>
+                }
+            </div>
+            @if (GetTeamName(1) is { } teamName1)
+            {
+                <div class="player-team">@teamName1</div>
+            }
+            <div class="player-score">@Current.Player1Score</div>
+            @if (Current.ActivePlayer == 1 && PointsToGo(1) is int nog1)
+            {
+                <div class="nog-indicator">@string.Format(L.T("PointsToGo"), nog1)</div>
+            }
+        </section>
+
+        <section class="center-panel">
+            <div class="center-row">
+                <span class="center-label">@L.T("Inning")</span>
+                <span class="center-value inning">@Current.Inning</span>
+            </div>
+            <div class="center-divider"></div>
+            <div class="center-row">
+                <span class="center-label">@L.T("ShotClock")</span>
+                <span class="center-value @(Current.ShotClockActive && Current.ShotClockRemaining <= 10 ? "urgent" : "")">@ShotClockDisplaySeconds</span>
+            </div>
+        </section>
+
+        <section class="player-panel @(Current.ActivePlayer == 2 ? "active-yellow" : "")">
+            <div class="player-name-bar">
+                <div class="player-name-content">
+                    @if (Current.ActivePlayer == 2)
+                    {
+                        <span class="ball yellow turn-ball" aria-hidden="true"></span>
+                    }
+                    @if (!string.IsNullOrEmpty(GetPhotoPath(2)))
+                    {
+                        <img class="player-photo" src="@GetPhotoPath(2)" alt="" />
+                    }
+                    <span>@GetHeaderLabel(2)</span>
+                    @if (GetAvatarDataUri(2) is { } avatar2)
+                    {
+                        <img class="player-photo" src="@avatar2" alt="" />
+                    }
+                    else
+                    {
+                        <div class="player-avatar-fallback" style="background:@GetAvatarColor(2)">@GetAvatarInitials(2)</div>
+                    }
+                </div>
+                @if (Current.ActivePlayer == 2)
+                {
+                    <span class="current-points-badge">@Current.CurrentPoints</span>
+                }
+            </div>
+            @if (GetTeamName(2) is { } teamName2)
+            {
+                <div class="player-team">@teamName2</div>
+            }
+            <div class="player-score yellow">@Current.Player2Score</div>
+            @if (Current.ActivePlayer == 2 && PointsToGo(2) is int nog2)
+            {
+                <div class="nog-indicator">@string.Format(L.T("PointsToGo"), nog2)</div>
+            }
+        </section>
+    </main>
+
+    <footer class="stat-bar">
+        <div class="stat-group">
+            <div class="stat">
+                <span class="stat-label">@L.T("Player1Avg")</span>
+                <span class="stat-value">@Current.Player1Avg.ToString("0.000")</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">@L.T("HighRun")</span>
+                <span class="stat-value">@Current.Player1HighRun</span>
+            </div>
+        </div>
+        <div class="stat-group">
+            <div class="stat">
+                <span class="stat-label">@L.T("Match")</span>
+                <span class="stat-value current">@Current.MatchTarget</span>
+            </div>
+        </div>
+        <div class="stat-group">
+            <div class="stat">
+                <span class="stat-label">@L.T("Player2Avg")</span>
+                <span class="stat-value">@Current.Player2Avg.ToString("0.000")</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">@L.T("HighRun")</span>
+                <span class="stat-value">@Current.Player2HighRun</span>
+            </div>
+        </div>
+    </footer>
+
+    <div class="shot-clock @(Current.ShotClockActive ? "active" : "") @(Current.ShotClockActive && Current.ShotClockRemaining <= 10 ? "urgent" : "")">
+        <div class="shot-clock-bar" style="width:@(ShotClockPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+    </div>
+
+    <div class="sync-dot @(IsOnline ? "online" : "offline")" title="@(IsOnline ? "Control link connected" : "No control device connected")"></div>
+
+    @if (_showControls)
+    {
+        <div class="controls-overlay" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
+            <div class="control-group">
+                <span>@L.T("P1")</span>
+                @if (!string.IsNullOrEmpty(GetPhotoPath(1)))
+                {
+                    <img class="player-photo" src="@GetPhotoPath(1)" alt="" />
+                }
+                @if (GetAvatarDataUri(1) is { } avatarControl1)
+                {
+                    <img class="player-photo" src="@avatarControl1" alt="" />
+                }
+                else
+                {
+                    <div class="player-avatar-fallback" style="background:@GetAvatarColor(1)">@GetAvatarInitials(1)</div>
+                }
+                <input type="text" value="@Current.Player1Name" placeholder="@L.T("Player1Label")"
+                       @onchange="e => DispatchAsync(ScoreboardCommand.RenamePlayer1, e.Value?.ToString())" />
+                <button @onclick="() => OpenPlayerPickerAsync(1)">@L.T("ChoosePlayer")</button>
+            </div>
+            <div class="control-group">
+                <span>@L.T("P2")</span>
+                @if (!string.IsNullOrEmpty(GetPhotoPath(2)))
+                {
+                    <img class="player-photo" src="@GetPhotoPath(2)" alt="" />
+                }
+                @if (GetAvatarDataUri(2) is { } avatarControl2)
+                {
+                    <img class="player-photo" src="@avatarControl2" alt="" />
+                }
+                else
+                {
+                    <div class="player-avatar-fallback" style="background:@GetAvatarColor(2)">@GetAvatarInitials(2)</div>
+                }
+                <input type="text" value="@Current.Player2Name" placeholder="@L.T("Player2Default")"
+                       @onchange="e => DispatchAsync(ScoreboardCommand.RenamePlayer2, e.Value?.ToString())" />
+                <button @onclick="() => OpenPlayerPickerAsync(2)">@L.T("ChoosePlayer")</button>
+            </div>
+            <div class="control-group">
+                <span>@L.T("Match")</span>
+                <input type="number" min="1" value="@Current.MatchTarget"
+                       @onchange="e => SetMatchTargetFromInputAsync(e.Value?.ToString())" />
+            </div>
+            <div class="control-group">
+                <span>@L.T("CurrentPoints")</span>
+                <button @onclick="() => DispatchAsync(ScoreboardCommand.DecrementPoints)">-</button>
+                <button @onclick="() => DispatchAsync(ScoreboardCommand.IncrementPoints)">+</button>
+                <button @onclick="() => DispatchAsync(ScoreboardCommand.CommitPoints)">@L.T("Add")</button>
+            </div>
+            <div class="control-group">
+                <span>@L.T("ActivePlayer")</span>
+                <button class="@(Current.ActivePlayer == 1 ? "active" : "")" @onclick="() => DispatchAsync(ScoreboardCommand.SelectPlayer1)">@L.T("P1")</button>
+                <button class="@(Current.ActivePlayer == 2 ? "active" : "")" @onclick="() => DispatchAsync(ScoreboardCommand.SelectPlayer2)">@L.T("P2")</button>
+            </div>
+            <div class="control-group">
+                <span>@L.T("ShotClock")</span>
+                @if (Current.ShotClockActive)
+                {
+                    <button @onclick="() => DispatchAsync(ScoreboardCommand.ToggleShotClock)">@L.T("Stop")</button>
+                }
+                else
+                {
+                    <button @onclick="() => DispatchAsync(ScoreboardCommand.ToggleShotClock)">@L.T("Start")</button>
+                }
+                <button @onclick="() => DispatchAsync(ScoreboardCommand.ResetShotClock)">@L.T("Reset")</button>
+            </div>
+            <div class="control-group">
+                <button @onclick="OpenWarmupPicker">@L.T("WarmUp")</button>
+            </div>
+            <div class="control-group">
+                <span>Language</span>
+                    <select value="@L.GetLang" @onchange="OnLanguageChanged">
+                    <option value="tr">TR</option>
+                    <option value="en">EN</option>
+                    <option value="nl">NL</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <a href="/players">Manage Players</a>
+                <a href="/matches">Match History</a>
+            </div>
+            <div class="control-group">
+                <button @onclick="() => DispatchAsync(ScoreboardCommand.EndGame)" disabled="@_gameEnded">End Game</button>
+                <button @onclick="() => DispatchAsync(ScoreboardCommand.NewGame)">New Game</button>
+            </div>
+            <p class="hint">@L.T("ControlsHint")</p>
+        </div>
+    }
+
+    @if (_showPlayerPicker is { } slot)
+    {
+        <div class="player-picker-overlay" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
+            <div class="player-picker-dialog">
+                <h3>@L.T(slot == 1 ? "P1" : "P2")</h3>
+                @if (_rosterPlayers.Count == 0)
+                {
+                    <p class="picker-empty">@L.T("NoPlayersInRoster")</p>
+                }
+                else
+                {
+                    <div class="picker-list">
+                        @foreach (var p in _rosterPlayers)
+                        {
+                            <button class="picker-row" @onclick="() => DispatchAsync(slot == 1 ? ScoreboardCommand.SelectRosterPlayer1 : ScoreboardCommand.SelectRosterPlayer2, p.Id)">
+                                @if (!string.IsNullOrEmpty(p.PhotoPath))
+                                {
+                                    <img src="@p.PhotoPath" alt="" />
+                                }
+                                else
+                                {
+                                    <div class="picker-photo-placeholder">?</div>
+                                }
+                                <span>@PlayerDisplayNameResolver.Resolve(p, L)</span>
+                            </button>
+                        }
+                    </div>
+                }
+                <button class="picker-clear" @onclick="() => DispatchAsync(slot == 1 ? ScoreboardCommand.ClearRosterPlayer1 : ScoreboardCommand.ClearRosterPlayer2)">@L.T("UseManualNameInstead")</button>
+                <button class="picker-close" @onclick="ClosePlayerPicker">@L.T("Close")</button>
+            </div>
+        </div>
+    }
+
+    @if (_showWarmupPicker)
+    {
+        <div class="player-picker-overlay" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
+            <div class="player-picker-dialog">
+                <h3>@L.T("ChooseWarmUpDuration")</h3>
+                <div class="warmup-picker-options">
+                    <button @onclick="() => StartWarmup(5)">5 @L.T("MinutesUnit")</button>
+                    <button @onclick="() => StartWarmup(10)">10 @L.T("MinutesUnit")</button>
+                    <button @onclick="() => StartWarmup(15)">15 @L.T("MinutesUnit")</button>
+                </div>
+                <button class="picker-close" @onclick="CloseWarmupPicker">@L.T("Close")</button>
+            </div>
+        </div>
+    }
+</div>
+}
+
+@code {
+    private bool IsOnline = false;
+    private bool _showControls;
+    private IJSObjectReference? _kiosk;
+    private ElementReference board;
+    private readonly CancellationTokenSource _shotClockCts = new();
+
+    private Player? _resolvedPlayer1;
+    private Player? _resolvedPlayer2;
+    private Team? _resolvedTeam1;
+    private Team? _resolvedTeam2;
+    private List<Player> _rosterPlayers = new();
+    private int? _showPlayerPicker;
+    private bool _showWarmupPicker;
+
+    private ScoreboardState Current = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_boardOccupiedElsewhere)
+        {
+            await board.FocusAsync();
+        }
+    }
+
+    private bool _boardOccupiedElsewhere;
+    private Guid _sessionId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!BoardSession.TryAcquire(out _sessionId))
+        {
+            _boardOccupiedElsewhere = true;
+            return;
+        }
+        UpdateDefaultPlayers();
+        Hub.CommandReceived += OnRemoteCommand;
+        Hub.ConnectionChanged += OnHubConnectionChanged;
+        IsOnline = Hub.HasActiveConnection;
+        _ = RunShotClockAsync(_shotClockCts.Token);
+        var game = await DbContext.ScoreboardStateSet.Where(p => p.Id == 1).FirstOrDefaultAsync();
+        if (game is null)
+        {
+            var player1Name  = await DbContext.PlayerSet.Where(p => p.Id == 1).Select(p => p.Nickname).FirstOrDefaultAsync();
+            var player2Name =  await DbContext.PlayerSet.Where(p => p.Id == 2).Select(p => p.Nickname).FirstOrDefaultAsync();
+
+            var saved = new ScoreboardState
+            {
+                Inning = 0,
+                CurrentPoints = 0,
+                Player1Score = 0,   
+                Player2Score = 0,
+                Player1Avg = 0,
+                Player2Avg = 0,
+                Player1HighRun = 0,
+                Player2HighRun = 0,
+                ActivePlayer = 1,
+                MatchTarget = 20,
+                Player1Id = 1,
+                Player2Id = 2,
+                Player1Name =  L.T("Player1Label"),
+                Player2Name = L.T("Player2Label"),
+                ShotClockActive  =false,
+                ShotClockRemaining = 40,
+                ShotClockSeconds = 40
+            };
+            DbContext.ScoreboardStateSet.Add(saved);
+            await DbContext.SaveChangesAsync();
+            Current= saved;
+        }
+        else Current = game;
+        ResolvePlayers();
+        StateHasChanged();
+
+    }
+
+    private void ResolvePlayers()
+    {
+        _resolvedPlayer1 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player1Id);
+        _resolvedPlayer2 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player2Id);
+        _resolvedTeam1 = _resolvedPlayer1?.TeamId is int teamId1 ? DbContext.TeamSet.FirstOrDefault(t => t.Id == teamId1) : null;
+        _resolvedTeam2 = _resolvedPlayer2?.TeamId is int teamId2 ? DbContext.TeamSet.FirstOrDefault(t => t.Id == teamId2) : null;
+    }
+
+    private string? GetTeamName(int slot) => (slot == 1 ? _resolvedTeam1 : _resolvedTeam2)?.Name;
+
+    private string GetDisplayName(int slot)
+    {
+        var resolved = slot == 1 ? _resolvedPlayer1 : _resolvedPlayer2;
+        if (resolved is not null && resolved.Id is not (1 or 2))
+        {
+            return PlayerDisplayNameResolver.Resolve(resolved, L);
+        }
+
+        var manual = slot == 1 ? Current.Player1Name : Current.Player2Name;
+        return string.IsNullOrWhiteSpace(manual) ? L.T(slot == 1 ? "Player1Label" : "Player2Label") : manual;
+    }
+
+    private string GetHeaderLabel(int slot)
+    {
+        var resolved = slot == 1 ? _resolvedPlayer1 : _resolvedPlayer2;
+        var nickname = resolved?.Nickname?.Trim();
+        var name = resolved?.Name?.Trim();
+        if (!string.IsNullOrEmpty(nickname) && !string.IsNullOrEmpty(name) && !string.Equals(nickname, name, StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{nickname} - {name}";
+        }
+
+        return GetDisplayName(slot);
+    }
+
+    private string? GetPhotoPath(int slot) => (slot == 1 ? _resolvedPlayer1 : _resolvedPlayer2)?.PhotoPath;
+
+    private string? GetAvatarDataUri(int slot) =>
+        (slot == 1 ? _resolvedPlayer1 : _resolvedPlayer2)?.AvatarId is int avatarId ? AvatarGenerator.ToDataUri(avatarId) : null;
+
+    private string GetAvatarInitials(int slot)
+    {
+        var name = GetDisplayName(slot);
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "?";
+        if (parts.Length == 1) return parts[0].Length >= 2 ? parts[0][..2].ToUpperInvariant() : parts[0].ToUpperInvariant();
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant();
+    }
+
+    private string GetAvatarColor(int slot)
+    {
+        var hash = 0;
+        foreach (var c in GetDisplayName(slot)) hash = hash * 31 + c;
+        return AvatarGenerator.GetColor(hash);
+    }
+
+    private async Task OpenPlayerPickerAsync(int slot)
+    {
+        _rosterPlayers = await DbContext.PlayerSet.OrderBy(p => p.Id).ToListAsync();
+        _showPlayerPicker = slot;
+        StateHasChanged();
+    }
+
+    private void ClosePlayerPicker()
+    {
+        _showPlayerPicker = null;
+    }
+
+    private void OpenWarmupPicker()
+    {
+        _showWarmupPicker = true;
+        StateHasChanged();
+    }
+
+    private void CloseWarmupPicker()
+    {
+        _showWarmupPicker = false;
+    }
+
+    private void StartWarmup(int minutes) => Nav.NavigateTo($"/warmup/{minutes}");
+
+    private void SetPlayerFromRemotePayload(int slot, JsonElement? payload)
+    {
+        if (payload is not { ValueKind: JsonValueKind.Object } element)
+        {
+            return;
+        }
+
+        SetPlayerPayload? data;
+        try
+        {
+            data = element.Deserialize<SetPlayerPayload>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (data is null)
+        {
+            return;
+        }
+
+        var player = DbContext.PlayerSet.FirstOrDefault(p => p.RemoteId == data.Id);
+        if (player is null && data.ShortcutNumber is not null)
+        {
+            player = DbContext.PlayerSet.FirstOrDefault(p => p.ShortcutNumber == data.ShortcutNumber);
+        }
+
+        if (player is null)
+        {
+            return;
+        }
+
+        SelectRosterPlayer(slot, player.Id);
+    }
+
+    private void DeletePlayerFromRemotePayload(JsonElement? payload)
+    {
+        if (GetIntPayload(payload) is not int remoteId)
+        {
+            return;
+        }
+
+        var player = DbContext.PlayerSet.FirstOrDefault(p => p.RemoteId == remoteId);
+        if (player is null || player.Id is 1 or 2)
+        {
+            return;
+        }
+
+        if (Current.Player1Id == player.Id) Current.Player1Id = 1;
+        if (Current.Player2Id == player.Id) Current.Player2Id = 2;
+
+        if (!string.IsNullOrEmpty(player.PhotoPath))
+        {
+            var fullPath = Path.Combine(Env.WebRootPath, player.PhotoPath);
+            if (File.Exists(fullPath))
+            {
+                File.Delete(fullPath);
+            }
+        }
+
+        DbContext.PlayerSet.Remove(player);
+        ResolvePlayers();
+    }
+
+    private void DeleteTeamFromRemotePayload(JsonElement? payload)
+    {
+        if (GetIntPayload(payload) is not int remoteId)
+        {
+            return;
+        }
+
+        var team = DbContext.TeamSet.FirstOrDefault(t => t.RemoteId == remoteId);
+        if (team is null)
+        {
+            return;
+        }
+
+        var members = DbContext.PlayerSet.Where(p => p.TeamId == team.Id).ToList();
+        foreach (var member in members)
+        {
+            member.TeamId = null;
+        }
+
+        DbContext.TeamSet.Remove(team);
+        ResolvePlayers();
+    }
+
+    private void SelectRosterPlayer(int slot, int playerId)
+    {
+        if (slot == 1) Current.Player1Id = playerId; else Current.Player2Id = playerId;
+        ResolvePlayers();
+        _showPlayerPicker = null;
+    }
+
+    private void ClearRosterPlayer(int slot)
+    {
+        if (slot == 1) Current.Player1Id = 1; else Current.Player2Id = 2;
+        ResolvePlayers();
+        _showPlayerPicker = null;
+    }
+
+    private void Adjust() => StateHasChanged();
+    private async Task PersistAsync(WebSocket? excludeSocket = null)
+    {
+        await DbContext.SaveChangesAsync();
+        StateHasChanged();
+        await BroadcastStateAsync(excludeSocket);
+    }
+
+    private async Task BroadcastStateAsync(WebSocket? excludeSocket = null)
+    {
+        try
+        {
+            var snapshot = ScoreboardStateSnapshotFactory.Create(Current, GetDisplayName(1), GetDisplayName(2));
+            await Hub.BroadcastStateAsync(snapshot, excludeSocket);
+        }
+        catch
+        {
+        }
+    }
+    private void SetPlayerName(int slot, string? name)
+    {
+        if (int.TryParse(name, out var maybeShortcutNumber))
+        {
+            var player = DbContext.PlayerSet.FirstOrDefault(p => p.ShortcutNumber == maybeShortcutNumber);
+            if (player is not null)
+            {
+                SelectRosterPlayer(slot, player.Id);
+                return;
+            }
+        }
+
+        if (slot == 1)
+        {
+            Current.Player1Name = name ?? "";
+        }
+        else
+        {
+            Current.Player2Name = name ?? "";
+        }
+    }
+
+    private void SetMatchTarget(int target) => Current.MatchTarget = Math.Max(1, target);
+
+    private void StopShotClock() => Current.ShotClockActive = false;
+
+    private void StartShotClock() => Current.ShotClockActive = true;
+
+    private void ResetShotClock()
+    {
+        Current.ShotClockRemaining = Current.ShotClockSeconds;
+        Current.ShotClockActive = false;
+    }
+
+    private async Task OnLanguageChanged(ChangeEventArgs e) {
+        var selectedLanguage = e.Value?.ToString() ?? "en";
+        L.SetLanguage(selectedLanguage);
+        UpdateDefaultPlayers();
+    }
+
+    private void UpdateDefaultPlayers()
+    {
+        var players = DbContext.PlayerSet.Where(p => p.Id == 1 || p.Id == 2).ToList();
+        foreach (var p in players)
+        {
+            p.Name = L.T($"Player{p.Id}Label");
+        }
+    }
+    private const int PointsToGoThreshold = 3;
+
+    private int? PointsToGo(int slot)
+    {
+        var score = slot == 1 ? Current.Player1Score : Current.Player2Score;
+        var remaining = Current.MatchTarget - score;
+        return remaining is > 0 and <= PointsToGoThreshold ? remaining : null;
+    }
+
+    private double ShotClockPercent => Current?.ShotClockSeconds > 0
+        ? Math.Clamp(Current.ShotClockRemaining / Current.ShotClockSeconds * 100, 0, 100)
+        : 0;
+
+    private int ShotClockDisplaySeconds => (int)Math.Ceiling(Current?.ShotClockRemaining ?? 0);
+
+    private void RecalculateAverages()
+    {
+        Current.Player1Avg = Current.Inning > 0 ? (double)Current.Player1Score / Current.Inning : 0;
+        Current.Player2Avg = Current.Inning > 0 ? (double)Current.Player2Score / Current.Inning : 0;
+    }
+
+    private void CommitCurrentPoints()
+    {
+        var points = Current.CurrentPoints;
+        var scoringSlot = Current.ActivePlayer;
+
+        if (Current.ActivePlayer == 1)
+        {
+            Current.Player1Score += points;
+            Current.Player1HighRun = Math.Max(Current.Player1HighRun, points);
+            Current.Inning++;
+            Current.ActivePlayer = 2;
+        }
+        else
+        {
+            Current.Player2Score += points;
+            Current.Player2HighRun = Math.Max(Current.Player2HighRun, points);
+            Current.ActivePlayer = 1;
+        }
+
+        Current.CurrentPoints = 0;
+        RecalculateAverages();
+
+        DbContext.ScoreEventSet.Add(new ScoreEvent
+        {
+            Timestamp = DateTime.Now,
+            PlayerSlot = scoringSlot,
+            Points = points
+        });
+    }
+
+    private bool _gameEnded;
+    private DateTime _gameStartedAt = DateTime.Now;
+
+    private const int ScoreStatBucketMinutes = 5;
+
+    private void EndGame()
+    {
+        if (_gameEnded)
+        {
+            return;
+        }
+
+        var winner = Current.Player1Score > Current.Player2Score ? 1
+            : Current.Player2Score > Current.Player1Score ? 2
+            : 0;
+        var matchResult = new MatchResult
+        {
+            PlayedAt = DateTime.Now,
+            Player1Id = Current.Player1Id,
+            Player1Name = GetDisplayName(1),
+            Player1Score = Current.Player1Score,
+            Player1Avg = Current.Player1Avg,
+            Player1HighRun = Current.Player1HighRun,
+            Player2Id = Current.Player2Id,
+            Player2Name = GetDisplayName(2),
+            Player2Score = Current.Player2Score,
+            Player2Avg = Current.Player2Avg,
+            Player2HighRun = Current.Player2HighRun,
+            Inning = Current.Inning,
+            MatchTarget = Current.MatchTarget,
+            Winner = winner,
+            StartedAt = _gameStartedAt,
+            EndedAt = DateTime.Now
+        };
+        DbContext.MatchResultSet.Add(matchResult);
+        DbContext.SaveChanges();
+
+        var events = DbContext.ScoreEventSet.ToList();
+        var buckets = events
+            .GroupBy(e => (PlayerSlot: e.PlayerSlot, BucketIndex: (int)((e.Timestamp - _gameStartedAt).TotalMinutes / ScoreStatBucketMinutes)))
+            .Select(g => new MatchScoreStat
+            {
+                MatchResultId = matchResult.Id,
+                PlayerSlot = g.Key.PlayerSlot,
+                BucketIndex = Math.Max(0, g.Key.BucketIndex),
+                TotalPoints = g.Sum(e => e.Points)
+            });
+        DbContext.MatchScoreStatSet.AddRange(buckets);
+        DbContext.ScoreEventSet.RemoveRange(events);
+
+        Current.ShotClockActive = false;
+        _gameEnded = true;
+    }
+
+    private void NewGame()
+    {
+        _gameEnded = false;
+        _gameStartedAt = DateTime.Now;
+        Current.Player1Score = 0;
+        Current.Player2Score = 0;
+        Current.Player1Avg = 0;
+        Current.Player2Avg = 0;
+        Current.Player1HighRun = 0;
+        Current.Player2HighRun = 0;
+        Current.Inning = 0;
+        Current.CurrentPoints = 0;
+        Current.ActivePlayer = 1;
+        Current.Player1Id = 1;
+        Current.Player2Id = 2;
+        Current.Player1Name = "";
+        Current.Player2Name = "";        
+        Current.ShotClockActive = false;
+        Current.ShotClockRemaining = Current.ShotClockSeconds;
+        ResolvePlayers();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        SystemPower.NotifyKeyDown(e.Key);
+
+        if (SystemPower.IsShuttingDown)
+        {
+            return;
+        }
+
+        if (e.Key is "NumLock" or "Insert" or "Delete" && SystemPower.IsHeld("NumLock") && (SystemPower.IsHeld("Insert") || SystemPower.IsHeld("Delete")))
+        {
+            return;
+        }
+
+        if (_gameEnded)
+        {
+            return;
+        }
+
+        if (e.Key is "Backspace")
+        {
+            if (_showWarmupPicker)
+            {
+                CloseWarmupPicker();
+            }
+            else if (_showPlayerPicker is not null)
+            {
+                ClosePlayerPicker();
+            }
+            return;
+        }
+
+        if (e.Key is "p" or "P" or "0" or "Insert")
+        {
+            await OpenPlayerPickerAsync(Current.ActivePlayer);
+            return;
+        }
+
+        if (e.Key is "w" or "W" or "5")
+        {
+            OpenWarmupPicker();
+            return;
+        }
+
+        ScoreboardCommand? command = e.Key switch
+        {
+            "c" or "C" or "9" or "PageUp" => ScoreboardCommand.ToggleControls,
+            "t" or "T" or "3" or "PageDown" => ScoreboardCommand.ToggleShotClock,
+            "r" or "R" or "6" or "ArrowRight" => ScoreboardCommand.ResetShotClock,
+            "1" => ScoreboardCommand.SelectPlayer1,
+            "2" => ScoreboardCommand.SelectPlayer2,
+            "+" or "=" => ScoreboardCommand.IncrementPoints,
+            "-" or "_" => ScoreboardCommand.DecrementPoints,
+            "Enter" => ScoreboardCommand.CommitPoints,
+            "e" or "E" or "4" or "ArrowLeft" => ScoreboardCommand.EndGame,
+            "n" or "N" or "8" or "ArrowUp" => ScoreboardCommand.NewGame,
+            _ => null
+        };
+
+        if (command is not null)
+        {
+            await ApplyCommandsAsync([new ScoreboardCommandMessage(command.Value)]);
+        }
+    }
+
+    private void HandleKeyUp(KeyboardEventArgs e) => SystemPower.NotifyKeyUp(e.Key);
+
+    private void ApplyCommand(ScoreboardCommand command, JsonElement? payload = null)
+    {
+        switch (command)
+        {
+            case ScoreboardCommand.GetState:
+                break;
+            case ScoreboardCommand.ToggleControls:
+                _showControls = !_showControls;
+                StateHasChanged();
+                break;
+            case ScoreboardCommand.ToggleShotClock:
+                if (Current.ShotClockActive) StopShotClock(); else StartShotClock();
+                break;
+            case ScoreboardCommand.ResetShotClock:
+                ResetShotClock();
+                break;
+            case ScoreboardCommand.SelectPlayer1:
+                ChangeActivePlayer(1);
+                break;
+            case ScoreboardCommand.SelectPlayer2:
+                ChangeActivePlayer(2);
+                break;
+            case ScoreboardCommand.IncrementPoints:
+                Current.CurrentPoints++;
+                break;
+            case ScoreboardCommand.DecrementPoints:
+                Current.CurrentPoints--;
+                break;
+            case ScoreboardCommand.AdjustPoints:
+                if (GetIntPayload(payload) is int currentPoints)
+                {
+                    Current.CurrentPoints = currentPoints;
+                }
+                break;
+            case ScoreboardCommand.CommitPoints:
+                CommitCurrentPoints();
+                break;
+
+            case ScoreboardCommand.RenamePlayer1:
+                SetPlayerName(1, GetStringPayload(payload));
+                break;
+            case ScoreboardCommand.RenamePlayer2:
+                SetPlayerName(2, GetStringPayload(payload));
+                break;
+            case ScoreboardCommand.UpsertPlayer:
+                UpsertPlayerFromPayload(payload);
+                break;
+            case ScoreboardCommand.EndGame:
+                EndGame();
+                break;
+            case ScoreboardCommand.NewGame:
+                NewGame();
+                break;
+            case ScoreboardCommand.SetMatchTarget:
+                if (GetIntPayload(payload) is int matchTarget)
+                {
+                    SetMatchTarget(matchTarget);
+                }
+                break;
+            case ScoreboardCommand.SelectRosterPlayer1:
+                if (GetIntPayload(payload) is int rosterPlayer1Id)
+                {
+                    SelectRosterPlayer(1, rosterPlayer1Id);
+                }
+                break;
+            case ScoreboardCommand.SelectRosterPlayer2:
+                if (GetIntPayload(payload) is int rosterPlayer2Id)
+                {
+                    SelectRosterPlayer(2, rosterPlayer2Id);
+                }
+                break;
+            case ScoreboardCommand.ClearRosterPlayer1:
+                ClearRosterPlayer(1);
+                break;
+            case ScoreboardCommand.ClearRosterPlayer2:
+                ClearRosterPlayer(2);
+                break;
+            case ScoreboardCommand.WarmUp:
+                if (GetIntPayload(payload) is int warmupMinutes)
+                {
+                    StartWarmup(warmupMinutes);
+                }
+                break;
+            case ScoreboardCommand.AddTeam:
+                AddOrUpdateTeamFromPayload(payload);
+                break;
+            case ScoreboardCommand.SetPlayer1:
+                SetPlayerFromRemotePayload(1, payload);
+                break;
+            case ScoreboardCommand.SetPlayer2:
+                SetPlayerFromRemotePayload(2, payload);
+                break;
+            case ScoreboardCommand.DeletePlayer:
+                DeletePlayerFromRemotePayload(payload);
+                break;
+            case ScoreboardCommand.DeleteTeam:
+                DeleteTeamFromRemotePayload(payload);
+                break;
+        }
+    }
+
+    private static string? GetStringPayload(JsonElement? payload) =>
+        payload?.ValueKind == JsonValueKind.String ? payload.Value.GetString() : null;
+
+    private static int? GetIntPayload(JsonElement? payload) =>
+        payload?.ValueKind == JsonValueKind.Number && payload.Value.TryGetInt32(out var value) ? value : null;
+
+    private void UpsertPlayerFromPayload(JsonElement? payload)
+    {
+        if (payload is not { ValueKind: JsonValueKind.Object } element)
+        {
+            return;
+        }
+
+        PlayerUpsertPayload? data;
+        try
+        {
+            data = element.Deserialize<PlayerUpsertPayload>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (data is null)
+        {
+            return;
+        }
+
+        string? photoPath = null;
+        if (!string.IsNullOrEmpty(data.PhotoBase64))
+        {
+            byte[] bytes;
+            try
+            {
+                bytes = Convert.FromBase64String(data.PhotoBase64);
+            }
+            catch (FormatException)
+            {
+                return;
+            }
+
+            var extension = string.IsNullOrWhiteSpace(data.PhotoExtension) ? "jpg" : data.PhotoExtension.TrimStart('.');
+            var playersFolder = Path.Combine(Env.WebRootPath, "Players");
+            Directory.CreateDirectory(playersFolder);
+            var fileName = $"{data.Id}.{extension}";
+            File.WriteAllBytes(Path.Combine(playersFolder, fileName), bytes);
+            photoPath = $"Players/{fileName}";
+        }
+
+        var localTeamId = data.TeamId is int remoteTeamId
+            ? DbContext.TeamSet.FirstOrDefault(t => t.RemoteId == remoteTeamId)?.Id
+            : null;
+
+        var existing = DbContext.PlayerSet.FirstOrDefault(p => p.RemoteId == data.Id);
+        if (existing is null)
+        {
+            DbContext.PlayerSet.Add(new Player
+            {
+                RemoteId = data.Id,
+                Nickname = data.Nickname ?? "",
+                Name = data.Name ?? "",
+                PhotoPath = photoPath,
+                AvatarId = data.Avatar is not null ? AvatarGenerator.SeedFromName(data.Avatar) : Random.Shared.Next(0, AvatarGenerator.Count),
+                AvatarName = data.Avatar,
+                TeamId = localTeamId,
+                ShortcutNumber = data.ShortcutNumber
+            });
+        }
+        else
+        {
+            if (data.Nickname is not null) existing.Nickname = data.Nickname;
+            if (data.Name is not null) existing.Name = data.Name;
+            if (photoPath is not null) existing.PhotoPath = photoPath;
+            if (data.Avatar is not null)
+            {
+                existing.AvatarId = AvatarGenerator.SeedFromName(data.Avatar);
+                existing.AvatarName = data.Avatar;
+            }
+            if (localTeamId is not null) existing.TeamId = localTeamId;
+            if (data.ShortcutNumber is not null) existing.ShortcutNumber = data.ShortcutNumber;
+        }
+
+        ResolvePlayers();
+    }
+
+    private void AddOrUpdateTeamFromPayload(JsonElement? payload)
+    {
+        if (payload is not { ValueKind: JsonValueKind.Object } element)
+        {
+            return;
+        }
+
+        TeamAddPayload? data;
+        try
+        {
+            data = element.Deserialize<TeamAddPayload>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (data is null)
+        {
+            return;
+        }
+
+        var existing = DbContext.TeamSet.FirstOrDefault(t => t.RemoteId == data.Id);
+        if (existing is null)
+        {
+            DbContext.TeamSet.Add(new Team { RemoteId = data.Id, Name = data.Name });
+        }
+        else
+        {
+            existing.Name = data.Name;
+        }
+    }
+
+    private void OnRemoteCommand(WebSocket sender, IReadOnlyList<ScoreboardCommandMessage> messages)
+    {
+        InvokeAsync(() => ApplyCommandsAsync(messages, sender));
+    }
+
+    private async Task ApplyCommandsAsync(IReadOnlyList<ScoreboardCommandMessage> messages, WebSocket? sender = null)
+    {
+        if (messages.Count == 0 || SystemPower.IsShuttingDown)
+        {
+            return;
+        }
+
+        foreach (var message in messages)
+        {
+            ApplyCommand(message.Command, message.Payload);
+        }
+
+        var excludeSender = sender is not null && messages.Any(m => ScoreboardCommandReplyPolicy.ExcludesSender(m.Command));
+        await PersistAsync(excludeSender ? sender : null);
+    }
+
+    private Task DispatchAsync(ScoreboardCommand command, object? payload = null) =>
+        ApplyCommandsAsync([new ScoreboardCommandMessage(command, payload is null ? null : JsonSerializer.SerializeToElement(payload))]);
+
+    private Task SetMatchTargetFromInputAsync(string? value) =>
+        int.TryParse(value, out var target) ? DispatchAsync(ScoreboardCommand.SetMatchTarget, target) : Task.CompletedTask;
+
+    private void OnHubConnectionChanged()
+    {
+        InvokeAsync(() =>
+        {
+            IsOnline = Hub.HasActiveConnection;
+            StateHasChanged();
+        });
+    }
+
+    private void ChangeActivePlayer(int player) => Current.ActivePlayer = player;
+
+    private async Task RequestFullscreenAsync()
+    {
+        _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
+        await _kiosk.InvokeVoidAsync("requestFullscreen");
+        await board.FocusAsync();
+    }
+
+    private async Task RunShotClockAsync(CancellationToken token)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                if (!Current.ShotClockActive || SystemPower.IsShuttingDown) continue;
+
+                Current.ShotClockRemaining = Math.Max(0, Current.ShotClockRemaining - 0.1);
+                if (Current.ShotClockRemaining <= 0)
+                {
+                    Current.ShotClockActive = false;
+                    Current.ShotClockRemaining = Current.ShotClockSeconds;
+                    DbContext.SaveChanges();
+                    await BroadcastStateAsync();
+                }
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        BoardSession.Release(_sessionId);
+        if (_boardOccupiedElsewhere)
+        {
+            return;
+        }
+
+        L.LanguageChanged -= Adjust;
+        Hub.CommandReceived -= OnRemoteCommand;
+        Hub.ConnectionChanged -= OnHubConnectionChanged;
+        if (_shotClockCts is not null)
+        {
+            _shotClockCts.Cancel();
+            _shotClockCts.Dispose();
+        }
+        try
+        {
+            if (_kiosk is not null)
+            {
+                await _kiosk.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // circuit is already gone (tab closed, refresh, connection drop) - the browser
+            // side is being torn down anyway, so there's nothing left to clean up via JS interop
+        }
+    }
+}

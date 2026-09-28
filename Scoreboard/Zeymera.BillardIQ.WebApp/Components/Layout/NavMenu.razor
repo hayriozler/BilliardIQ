@@ -1,0 +1,18 @@
+<nav class="nav-menu">
+    <span class="brand">Zeymera Scoreboard Admin</span>
+    <AuthorizeView>
+        <Authorized>
+            <NavLink href="/players">Players</NavLink>
+            <NavLink href="/teams">Teams</NavLink>
+            <span class="spacer"></span>
+            <span>@context.User.Identity?.Name</span>
+            <form method="post" action="/logout">
+                <button type="submit">Log out</button>
+            </form>
+        </Authorized>
+        <NotAuthorized>
+            <NavLink href="/login">Log in</NavLink>
+            <NavLink href="/clubs">Register club</NavLink>
+        </NotAuthorized>
+    </AuthorizeView>
+</nav>
