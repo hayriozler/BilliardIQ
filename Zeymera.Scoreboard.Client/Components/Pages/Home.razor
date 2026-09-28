@@ -174,7 +174,7 @@ else
     {
         <div class="controls-overlay" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
             <div class="control-group">
-                <span>@L.T("Player1Label")</span>
+                <span>@L.T("P1")</span>
                 @if (!string.IsNullOrEmpty(GetPhotoPath(1)))
                 {
                     <img class="player-photo" src="@GetPhotoPath(1)" alt="" />
@@ -187,12 +187,12 @@ else
                 {
                     <div class="player-avatar-fallback" style="background:@GetAvatarColor(1)">@GetAvatarInitials(1)</div>
                 }
-                <input type="text" value="@Current.Player1Name" placeholder="@L.T("Player1Default")"
+                <input type="text" value="@Current.Player1Name" placeholder="@L.T("Player1Label")"
                        @onchange="e => DispatchAsync(ScoreboardCommand.RenamePlayer1, e.Value?.ToString())" />
                 <button @onclick="() => OpenPlayerPickerAsync(1)">@L.T("ChoosePlayer")</button>
             </div>
             <div class="control-group">
-                <span>@L.T("Player2Label")</span>
+                <span>@L.T("P2")</span>
                 @if (!string.IsNullOrEmpty(GetPhotoPath(2)))
                 {
                     <img class="player-photo" src="@GetPhotoPath(2)" alt="" />
@@ -222,8 +222,8 @@ else
             </div>
             <div class="control-group">
                 <span>@L.T("ActivePlayer")</span>
-                <button class="@(Current.ActivePlayer == 1 ? "active" : "")" @onclick="() => DispatchAsync(ScoreboardCommand.SelectPlayer1)">@L.T("Player1Label")</button>
-                <button class="@(Current.ActivePlayer == 2 ? "active" : "")" @onclick="() => DispatchAsync(ScoreboardCommand.SelectPlayer2)">@L.T("Player2Label")</button>
+                <button class="@(Current.ActivePlayer == 1 ? "active" : "")" @onclick="() => DispatchAsync(ScoreboardCommand.SelectPlayer1)">@L.T("P1")</button>
+                <button class="@(Current.ActivePlayer == 2 ? "active" : "")" @onclick="() => DispatchAsync(ScoreboardCommand.SelectPlayer2)">@L.T("P2")</button>
             </div>
             <div class="control-group">
                 <span>@L.T("ShotClock")</span>
@@ -242,7 +242,7 @@ else
             </div>
             <div class="control-group">
                 <span>Language</span>
-                <select value="@L.Language" @onchange="OnLanguageChanged">
+                    <select value="@L.GetLang" @onchange="OnLanguageChanged">
                     <option value="tr">TR</option>
                     <option value="en">EN</option>
                     <option value="nl">NL</option>
@@ -264,7 +264,7 @@ else
     {
         <div class="player-picker-overlay" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
             <div class="player-picker-dialog">
-                <h3>@L.T(slot == 1 ? "Player1Label" : "Player2Label")</h3>
+                <h3>@L.T(slot == 1 ? "P1" : "P2")</h3>
                 @if (_rosterPlayers.Count == 0)
                 {
                     <p class="picker-empty">@L.T("NoPlayersInRoster")</p>
@@ -283,7 +283,7 @@ else
                                 {
                                     <div class="picker-photo-placeholder">?</div>
                                 }
-                                <span>@(string.IsNullOrWhiteSpace(p.Nickname) ? p.Name : p.Nickname)</span>
+                                <span>@PlayerDisplayNameResolver.Resolve(p, L)</span>
                             </button>
                         }
                     </div>
@@ -326,7 +326,7 @@ else
     private int? _showPlayerPicker;
     private bool _showWarmupPicker;
 
-    private ScoreboardState Current =new();
+    private ScoreboardState Current = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -346,9 +346,7 @@ else
             _boardOccupiedElsewhere = true;
             return;
         }
-
-        L.SetLanguage(GetQueryParam(Nav.Uri, "lang"));
-        L.LanguageChanged += Adjust;
+        UpdateDefaultPlayers();
         Hub.CommandReceived += OnRemoteCommand;
         Hub.ConnectionChanged += OnHubConnectionChanged;
         IsOnline = Hub.HasActiveConnection;
@@ -358,7 +356,7 @@ else
         {
             var player1Name  = await DbContext.PlayerSet.Where(p => p.Id == 1).Select(p => p.Nickname).FirstOrDefaultAsync();
             var player2Name =  await DbContext.PlayerSet.Where(p => p.Id == 2).Select(p => p.Nickname).FirstOrDefaultAsync();
-            
+
             var saved = new ScoreboardState
             {
                 Inning = 0,
@@ -371,6 +369,8 @@ else
                 Player2HighRun = 0,
                 ActivePlayer = 1,
                 MatchTarget = 20,
+                Player1Id = 1,
+                Player2Id = 2,
                 Player1Name =  L.T("Player1Label"),
                 Player2Name = L.T("Player2Label"),
                 ShotClockActive  =false,
@@ -389,8 +389,8 @@ else
 
     private void ResolvePlayers()
     {
-        _resolvedPlayer1 = Current.Player1Id is int id1 ? DbContext.PlayerSet.FirstOrDefault(p => p.Id == id1) : null;
-        _resolvedPlayer2 = Current.Player2Id is int id2 ? DbContext.PlayerSet.FirstOrDefault(p => p.Id == id2) : null;
+        _resolvedPlayer1 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player1Id);
+        _resolvedPlayer2 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player2Id);
         _resolvedTeam1 = _resolvedPlayer1?.TeamId is int teamId1 ? DbContext.TeamSet.FirstOrDefault(t => t.Id == teamId1) : null;
         _resolvedTeam2 = _resolvedPlayer2?.TeamId is int teamId2 ? DbContext.TeamSet.FirstOrDefault(t => t.Id == teamId2) : null;
     }
@@ -400,13 +400,13 @@ else
     private string GetDisplayName(int slot)
     {
         var resolved = slot == 1 ? _resolvedPlayer1 : _resolvedPlayer2;
-        if (resolved is not null)
+        if (resolved is not null && resolved.Id is not (1 or 2))
         {
-            return string.IsNullOrWhiteSpace(resolved.Nickname) ? resolved.Name : resolved.Nickname;
+            return PlayerDisplayNameResolver.Resolve(resolved, L);
         }
 
         var manual = slot == 1 ? Current.Player1Name : Current.Player2Name;
-        return string.IsNullOrWhiteSpace(manual) ? L.T(slot == 1 ? "Player1Default" : "Player2Default") : manual;
+        return string.IsNullOrWhiteSpace(manual) ? L.T(slot == 1 ? "Player1Label" : "Player2Label") : manual;
     }
 
     private string GetHeaderLabel(int slot)
@@ -512,13 +512,13 @@ else
         }
 
         var player = DbContext.PlayerSet.FirstOrDefault(p => p.RemoteId == remoteId);
-        if (player is null)
+        if (player is null || player.Id is 1 or 2)
         {
             return;
         }
 
-        if (Current.Player1Id == player.Id) Current.Player1Id = null;
-        if (Current.Player2Id == player.Id) Current.Player2Id = null;
+        if (Current.Player1Id == player.Id) Current.Player1Id = 1;
+        if (Current.Player2Id == player.Id) Current.Player2Id = 2;
 
         if (!string.IsNullOrEmpty(player.PhotoPath))
         {
@@ -565,7 +565,7 @@ else
 
     private void ClearRosterPlayer(int slot)
     {
-        if (slot == 1) Current.Player1Id = null; else Current.Player2Id = null;
+        if (slot == 1) Current.Player1Id = 1; else Current.Player2Id = 2;
         ResolvePlayers();
         _showPlayerPicker = null;
     }
@@ -582,7 +582,7 @@ else
     {
         try
         {
-            var snapshot = ScoreboardStateSnapshotFactory.Create(Current, _resolvedPlayer1, _resolvedPlayer2);
+            var snapshot = ScoreboardStateSnapshotFactory.Create(Current, GetDisplayName(1), GetDisplayName(2));
             await Hub.BroadcastStateAsync(snapshot, excludeSocket);
         }
         catch
@@ -623,24 +623,20 @@ else
         Current.ShotClockActive = false;
     }
 
-    private void OnLanguageChanged(ChangeEventArgs e) => L.SetLanguage(e.Value?.ToString());
-
-    private static string? GetQueryParam(string uri, string name)
-    {
-        var query = new Uri(uri).Query.TrimStart('?');
-        foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var parts = pair.Split('=', 2);
-            if (parts.Length == 2 && Uri.UnescapeDataString(parts[0]) == name)
-            {
-                return Uri.UnescapeDataString(parts[1]);
-            }
-        }
-
-        return null;
+    private async Task OnLanguageChanged(ChangeEventArgs e) {
+        var selectedLanguage = e.Value?.ToString() ?? "en";
+        L.SetLanguage(selectedLanguage);
+        UpdateDefaultPlayers();
     }
 
-
+    private void UpdateDefaultPlayers()
+    {
+        var players = DbContext.PlayerSet.Where(p => p.Id == 1 || p.Id == 2).ToList();
+        foreach (var p in players)
+        {
+            p.Name = L.T($"Player{p.Id}Label");
+        }
+    }
     private const int PointsToGoThreshold = 3;
 
     private int? PointsToGo(int slot)
@@ -759,8 +755,8 @@ else
         Current.Inning = 0;
         Current.CurrentPoints = 0;
         Current.ActivePlayer = 1;
-        Current.Player1Id = null;
-        Current.Player2Id = null;
+        Current.Player1Id = 1;
+        Current.Player2Id = 2;
         Current.Player1Name = "";
         Current.Player2Name = "";        
         Current.ShotClockActive = false;

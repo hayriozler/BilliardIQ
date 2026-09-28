@@ -5,8 +5,8 @@ public class ScoreboardState
     public int Id { get; set; }
     public string Player1Name { get; set; } = "";
     public string Player2Name { get; set; } = "";
-    public int? Player1Id { get; set; }
-    public int? Player2Id { get; set; }
+    public int Player1Id { get; set; } = 1;
+    public int Player2Id { get; set; } = 2;
     public int Player1Score { get; set; }
     public int Player2Score { get; set; }
     public int Inning { get; set; } = 1;

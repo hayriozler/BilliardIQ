@@ -9,14 +9,24 @@ public static class DbInitializerExtension
         using var scope = sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<DataContext>();
         db.Database.EnsureCreated();
-
+        db.Database.ExecuteSqlRaw("""
+           CREATE TABLE IF NOT EXISTS Settings (
+           Id TEXT PRIMARY KEY,
+           Value TEXT NOT NULL)
+         """);
+        db.Database.ExecuteSqlRaw("""         
+         INSERT INTO Settings (Id, Value)
+         VALUES ('Lang', 'tr')
+                ON CONFLICT(Id) DO NOTHING;
+        """
+        );
         db.Database.ExecuteSqlRaw("""
         CREATE TABLE IF NOT EXISTS scoreboard_state (
             Id INTEGER PRIMARY KEY,
             Player1Name TEXT NOT NULL DEFAULT '',
             Player2Name TEXT NOT NULL DEFAULT '',
-            Player1Id INTEGER NULL,
-            Player2Id INTEGER NULL,
+            Player1Id INTEGER NOT NULL DEFAULT 1,
+            Player2Id INTEGER NOT NULL DEFAULT 2,
             Player1Score INTEGER NOT NULL,
             Player2Score INTEGER NOT NULL,
             Inning INTEGER NOT NULL,
@@ -50,9 +60,9 @@ public static class DbInitializerExtension
         """);
 
         db.Database.ExecuteSqlRaw("""         
-         INSERT INTO player (Id, Nickname, Name, SyncedAPI, SyncedWS)
-         VALUES (1, 'Player1Label', '', 0, 0),
-                (2, 'Player2Label', '', 0, 0)
+         INSERT INTO player (Id, Nickname, Name, ShortcutNumber, SyncedAPI, SyncedWS)
+         VALUES (1, 'P1', 'Player 1', 1, 0, 0),
+                (2, 'P2', 'Player 2', 2, 0, 0)
                 ON CONFLICT(Id) DO NOTHING;
         """);
 
@@ -62,12 +72,12 @@ public static class DbInitializerExtension
             PlayedAt TEXT NOT NULL,
             StartedAt TEXT NULL,
             EndedAt TEXT NULL,
-            Player1Id INTEGER NULL,
+            Player1Id INTEGER NOT NULL DEFAULT 1,
             Player1Name TEXT NOT NULL DEFAULT '',
             Player1Score INTEGER NOT NULL,
             Player1Avg REAL NOT NULL,
             Player1HighRun INTEGER NOT NULL,
-            Player2Id INTEGER NULL,
+            Player2Id INTEGER NOT NULL DEFAULT 2,
             Player2Name TEXT NOT NULL DEFAULT '',
             Player2Score INTEGER NOT NULL,
             Player2Avg REAL NOT NULL,

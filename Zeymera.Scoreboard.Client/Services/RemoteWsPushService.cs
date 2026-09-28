@@ -55,7 +55,7 @@ public partial class RemoteWsPushService(
         {
             var json = JsonSerializer.Serialize(new
             {
-                type = "team",
+                type = "teams",
                 team = new { id = team.Id, name = team.Name }
             }, _jsonOptions);
 
@@ -72,7 +72,7 @@ public partial class RemoteWsPushService(
         {
             var json = JsonSerializer.Serialize(new
             {
-                type = "player",
+                type = "players",
                 player = new
                 {
                     id = player.Id,

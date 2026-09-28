@@ -6,13 +6,13 @@ public class MatchResult
     public DateTime PlayedAt { get; set; } = DateTime.Now;
     public DateTime? StartedAt { get; set; }
     public DateTime? EndedAt { get; set; }
-    public int? Player1Id { get; set; }
+    public int Player1Id { get; set; }
     public string Player1Name { get; set; } = "";
     public int Player1Score { get; set; }
     public double Player1Avg { get; set; }
     public int Player1HighRun { get; set; }
 
-    public int? Player2Id { get; set; }
+    public int Player2Id { get; set; }
     public string Player2Name { get; set; } = "";
     public int Player2Score { get; set; }
     public double Player2Avg { get; set; }

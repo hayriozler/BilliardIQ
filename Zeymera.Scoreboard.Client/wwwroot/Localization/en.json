@@ -1,7 +1,5 @@
 {
   "Title": "3 Cushion Billiards",
-  "Player1Default": "PLAYER 1",
-  "Player2Default": "PLAYER 2",
   "Inning": "INNING",
   "Match": "MATCH",
   "Player1Avg": "AVG",
