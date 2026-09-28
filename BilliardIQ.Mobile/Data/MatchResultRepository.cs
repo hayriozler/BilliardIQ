@@ -1,15 +1,15 @@
 using BilliardIQ.Mobile.Models;
 using BilliardIQ.Mobile.Services;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
 namespace BilliardIQ.Mobile.Data;
 
-// See ScoreboardPlayerRepository for why nullable player ids are read as a plain int (0 = none) here.
 internal class MatchResultRow
 {
     public int Id { get; set; }
     public DateTime PlayedAt { get; set; }
+    public DateTime StartedAt { get; set; }
+    public DateTime EndedAt { get; set; }
     public int Player1Id { get; set; }
     public string Player1Name { get; set; } = "";
     public int Player1Score { get; set; }
@@ -28,8 +28,6 @@ internal class MatchResultRow
 
 public class MatchResultRepository(ILogger<MatchResultRepository> Logger, DatabaseExecutor dbExecutor) : BaseRepo
 {
-    // Inserts the match result and its score-distribution rows on a single connection/transaction so
-    // the score-stat rows can be linked with last_insert_rowid() from the just-inserted match_result row.
     public async Task InsertAsync(MatchResult result, IReadOnlyList<MatchScoreStat> scoreDistribution)
     {
         using var connection = DatabaseExecutor.GetNewDbConnection();
@@ -41,11 +39,13 @@ public class MatchResultRepository(ILogger<MatchResultRepository> Logger, Databa
         {
             command.Transaction = transaction;
             command.CommandText = @"
-INSERT INTO match_result(PlayedAt, Player1Id, Player1Name, Player1Score, Player1Avg, Player1HighRun, Player2Id, Player2Name, Player2Score, Player2Avg, Player2HighRun, Inning, MatchTarget, Winner, ScoreDistributionBucketMinutes)
-VALUES(@PlayedAt, @Player1Id, @Player1Name, @Player1Score, @Player1Avg, @Player1HighRun, @Player2Id, @Player2Name, @Player2Score, @Player2Avg, @Player2HighRun, @Inning, @MatchTarget, @Winner, @ScoreDistributionBucketMinutes);
+INSERT INTO match_result(PlayedAt, Player1Id, Player1Name, StartedAt, EndedAt, Player1Score, Player1Avg, Player1HighRun, Player2Id, Player2Name, Player2Score, Player2Avg, Player2HighRun, Inning, MatchTarget, Winner, ScoreDistributionBucketMinutes)
+VALUES(@PlayedAt, @Player1Id, @Player1Name, @StartedAt, @EndedAt, @Player1Score, @Player1Avg, @Player1HighRun, @Player2Id, @Player2Name, @Player2Score, @Player2Avg, @Player2HighRun, @Inning, @MatchTarget, @Winner, @ScoreDistributionBucketMinutes);
 SELECT last_insert_rowid();";
             command.Parameters.AddWithValue("@PlayedAt", result.PlayedAt);
             command.Parameters.AddWithValue("@Player1Id", (object?)result.Player1Id ?? DBNull.Value);
+            command.Parameters.AddWithValue("@StartedAt", (object?)result.StartedAt ?? DBNull.Value);
+            command.Parameters.AddWithValue("@EndedAt", (object?)result.EndedAt ?? DBNull.Value);
             command.Parameters.AddWithValue("@Player1Name", result.Player1Name);
             command.Parameters.AddWithValue("@Player1Score", result.Player1Score);
             command.Parameters.AddWithValue("@Player1Avg", result.Player1Avg);
@@ -81,14 +81,16 @@ SELECT last_insert_rowid();";
     public async Task<IReadOnlyList<MatchResult>> GetAllAsync()
     {
         var rows = await dbExecutor.ReadDataAsync<MatchResultRow>(
-            @"SELECT Id, PlayedAt, Player1Id, Player1Name, Player1Score, Player1Avg, Player1HighRun,
+            @"SELECT Id, PlayedAt, StartedAt, EndedAt, Player1Id, Player1Name, Player1Score, Player1Avg, Player1HighRun,
                      Player2Id, Player2Name, Player2Score, Player2Avg, Player2HighRun, Inning, MatchTarget, Winner, ScoreDistributionBucketMinutes
               FROM match_result ORDER BY PlayedAt DESC");
 
-        return rows.Select(r => new MatchResult
+        return [.. rows.Select(r => new MatchResult
         {
             Id = r.Id,
             PlayedAt = r.PlayedAt,
+            StartedAt = r.StartedAt == default ? null : r.StartedAt,
+            EndedAt = r.EndedAt == default ? null : r.EndedAt,
             Player1Id = r.Player1Id == 0 ? null : r.Player1Id,
             Player1Name = r.Player1Name,
             Player1Score = r.Player1Score,
@@ -103,6 +105,6 @@ SELECT last_insert_rowid();";
             MatchTarget = r.MatchTarget,
             Winner = r.Winner,
             ScoreDistributionBucketMinutes = r.ScoreDistributionBucketMinutes,
-        }).ToList();
+        })];
     }
 }

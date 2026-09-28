@@ -57,12 +57,12 @@ public static class MauiProgram
             });
 
 #if DEBUG
-            builder.Logging.AddDebug();
-            builder.Services.AddLogging(configure => configure.AddDebug());
-            builder.Services.AddTransient<DebugOcrPageModel>();
-            builder.Services.AddTransient<DebugOcrViewPage>();
-            builder.Services.AddTransient<DebugTableAnalysisPageModel>();
-            builder.Services.AddTransient<DebugTableAnalysisViewPage>();
+        builder.Logging.AddDebug();
+        builder.Services.AddLogging(configure => configure.AddDebug());
+        builder.Services.AddTransient<DebugOcrPageModel>();
+        builder.Services.AddTransient<DebugOcrViewPage>();
+        builder.Services.AddTransient<DebugTableAnalysisPageModel>();
+        builder.Services.AddTransient<DebugTableAnalysisViewPage>();
 #endif
         builder.Services.AddSingleton<DatabaseExecutor>();
         builder.Services.AddSingleton<PlayerRepository>();
@@ -115,9 +115,6 @@ public static class MauiProgram
 
         var app = builder.Build();
 
-        // Restore scoreboard teams/players from SQLite. Must run against the app's real
-        // service provider (not the throwaway one used above for migrations) so the
-        // singleton sessions used throughout the app actually get populated.
         var teamSession = app.Services.GetRequiredService<TeamSession>();
         teamSession.LoadExisting(app.Services.GetRequiredService<TeamRepository>().GetAllAsync().GetAwaiter().GetResult());
 

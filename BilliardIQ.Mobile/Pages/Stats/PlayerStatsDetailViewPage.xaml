@@ -103,6 +103,8 @@
                                 <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
                                     <Label Text="{Binding OpponentName}" FontSize="15" FontAttributes="Bold" />
                                     <Label Text="{Binding PlayedAt, StringFormat='{0:d}'}" FontSize="11" TextColor="Gray" />
+                                    <Label Text="{Binding StartedAtText}" IsVisible="{Binding HasStartedAt}" FontSize="11" TextColor="Gray" />
+                                    <Label Text="{Binding EndedAtText}" IsVisible="{Binding HasEndedAt}" FontSize="11" TextColor="Gray" />
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout Grid.Column="2" VerticalOptions="Center" HorizontalOptions="End" Spacing="2">

@@ -80,6 +80,7 @@
                                     ImageSource="{StaticResource IconDeleteWhite}"
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeletePlayerCommand}"
                                     CommandParameter="{Binding .}"
+                                    IsVisible="{Binding IsDefaultPlayer, Converter={toolkit:InvertedBoolConverter}}"
                                     BackgroundColor="#C62828"
                                     CornerRadius="17"
                                     WidthRequest="34" HeightRequest="34"

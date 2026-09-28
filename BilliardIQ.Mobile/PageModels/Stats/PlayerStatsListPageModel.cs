@@ -59,8 +59,9 @@ public partial class PlayerStatsListPageModel : BasePageModel
 
     private static PlayerMatchStats BuildStats(ScoreboardPlayer player, IReadOnlyList<MatchResult> results)
     {
-        var matches = results.Where(r => r.Player1Id == player.Id || r.Player2Id == player.Id).ToList();
-        var wins = matches.Count(r => (r.Player1Id == player.Id && r.Winner == 1) || (r.Player2Id == player.Id && r.Winner == 2));
+        var id = player.Id;
+        var matches = results.Where(r => r.InvolvesAsPlayer1(id) || r.InvolvesAsPlayer2(id)).ToList();
+        var wins = matches.Count(r => (r.InvolvesAsPlayer1(id) && r.Winner == 1) || (r.InvolvesAsPlayer2(id) && r.Winner == 2));
 
         return new PlayerMatchStats
         {
@@ -69,8 +70,8 @@ public partial class PlayerStatsListPageModel : BasePageModel
             Wins = wins,
             Losses = matches.Count - wins,
             AverageInnings = matches.Count > 0 ? matches.Average(r => (double)r.Inning) : 0,
-            AveragePerInning = matches.Count > 0 ? matches.Average(r => r.Player1Id == player.Id ? r.Player1Avg : r.Player2Avg) : 0,
-            BestHighRun = matches.Count > 0 ? matches.Max(r => r.Player1Id == player.Id ? r.Player1HighRun : r.Player2HighRun) : 0,
+            AveragePerInning = matches.Count > 0 ? matches.Average(r => r.InvolvesAsPlayer1(id) ? r.Player1Avg : r.Player2Avg) : 0,
+            BestHighRun = matches.Count > 0 ? matches.Max(r => r.InvolvesAsPlayer1(id) ? r.Player1HighRun : r.Player2HighRun) : 0,
         };
     }
 

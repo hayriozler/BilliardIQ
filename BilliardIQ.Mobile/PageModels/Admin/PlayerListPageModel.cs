@@ -49,6 +49,12 @@ public partial class PlayerListPageModel : BasePageModel
     {
         if (player is null) return;
 
+        if (player.IsDefaultPlayer)
+        {
+            await Shell.Current.DisplayAlertAsync(L["Admin_DeletePlayer"], L["Admin_DefaultPlayerDeleteBlocked"], L["Action_Ok"]);
+            return;
+        }
+
         var name = string.IsNullOrWhiteSpace(player.NickName) ? player.Name : player.NickName;
         var confirmed = await Shell.Current.DisplayAlertAsync(
             L["Admin_DeletePlayer"], string.Format(L["Admin_DeletePlayerConfirm"], name), L["Action_Ok"], L["Action_Cancel"]);

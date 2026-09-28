@@ -95,6 +95,10 @@ public partial class ScoreboardPageModel : BasePageModel
         }
     }
 
+    // Set once per page-open (Appearing), consumed by the next "state" reply — keeps the
+    // default-player check from re-firing on every unrelated "state" broadcast other pages trigger.
+    private bool _checkDefaultPlayersOnNextState;
+
     [RelayCommand]
     private async Task Appearing()
     {
@@ -104,12 +108,26 @@ public partial class ScoreboardPageModel : BasePageModel
             return;
         }
 
+        _checkDefaultPlayersOnNextState = true;
+
         var req = new ScoreBoardRequest
         {
             Type = "state",
             Commands = []
         };
         await SendAsync(req);
+    }
+
+    // When the Scoreboard page opens to an idle board (no match in progress), auto-select the
+    // database's designated default players (local Id 1 and 2) for slots 1/2 instead of leaving
+    // them on the Pi's generic "Oyuncu 1"/"Oyuncu 2" placeholders, so the next match isn't anonymous.
+    private async Task ApplyDefaultPlayersIfIdleAsync()
+    {
+        var noActiveMatch = Player1Score == 0 && Player2Score == 0 && Inning == 0;
+        if (!noActiveMatch) return;
+
+        if (_playerSession.FindById(1) is { } player1) await ApplyPlayerAsync(1, player1);
+        if (_playerSession.FindById(2) is { } player2) await ApplyPlayerAsync(2, player2);
     }
 
     private void OnConnectionStateChanged(object? sender, PiConnectionState state) =>
@@ -125,6 +143,9 @@ public partial class ScoreboardPageModel : BasePageModel
 
     private void OnMessageReceived(object? sender, string message)
     {
+        // Raw send/receive traffic is logged centrally in RaspberryPiConnectionService (the actual
+        // transport choke point, covering commands from every page, not just this one) — here we
+        // only add matchResult-specific validation/insert detail on top of that.
         string? type;
         try
         {
@@ -173,6 +194,12 @@ public partial class ScoreboardPageModel : BasePageModel
             if (state.Player2HighRun is { } hr2) Player2HighRun = hr2;
             if (state.Inning is { } inning) Inning = inning;
             PendingDelta = 0;
+
+            if (_checkDefaultPlayersOnNextState)
+            {
+                _checkDefaultPlayersOnNextState = false;
+                ApplyDefaultPlayersIfIdleAsync().FireAndForgetSafeAsync(_errorHandler);
+            }
         });
     }
     private sealed class ScoreboardStateEnvelope
@@ -196,8 +223,9 @@ public partial class ScoreboardPageModel : BasePageModel
         [JsonPropertyName("currentPoints")] public int? CurrentPoints { get; set; }
     }
 
-    // Players/teams pushed from the Pi are matched to local records by RemoteId: update in place if
-    // something changed, skip if not, insert a new local record if no match exists yet.
+    // The Pi pushes one player at a time (envelope holds a single "player" object, not a list),
+    // and "id" is the same shared identifier used everywhere else (AddPlayer/SetPlayer echo it back
+    // unchanged) — so it maps directly onto the local ScoreboardPlayer.Id, not a separate RemoteId.
     private void HandlePlayersMessage(string message)
     {
         PlayersEnvelope? envelope;
@@ -210,39 +238,30 @@ public partial class ScoreboardPageModel : BasePageModel
             return;
         }
 
-        if (envelope?.Players is not { } players) return;
+        if (envelope?.Player is not { Id: { } id } payload) return;
 
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            foreach (var payload in players)
-            {
-                if (payload.RemoteId is { } remoteId) UpsertPlayer(remoteId, payload);
-            }
-        });
+        MainThread.BeginInvokeOnMainThread(() => UpsertPlayer(id, payload));
     }
 
-    private void UpsertPlayer(int remoteId, PlayerSyncPayload payload)
+    private void UpsertPlayer(int id, PlayerSyncPayload payload)
     {
-        var teamId = payload.TeamId is { } remoteTeamId ? _teamSession.FindByRemoteId(remoteTeamId)?.Id : null;
-        var existing = _playerSession.FindByRemoteId(remoteId);
+        var teamId = payload.TeamId;
+        var existing = _playerSession.FindById(id);
 
         if (existing is not null)
         {
             var nickName = payload.NickName ?? existing.NickName;
             var name = payload.Name ?? existing.Name;
-            var avatar = payload.Avatar ?? existing.AvatarKey;
             var shortcut = payload.ShortcutNumber ?? existing.ShortcutNumber;
 
             var changed = existing.NickName != nickName
                 || existing.Name != name
-                || existing.AvatarKey != avatar
                 || existing.TeamId != teamId
                 || existing.ShortcutNumber != shortcut;
             if (!changed) return;
 
             existing.NickName = nickName;
             existing.Name = name;
-            existing.AvatarKey = avatar;
             existing.TeamId = teamId;
             existing.ShortcutNumber = shortcut;
             _playerRepository.UpsertAsync(existing).FireAndForgetSafeAsync(_errorHandler);
@@ -251,11 +270,9 @@ public partial class ScoreboardPageModel : BasePageModel
 
         var player = new ScoreboardPlayer
         {
-            Id = _playerSession.NextId(),
-            RemoteId = remoteId,
+            Id = id,
             NickName = payload.NickName ?? string.Empty,
             Name = payload.Name ?? string.Empty,
-            AvatarKey = payload.Avatar,
             TeamId = teamId,
             ShortcutNumber = payload.ShortcutNumber,
         };
@@ -265,14 +282,14 @@ public partial class ScoreboardPageModel : BasePageModel
 
     private sealed class PlayersEnvelope
     {
-        [JsonPropertyName("players")] public List<PlayerSyncPayload>? Players { get; set; }
+        [JsonPropertyName("player")] public PlayerSyncPayload? Player { get; set; }
     }
     private sealed class PlayerSyncPayload
     {
-        [JsonPropertyName("remoteId")] public int? RemoteId { get; set; }
-        [JsonPropertyName("nickName")] public string? NickName { get; set; }
+        [JsonPropertyName("id")] public int? Id { get; set; }
+        [JsonPropertyName("nickname")] public string? NickName { get; set; }
         [JsonPropertyName("name")] public string? Name { get; set; }
-        [JsonPropertyName("avatar")] public string? Avatar { get; set; }
+        [JsonPropertyName("avatarId")] public int? AvatarId { get; set; }
         [JsonPropertyName("teamId")] public int? TeamId { get; set; }
         [JsonPropertyName("shortcutNumber")] public int? ShortcutNumber { get; set; }
     }
@@ -289,20 +306,14 @@ public partial class ScoreboardPageModel : BasePageModel
             return;
         }
 
-        if (envelope?.Teams is not { } teams) return;
+        if (envelope?.Team is not { Id: { } id, Name: { } name }) return;
 
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            foreach (var payload in teams)
-            {
-                if (payload.RemoteId is { } remoteId && payload.Name is { } name) UpsertTeam(remoteId, name);
-            }
-        });
+        MainThread.BeginInvokeOnMainThread(() => UpsertTeam(id, name));
     }
 
-    private void UpsertTeam(int remoteId, string name)
+    private void UpsertTeam(int id, string name)
     {
-        var existing = _teamSession.FindByRemoteId(remoteId);
+        var existing = _teamSession.FindById(id);
         if (existing is not null)
         {
             if (existing.Name == name) return;
@@ -312,18 +323,18 @@ public partial class ScoreboardPageModel : BasePageModel
             return;
         }
 
-        var team = new ScoreboardTeam { Id = _teamSession.NextId(), RemoteId = remoteId, Name = name };
+        var team = new ScoreboardTeam { Id = id, Name = name };
         _teamSession.Add(team);
         _teamRepository.UpsertAsync(team).FireAndForgetSafeAsync(_errorHandler);
     }
 
     private sealed class TeamsEnvelope
     {
-        [JsonPropertyName("teams")] public List<TeamSyncPayload>? Teams { get; set; }
+        [JsonPropertyName("team")] public TeamSyncPayload? Team { get; set; }
     }
     private sealed class TeamSyncPayload
     {
-        [JsonPropertyName("remoteId")] public int? RemoteId { get; set; }
+        [JsonPropertyName("id")] public int? Id { get; set; }
         [JsonPropertyName("name")] public string? Name { get; set; }
     }
 
@@ -334,16 +345,27 @@ public partial class ScoreboardPageModel : BasePageModel
         {
             envelope = JsonSerializer.Deserialize<MatchResultEnvelope>(message, _jsonOptions);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            WsTrafficLogger.Log($"matchResult DESERIALIZE FAILED: {ex.Message}");
             return;
         }
 
-        if (envelope?.MatchResult is not { } r) return;
+        if (envelope?.MatchResult is not { } r)
+        {
+            WsTrafficLogger.Log("matchResult REJECTED: envelope had no \"matchResult\" object");
+            return;
+        }
+
+        WsTrafficLogger.Log($"matchResult VALIDATED player1={r.Player1Name}({r.Player1Id?.ToString() ?? "null"}) " +
+              $"player2={r.Player2Name}({r.Player2Id?.ToString() ?? "null"}) " +
+              $"score={r.Player1Score}-{r.Player2Score} inning={r.Inning} winner={r.Winner}");
 
         var result = new MatchResult
         {
             PlayedAt = r.PlayedAt,
+            StartedAt = r.StartedAt,
+            EndedAt = r.EndedAt,
             Player1Id = r.Player1Id,
             Player1Name = r.Player1Name,
             Player1Score = r.Player1Score,
@@ -369,7 +391,21 @@ public partial class ScoreboardPageModel : BasePageModel
             })
             .ToList();
 
-        _matchResultRepository.InsertAsync(result, scoreDistribution).FireAndForgetSafeAsync(_errorHandler);
+        InsertMatchResultAsync(result, scoreDistribution).FireAndForgetSafeAsync(_errorHandler);
+    }
+
+    private async Task InsertMatchResultAsync(MatchResult result, List<MatchScoreStat> scoreDistribution)
+    {
+        try
+        {
+            await _matchResultRepository.InsertAsync(result, scoreDistribution);
+            WsTrafficLogger.Log($"matchResult INSERT ok — {scoreDistribution.Count} score-distribution rows");
+        }
+        catch (Exception ex)
+        {
+            WsTrafficLogger.Log($"matchResult INSERT FAILED: {ex}");
+            throw;
+        }
     }
 
     private sealed class MatchResultEnvelope
@@ -379,7 +415,7 @@ public partial class ScoreboardPageModel : BasePageModel
     private sealed class MatchResultSyncPayload
     {
         [JsonPropertyName("playedAt")] public DateTime PlayedAt { get; set; }
-        [JsonPropertyName("player1Id")] public int Player1Id { get; set; }
+        [JsonPropertyName("player1Id")] public int? Player1Id { get; set; }
         [JsonPropertyName("player1Name")] public string Player1Name { get; set; } = "";
         [JsonPropertyName("player1Score")] public int Player1Score { get; set; }
         [JsonPropertyName("player1Avg")] public double Player1Avg { get; set; }
@@ -675,9 +711,10 @@ public partial class ScoreboardPageModel : BasePageModel
             return;
         }
 
+        var json = JsonSerializer.Serialize(request, _jsonOptions);
         try
         {
-            var json = JsonSerializer.Serialize(request, _jsonOptions);
+            // Send itself is logged centrally in RaspberryPiConnectionService.
             await _connection.SendMessageAsync(json);
         }
         catch (Exception ex)

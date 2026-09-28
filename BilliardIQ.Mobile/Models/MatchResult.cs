@@ -20,4 +20,10 @@ public class MatchResult
     public int MatchTarget { get; set; }
     public int Winner { get; set; }
     public int ScoreDistributionBucketMinutes { get; set; }
+
+    // The Pi has no independent player-id scheme — it just echoes back whatever "id" the app sent
+    // it in AddPlayer/SetPlayer1/SetPlayer2, so Player1Id/Player2Id here are directly comparable to
+    // ScoreboardPlayer.Id (as long as that id stays stable, i.e. the player isn't deleted/re-added).
+    public bool InvolvesAsPlayer1(int? id) => id is not null && Player1Id == id;
+    public bool InvolvesAsPlayer2(int? id) => id is not null && Player2Id == id;
 }

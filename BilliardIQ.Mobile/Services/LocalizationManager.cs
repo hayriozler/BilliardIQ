@@ -155,6 +155,7 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["Admin_PlayersEmpty"]      = "No players yet. Add one above.",
             ["Admin_DeletePlayer"]        = "Delete Player",
             ["Admin_DeletePlayerConfirm"] = "Permanently delete {0}? This cannot be undone.",
+            ["Admin_DefaultPlayerDeleteBlocked"] = "This is a default player used by the Scoreboard page and can't be deleted.",
             ["Admin_DeleteTeam"]          = "Delete Team",
             ["Admin_DeleteTeamConfirm"]   = "Permanently delete {0}? This cannot be undone.",
 
@@ -166,6 +167,8 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["PlayerStats_AvgInnings"]    = "Avg Innings",
             ["PlayerStats_InningsChart"]  = "Innings per Match",
             ["PlayerStats_ScoringPace"]   = "Scoring Pace (Last Match)",
+            ["PlayerStats_Started"]       = "Started: {0:g}",
+            ["PlayerStats_Ended"]         = "Ended: {0:g}",
 
             // SSH console
             ["Ssh_Title"]           = "SSH Console",
@@ -322,6 +325,7 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["Admin_PlayersEmpty"]      = "Henüz oyuncu yok. Yukarıdan ekleyin.",
             ["Admin_DeletePlayer"]        = "Oyuncuyu Sil",
             ["Admin_DeletePlayerConfirm"] = "{0} kalıcı olarak silinsin mi? Bu işlem geri alınamaz.",
+            ["Admin_DefaultPlayerDeleteBlocked"] = "Bu, Skorbord sayfası tarafından kullanılan varsayılan bir oyuncudur ve silinemez.",
             ["Admin_DeleteTeam"]          = "Takımı Sil",
             ["Admin_DeleteTeamConfirm"]   = "{0} kalıcı olarak silinsin mi? Bu işlem geri alınamaz.",
 
@@ -333,6 +337,8 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["PlayerStats_AvgInnings"]    = "Ort. El",
             ["PlayerStats_InningsChart"]  = "Maça Göre El Sayısı",
             ["PlayerStats_ScoringPace"]   = "Skor Temposu (Son Maç)",
+            ["PlayerStats_Started"]       = "Başlangıç: {0:g}",
+            ["PlayerStats_Ended"]         = "Bitiş: {0:g}",
 
             // SSH konsolu
             ["Ssh_Title"]           = "SSH Konsolu",

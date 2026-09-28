@@ -15,7 +15,13 @@ public class TeamSession
 
     public ScoreboardTeam? FindByRemoteId(int remoteId) => Teams.FirstOrDefault(t => t.RemoteId == remoteId);
 
-    public void Add(ScoreboardTeam team) => Teams.Add(team);
+    // Teams synced from the Pi (UpsertTeam) carry an explicit Id rather than one from NextId() —
+    // advance the counter past it so a later locally-added team can't collide.
+    public void Add(ScoreboardTeam team)
+    {
+        Teams.Add(team);
+        if (team.Id >= _nextId) _nextId = team.Id + 1;
+    }
 
     public void Remove(ScoreboardTeam team) => Teams.Remove(team);
 

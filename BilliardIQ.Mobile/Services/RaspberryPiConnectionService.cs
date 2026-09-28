@@ -83,10 +83,15 @@ public sealed class RaspberryPiConnectionService(IPiTransportFactory transportFa
         if (State != PiConnectionState.Connected || _activeTransport is null)
             throw new InvalidOperationException("Cannot send: not connected to the scoreboard.");
 
+        WsTrafficLogger.Log($"SEND {message}");
         return _activeTransport.SendMessageAsync(message);
     }
 
-    private void OnTransportMessageReceived(object? sender, string message) => MessageReceived?.Invoke(this, message);
+    private void OnTransportMessageReceived(object? sender, string message)
+    {
+        WsTrafficLogger.Log($"RECV {message}");
+        MessageReceived?.Invoke(this, message);
+    }
 
     private void OnTransportFaulted(object? sender, Exception ex)
     {

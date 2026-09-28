@@ -11,7 +11,13 @@ public class ScoreboardPlayerSession
 
     public int NextId() => _nextId++;
 
-    public void Add(ScoreboardPlayer player) => Players.Add(player);
+    // Players synced from the Pi (UpsertPlayer) carry an explicit Id rather than one from
+    // NextId() — advance the counter past it so a later locally-added player can't collide.
+    public void Add(ScoreboardPlayer player)
+    {
+        Players.Add(player);
+        if (player.Id >= _nextId) _nextId = player.Id + 1;
+    }
 
     public void Remove(ScoreboardPlayer player) => Players.Remove(player);
 
