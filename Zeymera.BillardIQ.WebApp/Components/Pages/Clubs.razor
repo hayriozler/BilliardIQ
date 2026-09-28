@@ -1,0 +1,50 @@
+@page "/clubs"
+@inject ClubService ClubService
+
+<h1>Register a Club</h1>
+
+<EditForm Model="_newClub" OnValidSubmit="CreateAsync" FormName="create-club">
+    <DataAnnotationsValidator />
+    <div class="form-row">
+        <InputText @bind-Value="_newClub.Name" placeholder="Club name" />
+        <button type="submit">Create Club</button>
+    </div>
+    <ValidationSummary />
+</EditForm>
+
+@if (_error is not null)
+{
+    <p class="error">@_error</p>
+}
+
+@if (_createdCode is not null)
+{
+    <p>Club created. Your login code is <strong>@_createdCode</strong> — save it, you'll need it to <a href="/login">log in</a>.</p>
+}
+
+@code {
+    private string? _error;
+    private string? _createdCode;
+    private NewClubModel _newClub = new();
+
+    private async Task CreateAsync()
+    {
+        _error = null;
+        try
+        {
+            var club = await ClubService.CreateAsync(_newClub.Name);
+            _createdCode = club.Code;
+            _newClub = new();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private class NewClubModel
+    {
+        [Required]
+        public string Name { get; set; } = string.Empty;
+    }
+}

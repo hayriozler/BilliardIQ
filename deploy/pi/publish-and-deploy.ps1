@@ -29,7 +29,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path "$PSScriptRoot\..\.."
-$clientProject = Join-Path $repoRoot "Zeymera.Scoreboard.Client\Zeymera.Scoreboard.Client.csproj"
+$clientProject = Join-Path $repoRoot "Zeymera.BillardIQ.Client\Zeymera.BillardIQ.Client.csproj"
 
 # Must be an absolute path - a relative -o path triggers a real Web SDK bug where the
 # static-web-assets publish step duplicates output into a nested publish/ subfolder inside it.

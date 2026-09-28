@@ -1,0 +1,181 @@
+@page "/players"
+@attribute [Authorize]
+@inject PlayerService PlayerService
+@inject AuthenticationStateProvider AuthState
+
+<h1>Players</h1>
+
+<EditForm Model="_form" OnValidSubmit="SaveAsync" FormName="player-form">
+    <DataAnnotationsValidator />
+    <div class="form-grid">
+        <label>Nickname<InputText @bind-Value="_form.Nickname" /></label>
+        <label>Name<InputText @bind-Value="_form.Name" /></label>
+        <label>Email<InputText @bind-Value="_form.Email" /></label>
+        <label>
+            Level
+            <select @bind="_form.Level">
+                @foreach (var level in Enum.GetValues<Level>())
+                {
+                    <option value="@level">@level</option>
+                }
+            </select>
+        </label>
+        <label>Country<InputText @bind-Value="_form.BaseCountry" /></label>
+        <label>City<InputText @bind-Value="_form.BaseCity" /></label>
+        <label>Photo<InputFile OnChange="OnPhotoSelectedAsync" accept="image/*" /></label>
+    </div>
+    <div class="form-actions">
+        <button type="submit">@(_form.Id == 0 ? "Add Player" : "Save Player")</button>
+        @if (_form.Id != 0)
+        {
+            <button type="button" @onclick="ResetForm">Cancel</button>
+        }
+    </div>
+    <ValidationSummary />
+</EditForm>
+
+@if (_error is not null)
+{
+    <p class="error">@_error</p>
+}
+
+@if (_players is null)
+{
+    <p>Loading...</p>
+}
+else if (_players.Count == 0)
+{
+    <p>No players yet.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th></th>
+                <th>Nickname</th>
+                <th>Name</th>
+                <th>Level</th>
+                <th>Email</th>
+                <th>Location</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var player in _players)
+            {
+                <tr>
+                    <td>
+                        @if (player.PhotoPath is not null)
+                        {
+                            <img src="@($"/{player.PhotoPath}")" class="thumb" alt="" />
+                        }
+                    </td>
+                    <td>@player.Nickname</td>
+                    <td>@player.Name</td>
+                    <td>@player.Level</td>
+                    <td>@player.Email</td>
+                    <td>@player.BaseCity, @player.BaseCountry</td>
+                    <td class="row-actions">
+                        <button @onclick="() => Edit(player)">Edit</button>
+                        <button @onclick="() => DeleteAsync(player.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private int _clubId;
+    private List<Player>? _players;
+    private string? _error;
+    private PlayerFormModel _form = new();
+    private string? _pendingPhotoBase64;
+    private string? _pendingPhotoExtension;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        _clubId = int.Parse(state.User.FindFirst("ClubId")!.Value);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => _players = await PlayerService.ListForClubAsync(_clubId);
+
+    private void Edit(Player player)
+    {
+        _form = new PlayerFormModel
+        {
+            Id = player.Id,
+            Nickname = player.Nickname,
+            Name = player.Name,
+            Email = player.Email,
+            Level = player.Level,
+            BaseCountry = player.BaseCountry,
+            BaseCity = player.BaseCity
+        };
+        _pendingPhotoBase64 = null;
+        _pendingPhotoExtension = null;
+    }
+
+    private void ResetForm()
+    {
+        _form = new PlayerFormModel();
+        _pendingPhotoBase64 = null;
+        _pendingPhotoExtension = null;
+    }
+
+    private async Task OnPhotoSelectedAsync(InputFileChangeEventArgs e)
+    {
+        const long maxSize = 5 * 1024 * 1024;
+        await using var stream = e.File.OpenReadStream(maxSize);
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory);
+        _pendingPhotoBase64 = Convert.ToBase64String(memory.ToArray());
+        _pendingPhotoExtension = Path.GetExtension(e.File.Name).TrimStart('.');
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        try
+        {
+            await PlayerService.UpsertAsync(
+                _clubId, _form.Id, _form.Nickname, _form.Name, null,
+                _form.Email, _form.Level, _form.BaseCountry, _form.BaseCity,
+                _pendingPhotoBase64, _pendingPhotoExtension);
+            ResetForm();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        await PlayerService.DeleteAsync(_clubId, id);
+        await LoadAsync();
+    }
+
+    private class PlayerFormModel
+    {
+        public int Id { get; set; }
+
+        [Required]
+        public string Nickname { get; set; } = string.Empty;
+
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+
+        public Level Level { get; set; } = Level.Intermidiate;
+
+        public string BaseCountry { get; set; } = string.Empty;
+
+        public string BaseCity { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,164 @@
+@baseUrl = http://localhost:5128
+
+### Create a club (venue) - no X-Client-Id needed for this endpoint
+# @name createClub
+POST {{baseUrl}}/api/clubs
+Content-Type: application/json
+
+{
+  "name": "Alkmaar HDV"
+}
+
+### List all clubs
+GET {{baseUrl}}/api/clubs
+
+### Get one club by id
+GET {{baseUrl}}/api/clubs/{{createClub.response.body.id}}
+
+### Delete a club (careful - cascades ClubId to null on its clients, does not delete them)
+# DELETE {{baseUrl}}/api/clubs/1
+
+###
+### Clients (monitors) - no X-Client-Id needed for these endpoints either
+###
+
+### Register a client (monitor) for table 1 at the club created above
+# @name createClientTable1
+POST {{baseUrl}}/api/clients
+Content-Type: application/json
+
+{
+  "name": "Alkmaar HDV - Table 1",
+  "clubId": {{createClub.response.body.id}},
+  "tableNumber": 1
+}
+
+### Register a second client (monitor) for table 2 at the same club
+# @name createClientTable2
+POST {{baseUrl}}/api/clients
+Content-Type: application/json
+
+{
+  "name": "Alkmaar HDV - Table 2",
+  "clubId": {{createClub.response.body.id}},
+  "tableNumber": 2
+}
+
+### List all clients
+GET {{baseUrl}}/api/clients
+
+### List only this club's clients
+GET {{baseUrl}}/api/clients?clubId={{createClub.response.body.id}}
+
+### Delete a client
+# DELETE {{baseUrl}}/api/clients/{{createClientTable1.response.body.id}}
+
+###
+### Everything below here requires the X-Client-Id header - use one of the client ids created above
+###
+
+@clientId = {{createClientTable1.response.body.id}}
+
+### Push/update a player (id 0 creates a new player in this client's club, non-zero id updates it)
+POST {{baseUrl}}/api/players
+Content-Type: application/json
+X-Client-Id: {{clientId}}
+
+{
+  "id": 0,
+  "nickname": "Hayri",
+  "name": "Hayri Ozler",
+  "avatarId": 3,
+  "email": "hayri@example.com",
+  "level": 2,
+  "baseCountry": "Netherlands",
+  "baseCity": "Alkmaar"
+}
+
+### Push/update a second player
+POST {{baseUrl}}/api/players
+Content-Type: application/json
+X-Client-Id: {{clientId}}
+
+{
+  "id": 0,
+  "nickname": "Player 2",
+  "name": "Player 2",
+  "avatarId": 5,
+  "email": "",
+  "level": 2,
+  "baseCountry": "",
+  "baseCity": ""
+}
+
+### List this client's club's players
+GET {{baseUrl}}/api/players
+X-Client-Id: {{clientId}}
+
+### Remove a player by its id
+# DELETE {{baseUrl}}/api/players/1
+# X-Client-Id: {{clientId}}
+
+### Create/update a team (id 0 creates a new team in this client's club, non-zero id updates it)
+POST {{baseUrl}}/api/teams
+Content-Type: application/json
+X-Client-Id: {{clientId}}
+
+{
+  "id": 0,
+  "name": "Team A"
+}
+
+### Set a team's full roster by its players' ids (replaces the previous roster)
+PUT {{baseUrl}}/api/teams/1/players
+Content-Type: application/json
+X-Client-Id: {{clientId}}
+
+{
+  "playerIds": [1, 2]
+}
+
+### List this client's club's teams (with their player rosters)
+GET {{baseUrl}}/api/teams
+X-Client-Id: {{clientId}}
+
+### Remove a single player from a team
+# DELETE {{baseUrl}}/api/teams/1/players/2
+# X-Client-Id: {{clientId}}
+
+### Delete a team
+# DELETE {{baseUrl}}/api/teams/1
+# X-Client-Id: {{clientId}}
+
+### Submit a finished match's stats
+POST {{baseUrl}}/api/stats
+Content-Type: application/json
+X-Client-Id: {{clientId}}
+
+{
+  "player1Id": 1,
+  "player1Name": "Hayri",
+  "player1Score": 20,
+  "player1Avg": 1.538,
+  "player1HighRun": 5,
+  "player2Id": 2,
+  "player2Name": "Player 2",
+  "player2Score": 17,
+  "player2Avg": 1.307,
+  "player2HighRun": 4,
+  "inning": 13,
+  "matchTarget": 20,
+  "winner": 1,
+  "playedAt": "2026-09-19T12:00:00Z"
+}
+
+### List this client's stats
+GET {{baseUrl}}/api/stats
+X-Client-Id: {{clientId}}
+
+### Calling a protected endpoint with no X-Client-Id at all -> 400
+GET {{baseUrl}}/api/players
+
+### Calling with an unknown X-Client-Id -> 401
+GET {{baseUrl}}/api/players
+X-Client-Id: NOTAREALID

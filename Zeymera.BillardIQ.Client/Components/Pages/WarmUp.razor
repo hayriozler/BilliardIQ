@@ -1,0 +1,212 @@
+@page "/warmup/{Minutes:int}"
+@implements IAsyncDisposable
+@inject LocalizationService L
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@using Zeymera.BillardIQ.Client.Services
+@using Microsoft.AspNetCore.Components.Web
+@using System.Globalization
+
+<div @ref="board" class="warmup" tabindex="0" @onkeydown="HandleKeyDown" @onclick="RequestFullscreenAsync">
+    <div class="warmup-label">@L.T("WarmUp")</div>
+
+    <div class="hourglass-wrap">
+        <svg class="hourglass" viewBox="0 0 200 300" aria-hidden="true">
+            <polygon class="sand sand-bottom" points="100,150 20,280 180,280"
+                     style="transform: scale(@ElapsedFraction.ToString("0.###", CultureInfo.InvariantCulture)); transform-origin: 100px 280px;" />
+            <polygon class="sand sand-top" points="20,20 180,20 100,150"
+                     style="transform: scale(@RemainingFraction.ToString("0.###", CultureInfo.InvariantCulture)); transform-origin: 100px 150px;" />
+            @if (_running && SecondsRemaining > 0)
+            {
+                <circle class="sand-grain g1" cx="100" cy="150" r="2.6" />
+                <circle class="sand-grain g2" cx="100" cy="150" r="2.1" />
+                <circle class="sand-grain g3" cx="100" cy="150" r="2.8" />
+            }
+            <polygon class="glass" points="20,20 180,20 100,150 180,280 20,280 100,150 20,20" />
+            <line class="cap" x1="10" y1="20" x2="190" y2="20" />
+            <line class="cap" x1="10" y1="280" x2="190" y2="280" />
+        </svg>
+    </div>
+
+    <div class="digital-timer @(IsUrgent ? "urgent" : "") @(SecondsRemaining <= 0 ? "done" : "")">@DisplayTime</div>
+
+    @if (SecondsRemaining <= 0)
+    {
+        <div class="time-up">@L.T("TimeUp")</div>
+    }
+
+    <button class="back-button" @onclick="GoBack" @onclick:stopPropagation="true">@L.T("BackToBoard")</button>
+
+    <p class="warmup-hint">@L.T("WarmUpHint")</p>
+</div>
+
+@code {
+    [Parameter] public int Minutes { get; set; }
+
+    private ElementReference board;
+    private IJSObjectReference? _kiosk;
+    private readonly CancellationTokenSource _cts = new();
+    private CancellationTokenSource? _autoReturnCts;
+
+    private double TotalSeconds => Math.Max(1, Minutes) * 60d;
+    private double SecondsRemaining;
+    private bool _running = true;
+
+    private double RemainingFraction => TotalSeconds > 0 ? Math.Clamp(SecondsRemaining / TotalSeconds, 0, 1) : 0;
+    private double ElapsedFraction => 1 - RemainingFraction;
+    private bool IsUrgent => SecondsRemaining <= 10 && SecondsRemaining > 0;
+
+    private string DisplayTime
+    {
+        get
+        {
+            var total = (int)Math.Ceiling(SecondsRemaining);
+            var m = total / 60;
+            var s = total % 60;
+            return $"{m:00}:{s:00}";
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        SecondsRemaining = TotalSeconds;
+        _ = RunTimerAsync(_cts.Token);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await board.FocusAsync();
+        }
+    }
+
+    private async Task RunTimerAsync(CancellationToken token)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                if (_running && SecondsRemaining > 0)
+                {
+                    var wasAboveZero = SecondsRemaining > 0;
+                    SecondsRemaining = Math.Max(0, SecondsRemaining - 0.1);
+                    if (wasAboveZero && SecondsRemaining <= 0)
+                    {
+                        _running = false;
+                        ScheduleAutoReturn();
+                    }
+                }
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void ScheduleAutoReturn()
+    {
+        _autoReturnCts?.Cancel();
+        _autoReturnCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+        _ = AutoReturnAsync(_autoReturnCts.Token);
+    }
+
+    private async Task AutoReturnAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3), token);
+            GoBack();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void CancelAutoReturn()
+    {
+        _autoReturnCts?.Cancel();
+        _autoReturnCts = null;
+    }
+
+    private void TogglePause() => _running = !_running;
+
+    private void Reset()
+    {
+        CancelAutoReturn();
+        SecondsRemaining = TotalSeconds;
+        _running = false;
+    }
+
+    private void Restart()
+    {
+        CancelAutoReturn();
+        SecondsRemaining = TotalSeconds;
+        _running = true;
+    }
+
+    private void GoBack()
+    {
+        _running = false;
+        CancelAutoReturn();
+        Nav.NavigateTo("/");
+    }
+
+    private Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case " ":
+            case "t":
+            case "T":
+            case "3":
+            case "PageDown":
+                TogglePause();
+                break;
+            case "r":
+            case "R":
+            case "6":
+            case "ArrowRight":
+                Reset();
+                break;
+            case "Enter":
+                Restart();
+                break;
+            case "c":
+            case "C":
+            case "Escape":
+            case "9":
+            case "PageUp":
+                GoBack();
+                break;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task RequestFullscreenAsync()
+    {
+        _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
+        await _kiosk.InvokeVoidAsync("requestFullscreen");
+        await board.FocusAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _autoReturnCts?.Cancel();
+        _cts.Cancel();
+        _cts.Dispose();
+        try
+        {
+            if (_kiosk is not null)
+            {
+                await _kiosk.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+}

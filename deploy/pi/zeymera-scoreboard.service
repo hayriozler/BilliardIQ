@@ -22,7 +22,7 @@ User=admin
 WorkingDirectory=/home/admin/zeymera-scoreboard
 Environment=ASPNETCORE_URLS=http://0.0.0.0:5288
 Environment=DOTNET_ROOT=/home/admin/.dotnet
-ExecStart=/home/admin/.dotnet/dotnet /home/admin/zeymera-scoreboard/Zeymera.Scoreboard.Client.dll
+ExecStart=/home/admin/.dotnet/dotnet /home/admin/zeymera-scoreboard/Zeymera.BillardIQ.Client.dll
 Restart=always
 RestartSec=5
 

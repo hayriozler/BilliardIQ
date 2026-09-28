@@ -1,0 +1,3 @@
+namespace Zeymera.BillardIQ.WebApp.Requests;
+
+public record UpsertTeamRequest(int Id, string Name);
