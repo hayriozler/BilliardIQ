@@ -26,6 +26,7 @@ public class Organization : BaseEntity
 {
     public string Name { get; set; } = default!;
     public string Slug { get; set; } = default!;       // /o/kadikoy-bilardo
+    public string Code { get; set; } = default!;       // yönetim paneli giriş / eşleştirme kodu
     public string? LegalName { get; set; }
     public string? TaxNumber { get; set; }  // VKN
     public string? TaxOffice { get; set; }
@@ -39,7 +40,7 @@ public class Organization : BaseEntity
     public string Currency { get; set; } = "TRY";
     public int BillingRoundingMinutes { get; set; } = 5;
     public int MinimumBillableMinutes { get; set; } = 30;
-    public Guid? DefaultRuleSetId { get; set; }
+    public int? DefaultRuleSetId { get; set; }
     public bool IsActive { get; set; } = true;
     public SubscriptionPlan Plan { get; set; }
     public DateTimeOffset? PlanExpiresAt { get; set; }
@@ -55,8 +56,8 @@ public class Organization : BaseEntity
 /// <summary>User ↔ Organization rol ataması</summary>
 public class StaffMember : BaseEntity, ITenantScoped
 {
-    public Guid OrganizationId { get; set; }
-    public Guid UserId { get; set; }
+    public int OrganizationId { get; set; }
+    public int UserId { get; set; }
     public List<StaffRole> Roles { get; set; } = [];
     public string? PinCodeHash { get; set; } // kasada hızlı giriş
     public bool IsActive { get; set; } = true;
@@ -70,7 +71,7 @@ public class StaffMember : BaseEntity, ITenantScoped
 
 public class BilliardTable : BaseEntity, ITenantScoped
 {
-    public Guid OrganizationId { get; set; }
+    public int OrganizationId { get; set; }
     public int Number { get; set; }
     public string? Label { get; set; }          // 'VIP 1'
     public TableType Type { get; set; }
@@ -79,8 +80,8 @@ public class BilliardTable : BaseEntity, ITenantScoped
     public string? ClothBrand { get; set; }     // Simonis 300
     public DateOnly? ClothChangedAt { get; set; }
     public TableStatus Status { get; set; }     // denormalize
-    public Guid? PricingRuleId { get; set; }    // null → varsayılan kural
-    public Guid? CurrentSessionId { get; set; } // denormalize
+    public int? PricingRuleId { get; set; }    // null → varsayılan kural
+    public int? CurrentSessionId { get; set; } // denormalize
     public int SortOrder { get; set; }
     public double? FloorPlanX { get; set; }
     public double? FloorPlanY { get; set; }
@@ -97,13 +98,13 @@ public class BilliardTable : BaseEntity, ITenantScoped
 /// <summary>Masaya eşlenmiş scoreboard tableti, salon TV'si veya kasa</summary>
 public class Device : BaseEntity, ITenantScoped
 {
-    public Guid OrganizationId { get; set; }
-    public Guid? TableId { get; set; }           // Scoreboard için zorunlu
+    public int OrganizationId { get; set; }
+    public int? TableId { get; set; }           // Scoreboard için zorunlu
     public DeviceType Type { get; set; }
     public string Name { get; set; } = default!;
     public string? PairingCode { get; set; }
     public DateTimeOffset? PairedAt { get; set; }
-    public string DeviceTokenHash { get; set; } = default!;
+    public string? DeviceTokenHash { get; set; }
     public DevicePlatform? Platform { get; set; }
     public string? AppVersion { get; set; }
     public DateTimeOffset? LastSeenAt { get; set; }

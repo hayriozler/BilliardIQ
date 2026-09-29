@@ -3,7 +3,7 @@ namespace Scoreboard.WebApp.Domain;
 /// <summary>Oyuncunun disiplin bazlı toplam istatistiği (projeksiyon). PK: (PlayerId, Discipline, Scope)</summary>
 public class PlayerStats
 {
-    public Guid PlayerId { get; set; }
+    public int PlayerId { get; set; }
     public Discipline Discipline { get; set; }
     public StatsScope Scope { get; set; }
     public int MatchesPlayed { get; set; }
@@ -14,9 +14,9 @@ public class PlayerStats
     public int TotalInnings { get; set; }
     public decimal GeneralAverage { get; set; }  // GA = TotalScore / TotalInnings
     public decimal BestGameAverage { get; set; } // BGA
-    public Guid? BestGameAverageMatchId { get; set; }
+    public int? BestGameAverageMatchId { get; set; }
     public int HighRun { get; set; }             // HR
-    public Guid? HighRunMatchId { get; set; }
+    public int? HighRunMatchId { get; set; }
     public decimal Last10Average { get; set; }   // form göstergesi
     public DateTimeOffset UpdatedAt { get; set; }
 
@@ -26,8 +26,8 @@ public class PlayerStats
 /// <summary>Salon bazlı istatistik (salon içi lider tablosu). PK: (PlayerId, OrganizationId, Discipline)</summary>
 public class PlayerOrganizationStats
 {
-    public Guid PlayerId { get; set; }
-    public Guid OrganizationId { get; set; }
+    public int PlayerId { get; set; }
+    public int OrganizationId { get; set; }
     public Discipline Discipline { get; set; }
     public int MatchesPlayed { get; set; }
     public int Wins { get; set; }
@@ -48,11 +48,11 @@ public class PlayerOrganizationStats
 
 public class RatingHistory
 {
-    public Guid Id { get; set; } = Guid.CreateVersion7();
-    public Guid PlayerId { get; set; }
+    public int Id { get; set; }
+    public int PlayerId { get; set; }
     public Discipline Discipline { get; set; }
     public RatingSystem System { get; set; }
-    public Guid? MatchId { get; set; }
+    public int? MatchId { get; set; }
     public decimal RatingBefore { get; set; }
     public decimal RatingAfter { get; set; }
     public decimal Delta { get; set; }
@@ -64,12 +64,12 @@ public class RatingHistory
 
 public class AuditLog
 {
-    public Guid Id { get; set; } = Guid.CreateVersion7();
-    public Guid OrganizationId { get; set; }
-    public Guid? ActorUserId { get; set; }
-    public Guid? ActorDeviceId { get; set; }
+    public int Id { get; set; }
+    public int OrganizationId { get; set; }
+    public int? ActorUserId { get; set; }
+    public int? ActorDeviceId { get; set; }
     public string EntityType { get; set; } = default!; // 'TableSession', 'Payment'
-    public Guid EntityId { get; set; }
+    public int EntityId { get; set; }
     public string Action { get; set; } = default!;     // 'VOIDED', 'DISCOUNT_APPLIED'
     public string? BeforeJson { get; set; }
     public string? AfterJson { get; set; }

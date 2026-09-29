@@ -1,36 +1,58 @@
 @page "/teams"
 @attribute [Authorize]
-@inject TeamService TeamService
-@inject PlayerService Players
-@inject AuthenticationStateProvider AuthState
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
 
-<h1>Teams</h1>
+<PageTitle>Takımlar • BillardIQ</PageTitle>
 
-<EditForm Model="_form" OnValidSubmit="SaveAsync" FormName="team-form">
-    <DataAnnotationsValidator />
-    <div class="form-row">
-        <InputText @bind-Value="_form.Name" placeholder="Team name" />
-        <button type="submit">@(_form.Id == 0 ? "Add Team" : "Save Team")</button>
-        @if (_form.Id != 0)
-        {
-            <button type="button" @onclick="ResetForm">Cancel</button>
-        }
+<div class="page-head">
+    <div>
+        <h1>Takımlar</h1>
+        <div class="subtitle">Takımlar bir kulübe bağlıdır. Oyuncuları işaretleyerek kadroyu belirleyin.</div>
     </div>
-    <ValidationSummary />
-</EditForm>
+</div>
 
 @if (_error is not null)
 {
-    <p class="error">@_error</p>
+    <div class="alert error">@_error</div>
 }
+
+<div class="card">
+    <h2>@(_form.Id == 0 ? "Yeni takım" : "Takımı düzenle")</h2>
+    @if (_clubs is { Count: 0 })
+    {
+        <p class="hint">Kulüp seçilmezse ilk kulüp kullanılır. <a href="/clubs">Kulüp ekleyin</a>.</p>
+    }
+    <EditForm Model="_form" OnValidSubmit="SaveAsync" FormName="team-form">
+        <DataAnnotationsValidator />
+        <div class="form-row">
+            <label class="field">Takım adı<InputText @bind-Value="_form.Name" placeholder="Kadıköy BSK A" /></label>
+            <label class="field">Kulüp
+                <InputSelect @bind-Value="_form.ClubId">
+                    <option value="">@(_clubs is { Count: 0 } ? "Otomatik oluştur" : "İlk kulüp")</option>
+                    @foreach (var club in _clubs ?? [])
+                    {
+                        <option value="@club.Id">@club.Name</option>
+                    }
+                </InputSelect>
+            </label>
+            <button type="submit" class="primary" disabled="@_busy">@(_form.Id == 0 ? "Takım ekle" : "Kaydet")</button>
+            @if (_form.Id != 0)
+            {
+                <button type="button" @onclick="ResetForm">Vazgeç</button>
+            }
+        </div>
+        <ValidationSummary />
+    </EditForm>
+</div>
 
 @if (_teams is null || _players is null)
 {
-    <p>Loading...</p>
+    <p class="muted">Yükleniyor...</p>
 }
 else if (_teams.Count == 0)
 {
-    <p>No teams yet.</p>
+    <div class="card empty">Henüz takım yok.</div>
 }
 else
 {
@@ -38,26 +60,37 @@ else
     {
         <div class="team-card">
             <div class="team-header">
-                <strong>@team.Name</strong>
+                <div>
+                    <strong>@team.Name</strong>
+                    <div class="muted">@team.Club.Name • @team.Members.Count oyuncu</div>
+                </div>
                 <div class="row-actions">
-                    <button @onclick="() => Edit(team)">Edit</button>
-                    <button @onclick="() => DeleteAsync(team.Id)">Delete</button>
+                    <button class="small" @onclick="() => Edit(team)">Düzenle</button>
+                    @if (_confirmDelete == team.Id)
+                    {
+                        <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(team.Id)">Silmeyi onayla</button>
+                        <button class="small ghost" @onclick="() => _confirmDelete = null">Vazgeç</button>
+                    }
+                    else
+                    {
+                        <button class="small ghost" @onclick="() => _confirmDelete = team.Id">Sil</button>
+                    }
                 </div>
             </div>
             @if (_players.Count == 0)
             {
-                <p class="hint">Add players to this club first.</p>
+                <p class="hint">Önce <a href="/players">oyuncu ekleyin</a>.</p>
             }
             else
             {
                 <div class="team-players">
                     @foreach (var player in _players)
                     {
-                        var isMember = team.TeamPlayers.Any(tp => tp.PlayerId == player.Id);
+                        var isMember = team.Members.Any(m => m.PlayerId == player.Id);
                         <label class="player-toggle">
                             <input type="checkbox" checked="@isMember"
                                    @onchange="e => ToggleMembershipAsync(team, player.Id, (bool)e.Value!)" />
-                            @player.Nickname
+                            @player.DisplayName
                         </label>
                     }
                 </div>
@@ -67,53 +100,75 @@ else
 }
 
 @code {
-    private int _clubId;
+    private Tenant? _tenant;
     private List<Team>? _teams;
     private List<Player>? _players;
+    private List<Club>? _clubs;
     private string? _error;
+    private bool _busy;
+    private int? _confirmDelete;
     private TeamFormModel _form = new();
 
     protected override async Task OnInitializedAsync()
     {
-        var state = await AuthState.GetAuthenticationStateAsync();
-        _clubId = int.Parse(state.User.FindFirst("ClubId")!.Value);
+        _tenant = await TenantContext.GetAsync();
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
-        _teams = await TeamService.ListForClubAsync(_clubId);
-        _players = await Players.ListForClubAsync(_clubId);
+        var orgId = _tenant!.OrganizationId;
+        _teams = await Db.RunAsync((TeamService s) => s.ListForOrganizationAsync(orgId));
+        _players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId));
+        _clubs = await Db.RunAsync((ClubService s) => s.ListAsync(orgId));
     }
 
-    private void Edit(Team team) => _form = new TeamFormModel { Id = team.Id, Name = team.Name };
+    private void Edit(Team team) =>
+        _form = new TeamFormModel { Id = team.Id, Name = team.Name, ClubId = team.ClubId.ToString() };
 
     private void ResetForm() => _form = new TeamFormModel();
 
     private async Task SaveAsync()
     {
         _error = null;
+        _busy = true;
         try
         {
-            await TeamService.UpsertAsync(_clubId, _form.Id, _form.Name);
+            int? clubId = int.TryParse(_form.ClubId, out var parsed) ? parsed : null;
+            await Db.RunAsync((TeamService s) => s.UpsertAsync(_tenant!.OrganizationId, _form.Id, _form.Name, clubId));
             ResetForm();
-            await LoadAsync();
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
             _error = ex.Message;
         }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
     }
 
     private async Task DeleteAsync(int id)
     {
-        await TeamService.DeleteAsync(_clubId, id);
+        _busy = true;
+        try
+        {
+            await Db.RunAsync((TeamService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+            _confirmDelete = null;
+        }
+        finally
+        {
+            _busy = false;
+        }
+
         await LoadAsync();
     }
 
     private async Task ToggleMembershipAsync(Team team, int playerId, bool isMember)
     {
-        var currentIds = team.TeamPlayers.Select(tp => tp.PlayerId).ToHashSet();
+        var currentIds = team.Members.Select(m => m.PlayerId).ToHashSet();
         if (isMember)
         {
             currentIds.Add(playerId);
@@ -123,22 +178,26 @@ else
             currentIds.Remove(playerId);
         }
 
+        _error = null;
         try
         {
-            await TeamService.SetPlayersAsync(_clubId, team.Id, currentIds.ToArray());
-            await LoadAsync();
+            await Db.RunAsync((TeamService s) => s.SetPlayersAsync(_tenant!.OrganizationId, team.Id, currentIds.ToArray()));
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
             _error = ex.Message;
         }
+
+        await LoadAsync();
     }
 
     private class TeamFormModel
     {
         public int Id { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Takım adı gerekli.")]
         public string Name { get; set; } = string.Empty;
+
+        public string ClubId { get; set; } = string.Empty;
     }
 }

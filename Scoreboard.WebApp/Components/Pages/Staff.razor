@@ -1,0 +1,152 @@
+@page "/staff"
+@attribute [Authorize(Roles = "Owner,Manager")]
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>Kullanıcılar • BillardIQ</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>Kullanıcılar</h1>
+        <div class="subtitle">Panele giriş yapabilecek personel hesapları.</div>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert error">@_error</div>
+}
+@if (_message is not null)
+{
+    <div class="alert success">@_message</div>
+}
+
+<div class="card">
+    <h2>Yeni kullanıcı</h2>
+    <div class="form-grid">
+        <label class="field">Ad soyad<input type="text" @bind="_name" /></label>
+        <label class="field">E-posta<input type="email" @bind="_email" autocomplete="off" /></label>
+        <label class="field">Şifre (en az @AuthService.MinPasswordLength karakter)<input type="password" @bind="_password" autocomplete="new-password" /></label>
+        <label class="field">Rol
+            <select @bind="_role">
+                @foreach (var role in new[] { StaffRole.Manager, StaffRole.Cashier, StaffRole.Waiter, StaffRole.Referee })
+                {
+                    <option value="@role">@Format.Role(role)</option>
+                }
+            </select>
+        </label>
+    </div>
+    <div class="form-actions">
+        <button class="primary" disabled="@_busy" @onclick="AddAsync">Kullanıcı ekle</button>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Personel (@_staff.Count)</h2>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Ad soyad</th><th>E-posta</th><th>Rol</th><th>Son giriş</th><th>Durum</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var member in _staff)
+                {
+                    <tr>
+                        <td><strong>@member.User.DisplayName</strong></td>
+                        <td>@member.User.Email</td>
+                        <td>@string.Join(", ", member.Roles.Select(Format.Role))</td>
+                        <td>@(member.User.LastLoginAt is { } login && _zone is not null ? Format.DateTime(login, _zone) : "—")</td>
+                        <td><span class="pill @(member.IsActive ? "available" : "off")">@(member.IsActive ? "Aktif" : "Pasif")</span></td>
+                        <td>
+                            @if (member.User.Id != _tenant?.UserId)
+                            {
+                                <button class="small" disabled="@_busy" @onclick="() => SetActiveAsync(member.Id, !member.IsActive)">
+                                    @(member.IsActive ? "Devre dışı bırak" : "Etkinleştir")
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="hint">Siz</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Şifremi değiştir</h2>
+    <div class="form-grid">
+        <label class="field">Mevcut şifre<input type="password" @bind="_currentPassword" autocomplete="current-password" /></label>
+        <label class="field">Yeni şifre<input type="password" @bind="_newPassword" autocomplete="new-password" /></label>
+    </div>
+    <div class="form-actions">
+        <button disabled="@_busy" @onclick="ChangePasswordAsync">Şifreyi değiştir</button>
+    </div>
+</div>
+
+@code {
+    private Tenant? _tenant;
+    private TimeZoneInfo? _zone;
+    private List<StaffMember> _staff = [];
+    private string _name = "";
+    private string _email = "";
+    private string _password = "";
+    private StaffRole _role = StaffRole.Cashier;
+    private string _currentPassword = "";
+    private string _newPassword = "";
+    private string? _error;
+    private string? _message;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenant = await TenantContext.GetAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var orgId = _tenant!.OrganizationId;
+        _staff = await Db.RunAsync((AuthService s) => s.ListStaffAsync(orgId));
+        _zone = PricingCalculator.ResolveTimeZone((await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId))).TimeZone);
+    }
+
+    private Task AddAsync() => RunAsync(async () =>
+    {
+        await Db.RunAsync((AuthService s) => s.AddStaffAsync(_tenant!.OrganizationId, _name, _email, _password, _role));
+        _name = _email = _password = "";
+        _message = "Kullanıcı eklendi.";
+    });
+
+    private Task SetActiveAsync(int staffId, bool active) => RunAsync(() =>
+        Db.RunAsync((AuthService s) => s.SetStaffActiveAsync(_tenant!.OrganizationId, staffId, active)));
+
+    private Task ChangePasswordAsync() => RunAsync(async () =>
+    {
+        await Db.RunAsync((AuthService s) => s.ChangePasswordAsync(_tenant!.UserId, _currentPassword, _newPassword));
+        _currentPassword = _newPassword = "";
+        _message = "Şifre değiştirildi.";
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _error = null;
+        _message = null;
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (ArgumentException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+    }
+}

@@ -3,7 +3,7 @@ namespace Scoreboard.WebApp.Domain;
 /// <summary>Maç kural şablonu. Maç başladığında Match.Rules'a kopyalanır.</summary>
 public class RuleSet : BaseEntity
 {
-    public Guid? OrganizationId { get; set; }    // null → sistem şablonu (UMB, TBF)
+    public int? OrganizationId { get; set; }    // null → sistem şablonu (UMB, TBF)
     public string Name { get; set; } = default!; // 'UMB 3 Bant 40 sayı'
     public Discipline Discipline { get; set; }
     public MatchFormat Format { get; set; }
@@ -41,7 +41,7 @@ public class RuleSet : BaseEntity
 /// <summary>Match içinde saklanan değişmez kural kopyası (owned / JSON)</summary>
 public class MatchRules
 {
-    public Guid? RuleSetId { get; set; }
+    public int? RuleSetId { get; set; }
     public Discipline Discipline { get; set; }
     public MatchFormat Format { get; set; }
     public int TargetPoints { get; set; }
@@ -58,17 +58,17 @@ public class MatchRules
 
 public class Match : BaseEntity, ITenantScoped
 {
-    public Guid OrganizationId { get; set; }
-    public Guid? TableId { get; set; }
-    public Guid? SessionId { get; set; }         // masa kiralaması içindeyse
+    public int OrganizationId { get; set; }
+    public int? TableId { get; set; }
+    public int? SessionId { get; set; }         // masa kiralaması içindeyse
     public MatchContext Context { get; set; }
 
     // turnuva / lig bağlamı
-    public Guid? TournamentStageId { get; set; }
-    public Guid? StageGroupId { get; set; }
+    public int? TournamentStageId { get; set; }
+    public int? StageGroupId { get; set; }
     public int? BracketRound { get; set; }
     public int? BracketPosition { get; set; }
-    public Guid? TeamFixtureId { get; set; }
+    public int? TeamFixtureId { get; set; }
     public int? BoardNumber { get; set; }        // takım maçında kaçıncı masa
 
     public MatchRules Rules { get; set; } = new(); // SNAPSHOT
@@ -86,8 +86,8 @@ public class Match : BaseEntity, ITenantScoped
     public int? CurrentSetNo { get; set; }
     public Side? WinnerSide { get; set; }
 
-    public Guid? RefereeUserId { get; set; }
-    public Guid? ScorekeeperDeviceId { get; set; }
+    public int? RefereeUserId { get; set; }
+    public int? ScorekeeperDeviceId { get; set; }
     public long LastEventSeq { get; set; }
     public bool IsStreamed { get; set; }
     public string? Notes { get; set; }
@@ -109,9 +109,9 @@ public class Match : BaseEntity, ITenantScoped
 /// <summary>Maçtaki bir taraf (her zaman tek oyuncu). İstatistikler burada materialize edilir.</summary>
 public class MatchParticipant : BaseEntity
 {
-    public Guid MatchId { get; set; }
+    public int MatchId { get; set; }
     public Side Side { get; set; }
-    public Guid? PlayerId { get; set; }
+    public int? PlayerId { get; set; }
     public string? GuestName { get; set; }       // player kaydı yoksa
     public BallColor BallColor { get; set; }
     public int TargetPoints { get; set; }        // handikap: tarafa özel hedef
@@ -135,7 +135,7 @@ public class MatchParticipant : BaseEntity
 
 public class MatchSet : BaseEntity
 {
-    public Guid MatchId { get; set; }
+    public int MatchId { get; set; }
     public int SetNo { get; set; }
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? FinishedAt { get; set; }
@@ -153,8 +153,8 @@ public class MatchSet : BaseEntity
 /// <summary>Bir istaka sırası (seri) — event log'dan projeksiyon</summary>
 public class Inning
 {
-    public Guid Id { get; set; } = Guid.CreateVersion7();
-    public Guid MatchId { get; set; }
+    public int Id { get; set; }
+    public int MatchId { get; set; }
     public int? SetNo { get; set; }
     public int InningNo { get; set; }            // 1'den başlar
     public Side Side { get; set; }
@@ -171,12 +171,12 @@ public class Inning
 
 /// <summary>
 /// Asıl veri kaynağı: append-only event log. (MatchId, Seq) unique.
-/// Id istemcide üretilir → sync'te idempotency.
+/// Id sunucuda üretilir; (MatchId, Seq) çiftinin unique olması sync idempotency'sini sağlar.
 /// </summary>
 public class MatchEvent
 {
-    public Guid Id { get; set; }
-    public Guid MatchId { get; set; }
+    public long Id { get; set; }
+    public int MatchId { get; set; }
     public long Seq { get; set; }
     public MatchEventType Type { get; set; }
     public Side? Side { get; set; }
@@ -184,8 +184,8 @@ public class MatchEvent
     public string PayloadJson { get; set; } = "{}";
     public DateTimeOffset ClientTimestamp { get; set; }
     public DateTimeOffset? ServerTimestamp { get; set; }
-    public Guid? DeviceId { get; set; }
-    public Guid? ActorUserId { get; set; }
+    public int? DeviceId { get; set; }
+    public int? ActorUserId { get; set; }
 
     public Match Match { get; set; } = default!;
 }

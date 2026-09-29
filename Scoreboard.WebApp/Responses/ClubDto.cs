@@ -1,3 +1,3 @@
 namespace Scoreboard.WebApp.Responses;
 
-public record ClubDto(int Id, string Code, string Name, DateTimeOffset CreatedAt);
+public record ClubDto(int Id, string Name, string ShortName, string? City, string? PrimaryColor);

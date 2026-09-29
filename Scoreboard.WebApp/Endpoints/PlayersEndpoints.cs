@@ -1,5 +1,4 @@
 using Scoreboard.WebApp.Middlewares;
-using Scoreboard.WebApp.Models;
 using Scoreboard.WebApp.Requests;
 using Scoreboard.WebApp.Responses;
 using Scoreboard.WebApp.Services;
@@ -13,28 +12,14 @@ public static class PlayersEndpoints
         var group = app.MapGroup("/api/players").WithTags("Players");
 
         group.MapGet("/", async (PlayerService players, HttpContext context) =>
-        {
-            var clubId = context.GetClubId();
-            if (clubId is null)
-            {
-                return Results.BadRequest("Client is not linked to a club.");
-            }
-
-            return Results.Ok((await players.ListForClubAsync(clubId.Value)).Select(ToDto).ToList());
-        });
+            (await players.ListForOrganizationAsync(context.GetOrganizationId())).Select(ToDto).ToList());
 
         group.MapPost("/", async (UpsertPlayerRequest request, PlayerService players, HttpContext context) =>
         {
-            var clubId = context.GetClubId();
-            if (clubId is null)
-            {
-                return Results.BadRequest("Client is not linked to a club.");
-            }
-
             try
             {
                 var player = await players.UpsertAsync(
-                    clubId.Value, request.Id, request.Nickname, request.Name, request.AvatarId,
+                    context.GetOrganizationId(), request.Id, request.Nickname, request.Name, request.AvatarId,
                     request.Email, request.Level, request.BaseCountry, request.BaseCity,
                     request.PhotoBase64, request.PhotoExtension);
                 return Results.Ok(ToDto(player));
@@ -46,19 +31,12 @@ public static class PlayersEndpoints
         });
 
         group.MapDelete("/{id:int}", async (int id, PlayerService players, HttpContext context) =>
-        {
-            var clubId = context.GetClubId();
-            if (clubId is null)
-            {
-                return Results.BadRequest("Client is not linked to a club.");
-            }
-
-            return await players.DeleteAsync(clubId.Value, id) ? Results.NoContent() : Results.NotFound();
-        });
+            await players.DeleteAsync(context.GetOrganizationId(), id) ? Results.NoContent() : Results.NotFound());
 
         return group;
     }
 
-    private static PlayerDto ToDto(Player p) =>
-        new(p.Id, p.ClubId, p.Nickname, p.Name, p.PhotoPath, p.AvatarId, p.Email, p.Level, p.BaseCountry, p.BaseCity, p.UpdatedAt);
+    private static PlayerDto ToDto(Player p) => new(
+        p.Id, null, p.Nickname ?? p.DisplayName, $"{p.FirstName} {p.LastName}".Trim(), p.PhotoUrl, p.AvatarId,
+        p.Email ?? string.Empty, p.Level, p.Nationality ?? string.Empty, p.City ?? string.Empty, p.UpdatedAt);
 }

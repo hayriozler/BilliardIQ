@@ -1,0 +1,64 @@
+@page "/register"
+
+<PageTitle>Salon kaydı • BillardIQ</PageTitle>
+
+<div class="auth-card">
+    <div class="brand-row">
+        <span class="brand-mark">🎱</span>
+        <span>BillardIQ</span>
+    </div>
+
+    <h1>Salonunuzu kaydedin</h1>
+    <p class="muted">Salon, yönetici hesabı ve masalar birkaç saniyede hazır olur.</p>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert error">@Error</div>
+    }
+
+    <form method="post" action="/register">
+        <label class="field">Salon adı
+            <input type="text" name="organization" value="@Organization" required autofocus />
+        </label>
+        <label class="field">Ad soyad
+            <input type="text" name="name" value="@Name" autocomplete="name" required />
+        </label>
+        <label class="field">E-posta
+            <input type="email" name="email" value="@Email" autocomplete="username" required />
+        </label>
+        <label class="field">Şifre (en az @AuthService.MinPasswordLength karakter)
+            <input type="password" name="password" autocomplete="new-password" required minlength="@AuthService.MinPasswordLength" />
+        </label>
+        <div class="form-row">
+            <label class="field">Masa sayısı
+                <input type="number" name="tables" value="@(Tables ?? 6)" min="0" max="100" />
+            </label>
+            <label class="field">Saatlik ücret (₺)
+                <input type="number" name="rate" value="@(Rate ?? 150)" min="0" step="0.01" />
+            </label>
+        </div>
+        <button type="submit" class="primary">Salonu oluştur</button>
+    </form>
+
+    <div class="switch">Zaten hesabınız var mı? <a href="/login">Giriş yapın</a></div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    [SupplyParameterFromQuery(Name = "organization")]
+    public string? Organization { get; set; }
+
+    [SupplyParameterFromQuery(Name = "name")]
+    public string? Name { get; set; }
+
+    [SupplyParameterFromQuery(Name = "email")]
+    public string? Email { get; set; }
+
+    [SupplyParameterFromQuery(Name = "tables")]
+    public int? Tables { get; set; }
+
+    [SupplyParameterFromQuery(Name = "rate")]
+    public decimal? Rate { get; set; }
+}

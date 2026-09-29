@@ -4,7 +4,7 @@ namespace Scoreboard.WebApp.Domain;
 
 public class PricingRule : BaseEntity
 {
-    public Guid OrganizationId { get; set; }
+    public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;     // 'Maç masası standart'
     public string Currency { get; set; } = "TRY";
     public decimal DefaultHourlyRate { get; set; }
@@ -20,7 +20,7 @@ public class PricingRule : BaseEntity
 /// <summary>Session açıldığı andaki fiyat kuralının değişmez kopyası (owned / JSON)</summary>
 public class PricingSnapshot
 {
-    public Guid PricingRuleId { get; set; }
+    public int PricingRuleId { get; set; }
     public string Name { get; set; } = default!;
     public string Currency { get; set; } = "TRY";
     public decimal DefaultHourlyRate { get; set; }
@@ -31,9 +31,9 @@ public class PricingSnapshot
 
 public class Reservation : BaseEntity
 {
-    public Guid OrganizationId { get; set; }
-    public Guid? TableId { get; set; }           // null → uygun herhangi masa
-    public Guid? PlayerId { get; set; }
+    public int OrganizationId { get; set; }
+    public int? TableId { get; set; }           // null → uygun herhangi masa
+    public int? PlayerId { get; set; }
     public string ContactName { get; set; } = default!;
     public string? ContactPhone { get; set; }
     public DateTimeOffset StartAt { get; set; }
@@ -41,8 +41,8 @@ public class Reservation : BaseEntity
     public int PartySize { get; set; } = 2;
     public ReservationStatus Status { get; set; }
     public decimal? DepositAmount { get; set; }
-    public Guid? SessionId { get; set; }         // check-in sonrası
-    public Guid? CreatedByUserId { get; set; }
+    public int? SessionId { get; set; }         // check-in sonrası
+    public int? CreatedByUserId { get; set; }
     public string? Notes { get; set; }
 
     public Organization Organization { get; set; } = default!;
@@ -56,12 +56,13 @@ public class Reservation : BaseEntity
 /// <summary>Masa kiralama — para ile ilgili. Match'ten ayrıdır.</summary>
 public class TableSession : BaseEntity, ITenantScoped
 {
-    public Guid OrganizationId { get; set; }
-    public Guid TableId { get; set; }
-    public Guid? ReservationId { get; set; }
+    public int OrganizationId { get; set; }
+    public int TableId { get; set; }
+    public int? ReservationId { get; set; }
     public TableSessionStatus Status { get; set; }
     public DateTimeOffset OpenedAt { get; set; }
     public DateTimeOffset? ClosedAt { get; set; }
+    public DateTimeOffset? PausedAt { get; set; } // Paused durumundayken duraklatma başlangıcı
     public int PausedMinutes { get; set; }
     public int? BilledMinutes { get; set; }      // yuvarlanmış
     public PricingSnapshot PricingSnapshot { get; set; } = new(); // owned / JSON
@@ -70,8 +71,8 @@ public class TableSession : BaseEntity, ITenantScoped
     public decimal DiscountAmount { get; set; }
     public decimal? TotalAmount { get; set; }
     public decimal PaidAmount { get; set; }
-    public Guid OpenedByStaffId { get; set; }
-    public Guid? ClosedByStaffId { get; set; }
+    public int OpenedByStaffId { get; set; }
+    public int? ClosedByStaffId { get; set; }
     public string? Notes { get; set; }
 
     public Organization Organization { get; set; } = default!;
@@ -88,12 +89,12 @@ public class TableSession : BaseEntity, ITenantScoped
 /// <summary>Session'daki oyuncular (hesap bölüşme, üye indirimi)</summary>
 public class SessionPlayer : BaseEntity
 {
-    public Guid SessionId { get; set; }
-    public Guid? PlayerId { get; set; }          // anonim müşteri olabilir
+    public int SessionId { get; set; }
+    public int? PlayerId { get; set; }          // anonim müşteri olabilir
     public string? GuestName { get; set; }
     public DateTimeOffset JoinedAt { get; set; }
     public DateTimeOffset? LeftAt { get; set; }
-    public Guid? CustomerMembershipId { get; set; }
+    public int? CustomerMembershipId { get; set; }
 
     public TableSession Session { get; set; } = default!;
     public Player? Player { get; set; }
@@ -104,7 +105,7 @@ public class SessionPlayer : BaseEntity
 
 public class ProductCategory : BaseEntity
 {
-    public Guid OrganizationId { get; set; }
+    public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;  // 'Sıcak İçecekler'
     public int SortOrder { get; set; }
 
@@ -114,8 +115,8 @@ public class ProductCategory : BaseEntity
 
 public class Product : BaseEntity
 {
-    public Guid OrganizationId { get; set; }
-    public Guid CategoryId { get; set; }
+    public int OrganizationId { get; set; }
+    public int CategoryId { get; set; }
     public string Name { get; set; } = default!;
     public string? Sku { get; set; }
     public decimal Price { get; set; }
@@ -131,9 +132,9 @@ public class Product : BaseEntity
 
 public class OrderItem : BaseEntity
 {
-    public Guid OrganizationId { get; set; }
-    public Guid? SessionId { get; set; }         // null → tezgah satışı
-    public Guid ProductId { get; set; }
+    public int OrganizationId { get; set; }
+    public int? SessionId { get; set; }         // null → tezgah satışı
+    public int ProductId { get; set; }
     public string ProductNameSnapshot { get; set; } = default!;
     public decimal UnitPriceSnapshot { get; set; }
     public decimal VatRateSnapshot { get; set; }
@@ -141,8 +142,8 @@ public class OrderItem : BaseEntity
     public decimal DiscountAmount { get; set; }
     public decimal LineTotal { get; set; }
     public OrderItemStatus Status { get; set; }
-    public Guid? OrderedByStaffId { get; set; }
-    public Guid? SessionPlayerId { get; set; }   // hesap bölüşmede kime ait
+    public int? OrderedByStaffId { get; set; }
+    public int? SessionPlayerId { get; set; }   // hesap bölüşmede kime ait
     public string? Note { get; set; }
 
     public TableSession? Session { get; set; }
@@ -152,16 +153,16 @@ public class OrderItem : BaseEntity
 
 public class Payment : BaseEntity, ITenantScoped
 {
-    public Guid OrganizationId { get; set; }
-    public Guid? SessionId { get; set; }
-    public Guid? SessionPlayerId { get; set; }
+    public int OrganizationId { get; set; }
+    public int? SessionId { get; set; }
+    public int? SessionPlayerId { get; set; }
     public decimal Amount { get; set; }
     public decimal TipAmount { get; set; }
     public PaymentMethod Method { get; set; }
     public PaymentStatus Status { get; set; }
     public string? ExternalRef { get; set; }     // POS / sanal POS ref
-    public Guid ReceivedByStaffId { get; set; }
-    public Guid? CashRegisterShiftId { get; set; }
+    public int ReceivedByStaffId { get; set; }
+    public int? CashRegisterShiftId { get; set; }
     public DateTimeOffset PaidAt { get; set; }
 
     public TableSession? Session { get; set; }
@@ -173,9 +174,9 @@ public class Payment : BaseEntity, ITenantScoped
 /// <summary>Kasa vardiyası — gün sonu mutabakatı</summary>
 public class CashRegisterShift : BaseEntity
 {
-    public Guid OrganizationId { get; set; }
-    public Guid OpenedByStaffId { get; set; }
-    public Guid? ClosedByStaffId { get; set; }
+    public int OrganizationId { get; set; }
+    public int OpenedByStaffId { get; set; }
+    public int? ClosedByStaffId { get; set; }
     public DateTimeOffset OpenedAt { get; set; }
     public DateTimeOffset? ClosedAt { get; set; }
     public decimal OpeningCash { get; set; }

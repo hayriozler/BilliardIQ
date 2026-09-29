@@ -2,7 +2,7 @@ namespace Scoreboard.WebApp.Domain;
 
 /*
  * Konvansiyonlar
- *  - Id: Guid (offline tablet ID'yi kendisi üretebilir → Guid.CreateVersion7()).
+ *  - Id: int, veritabanı tarafından üretilir (istemciler sunucudaki Id'yi doğrudan kullanır).
  *  - Zaman: DateTimeOffset (UTC saklanır, gösterimde Organization.TimeZone).
  *  - Para: decimal (precision 18,2).
  *  - Snapshot / value object'ler EF Core'da Owned Type veya JSON column olarak map edilir.
@@ -10,7 +10,7 @@ namespace Scoreboard.WebApp.Domain;
 
 public abstract class BaseEntity
 {
-    public Guid Id { get; set; } = Guid.CreateVersion7();
+    public int Id { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; } // soft delete
@@ -19,7 +19,7 @@ public abstract class BaseEntity
 /// <summary>Tenant'a (Organization) bağlı entity'ler</summary>
 public interface ITenantScoped
 {
-    Guid OrganizationId { get; set; }
+    int OrganizationId { get; set; }
 }
 
 // ---------- Value objects ----------

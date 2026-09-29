@@ -1,24 +1,42 @@
 @page "/login"
 
-<h1>Club Login</h1>
+<PageTitle>Giriş • BillardIQ</PageTitle>
 
-@if (ShowError)
-{
-    <p class="error">Invalid club code.</p>
-}
-
-<form method="post" action="/login">
-    <div class="form-row">
-        <input type="text" name="code" placeholder="Club code" autocomplete="off" />
-        <button type="submit">Log in</button>
+<div class="auth-card">
+    <div class="brand-row">
+        <span class="brand-mark">🎱</span>
+        <span>BillardIQ</span>
     </div>
-</form>
 
-<p class="hint">No club yet? <a href="/clubs">Register one</a>.</p>
+    <h1>Hoş geldiniz</h1>
+    <p class="muted">Salon yönetim paneline giriş yapın.</p>
+
+    @if (Error == "1")
+    {
+        <div class="alert error">E-posta veya şifre hatalı.</div>
+    }
+
+    <form method="post" action="/login">
+        <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+        <label class="field">E-posta
+            <input type="email" name="email" value="@Email" autocomplete="username" required autofocus />
+        </label>
+        <label class="field">Şifre
+            <input type="password" name="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit" class="primary">Giriş yap</button>
+    </form>
+
+    <div class="switch">Salonunuz henüz kayıtlı değil mi? <a href="/register">Salon kaydı oluşturun</a></div>
+</div>
 
 @code {
     [SupplyParameterFromQuery(Name = "error")]
     public string? Error { get; set; }
 
-    private bool ShowError => Error == "1";
+    [SupplyParameterFromQuery(Name = "email")]
+    public string? Email { get; set; }
+
+    [SupplyParameterFromQuery(Name = "ReturnUrl")]
+    public string? ReturnUrl { get; set; }
 }

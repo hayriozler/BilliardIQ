@@ -1,9 +1,15 @@
 namespace Scoreboard.WebApp.Models;
 
+/// <summary>
+/// Flat match summary pushed by a kiosk. Legacy shape kept until the kiosk speaks
+/// <see cref="Domain.MatchEvent"/>; Player ids are the server's own <see cref="Domain.Player.Id"/>.
+/// </summary>
 public class MatchStat
 {
     public int Id { get; set; }
-    public string ClientId { get; set; } = string.Empty;
+    public int DeviceId { get; set; }
+    public Device? Device { get; set; }
+
     public int? Player1ExternalId { get; set; }
     public string Player1Name { get; set; } = string.Empty;
     public int Player1Score { get; set; }

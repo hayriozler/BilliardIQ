@@ -1,19 +1,22 @@
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
-using Scoreboard.WebApp.Models;
 
 namespace Scoreboard.WebApp.Services;
 
 public class PlayerService(DataContext db, IWebHostEnvironment env)
 {
-    public Task<List<Player>> ListForClubAsync(int clubId) =>
-        db.PlayerSet.Where(p => p.ClubId == clubId).OrderBy(p => p.Name).ToListAsync();
+    public Task<List<Player>> ListForOrganizationAsync(int organizationId) =>
+        db.PlayerSet
+            .Where(p => p.CreatedInOrganizationId == organizationId && p.DeletedAt == null)
+            .OrderBy(p => p.DisplayName)
+            .ToListAsync();
 
-    public Task<Player?> GetAsync(int clubId, int id) =>
-        db.PlayerSet.FirstOrDefaultAsync(p => p.Id == id && p.ClubId == clubId);
+    public Task<Player?> GetAsync(int organizationId, int id) =>
+        db.PlayerSet.FirstOrDefaultAsync(p =>
+            p.Id == id && p.CreatedInOrganizationId == organizationId && p.DeletedAt == null);
 
     public async Task<Player> UpsertAsync(
-        int clubId,
+        int organizationId,
         int id,
         string nickname,
         string name,
@@ -25,21 +28,29 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         string? photoBase64,
         string? photoExtension)
     {
-        var player = id != 0 ? await db.PlayerSet.FirstOrDefaultAsync(p => p.Id == id && p.ClubId == clubId) : null;
+        name = name.Trim();
+        if (name.Length == 0 && string.IsNullOrWhiteSpace(nickname))
+        {
+            throw new ArgumentException("Ad veya takma ad gerekli.");
+        }
+
+        var player = id != 0 ? await GetAsync(organizationId, id) : null;
         if (player is null)
         {
-            player = new Player { ClubId = clubId };
+            player = new Player { CreatedInOrganizationId = organizationId };
             db.PlayerSet.Add(player);
         }
 
-        player.Nickname = nickname;
-        player.Name = name;
+        var (first, last) = SplitName(name);
+        player.FirstName = first;
+        player.LastName = last;
+        player.Nickname = string.IsNullOrWhiteSpace(nickname) ? null : nickname.Trim();
+        player.DisplayName = player.Nickname ?? name;
         player.AvatarId = avatarId;
-        player.Email = email;
+        player.Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
         player.Level = level;
-        player.BaseCountry = baseCountry;
-        player.BaseCity = baseCity;
-        player.UpdatedAt = DateTimeOffset.UtcNow;
+        player.Nationality = string.IsNullOrWhiteSpace(baseCountry) ? null : baseCountry.Trim();
+        player.City = string.IsNullOrWhiteSpace(baseCity) ? null : baseCity.Trim();
 
         await db.SaveChangesAsync();
 
@@ -52,15 +63,15 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             }
             catch (FormatException)
             {
-                throw new ArgumentException("Invalid photo data.");
+                throw new ArgumentException("Geçersiz fotoğraf verisi.");
             }
 
             var extension = string.IsNullOrWhiteSpace(photoExtension) ? "jpg" : photoExtension.TrimStart('.');
-            var folder = Path.Combine(env.WebRootPath, "Players", clubId.ToString());
+            var folder = Path.Combine(env.WebRootPath, "Players", organizationId.ToString());
             Directory.CreateDirectory(folder);
             var fileName = $"{player.Id}.{extension}";
             await File.WriteAllBytesAsync(Path.Combine(folder, fileName), bytes);
-            player.PhotoPath = $"Players/{clubId}/{fileName}";
+            player.PhotoUrl = $"Players/{organizationId}/{fileName}";
 
             await db.SaveChangesAsync();
         }
@@ -68,16 +79,24 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         return player;
     }
 
-    public async Task<bool> DeleteAsync(int clubId, int id)
+    public async Task<bool> DeleteAsync(int organizationId, int id)
     {
-        var player = await db.PlayerSet.FirstOrDefaultAsync(p => p.Id == id && p.ClubId == clubId);
+        var player = await GetAsync(organizationId, id);
         if (player is null)
         {
             return false;
         }
 
-        db.PlayerSet.Remove(player);
+        // Match history keeps referencing the player, so the profile is retired rather than removed.
+        db.TeamMemberSet.RemoveRange(await db.TeamMemberSet.Where(m => m.PlayerId == id).ToListAsync());
+        player.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
         return true;
+    }
+
+    private static (string First, string Last) SplitName(string name)
+    {
+        var index = name.LastIndexOf(' ');
+        return index < 0 ? (name, "") : (name[..index].Trim(), name[(index + 1)..].Trim());
     }
 }

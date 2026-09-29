@@ -3,7 +3,7 @@ namespace Scoreboard.WebApp.Domain;
 /// <summary>Oyuncu profili. Global — salonlar arası taşınır.</summary>
 public class Player : BaseEntity
 {
-    public Guid? UserId { get; set; }            // hesapsız misafir oyuncu olabilir
+    public int? UserId { get; set; }            // hesapsız misafir oyuncu olabilir
     public string FirstName { get; set; } = default!;
     public string LastName { get; set; } = default!;
     public string? Nickname { get; set; }
@@ -17,8 +17,12 @@ public class Player : BaseEntity
     public string? UmbPlayerId { get; set; }
     public int? DefaultTargetPoints { get; set; }    // serbest maç handikapı
     public bool IsGuest { get; set; }
-    public Guid? CreatedInOrganizationId { get; set; }
+    public int? CreatedInOrganizationId { get; set; }
     public bool IsPublicProfile { get; set; }
+    public string? Email { get; set; }
+    public string? City { get; set; }
+    public int? AvatarId { get; set; }
+    public Level Level { get; set; } = Level.Intermidiate;
 
     public User? User { get; set; }
     public ICollection<ClubMembership> ClubMemberships { get; set; } = [];
@@ -32,7 +36,7 @@ public class Player : BaseEntity
 
 public class Club : BaseEntity
 {
-    public Guid? OrganizationId { get; set; }    // bağımsız kulüp olabilir
+    public int? OrganizationId { get; set; }    // bağımsız kulüp olabilir
     public string Name { get; set; } = default!;
     public string ShortName { get; set; } = default!; // scoreboard: 'KBSK'
     public string? LogoUrl { get; set; }
@@ -49,8 +53,8 @@ public class Club : BaseEntity
 
 public class ClubMembership : BaseEntity
 {
-    public Guid ClubId { get; set; }
-    public Guid PlayerId { get; set; }
+    public int ClubId { get; set; }
+    public int PlayerId { get; set; }
     public ClubMembershipRole Role { get; set; }
     public string? LicenseSeason { get; set; }   // '2026-2027'
     public DateOnly JoinedAt { get; set; }
@@ -62,11 +66,11 @@ public class ClubMembership : BaseEntity
 
 public class Team : BaseEntity
 {
-    public Guid ClubId { get; set; }
+    public int ClubId { get; set; }
     public string Name { get; set; } = default!;      // 'Kadıköy BSK A'
     public string ShortName { get; set; } = default!;
-    public Guid? SeasonId { get; set; }               // kadro sezona bağlı
-    public Guid? HomeOrganizationId { get; set; }
+    public int? SeasonId { get; set; }               // kadro sezona bağlı
+    public int? HomeOrganizationId { get; set; }
     public string? LogoUrl { get; set; }
 
     public Club Club { get; set; } = default!;
@@ -77,8 +81,8 @@ public class Team : BaseEntity
 
 public class TeamMember : BaseEntity
 {
-    public Guid TeamId { get; set; }
-    public Guid PlayerId { get; set; }
+    public int TeamId { get; set; }
+    public int PlayerId { get; set; }
     public TeamMemberRole Role { get; set; }
     public int? BoardOrder { get; set; }         // 1.-4. masa sırası
     public DateOnly JoinedAt { get; set; }
@@ -91,8 +95,8 @@ public class TeamMember : BaseEntity
 /// <summary>Salon müşteri üyeliği (kulüp üyeliğinden bağımsız)</summary>
 public class CustomerMembership : BaseEntity
 {
-    public Guid OrganizationId { get; set; }
-    public Guid PlayerId { get; set; }
+    public int OrganizationId { get; set; }
+    public int PlayerId { get; set; }
     public string MemberNo { get; set; } = default!;
     public MembershipTier Tier { get; set; }
     public decimal DiscountPercent { get; set; } // 0-100

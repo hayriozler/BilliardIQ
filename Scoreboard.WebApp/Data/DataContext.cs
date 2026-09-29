@@ -5,82 +5,249 @@ namespace Scoreboard.WebApp.Data;
 
 public class DataContext(DbContextOptions<DataContext> options) : DbContext(options)
 {
-    public DbSet<Club> ClubSet => Set<Club>();
-    public DbSet<ScoreboardClient> ScoreboardClientSet => Set<ScoreboardClient>();
+    // Identity / organization
+    public DbSet<User> UserSet => Set<User>();
+    public DbSet<Organization> OrganizationSet => Set<Organization>();
+    public DbSet<StaffMember> StaffMemberSet => Set<StaffMember>();
+    public DbSet<BilliardTable> BilliardTableSet => Set<BilliardTable>();
+    public DbSet<Device> DeviceSet => Set<Device>();
+
+    // People
     public DbSet<Player> PlayerSet => Set<Player>();
-    public DbSet<MatchStat> MatchStatSet => Set<MatchStat>();
+    public DbSet<Club> ClubSet => Set<Club>();
+    public DbSet<ClubMembership> ClubMembershipSet => Set<ClubMembership>();
     public DbSet<Team> TeamSet => Set<Team>();
-    public DbSet<TeamPlayer> TeamPlayerSet => Set<TeamPlayer>();
+    public DbSet<TeamMember> TeamMemberSet => Set<TeamMember>();
+    public DbSet<CustomerMembership> CustomerMembershipSet => Set<CustomerMembership>();
+
+    // Billing / POS
+    public DbSet<PricingRule> PricingRuleSet => Set<PricingRule>();
+    public DbSet<Reservation> ReservationSet => Set<Reservation>();
+    public DbSet<TableSession> TableSessionSet => Set<TableSession>();
+    public DbSet<SessionPlayer> SessionPlayerSet => Set<SessionPlayer>();
+    public DbSet<ProductCategory> ProductCategorySet => Set<ProductCategory>();
+    public DbSet<Product> ProductSet => Set<Product>();
+    public DbSet<OrderItem> OrderItemSet => Set<OrderItem>();
+    public DbSet<Payment> PaymentSet => Set<Payment>();
+    public DbSet<CashRegisterShift> CashRegisterShiftSet => Set<CashRegisterShift>();
+
+    // Scoring
+    public DbSet<RuleSet> RuleSetSet => Set<RuleSet>();
+    public DbSet<Match> MatchesSet => Set<Match>();
+    public DbSet<MatchParticipant> MatchParticipantSet => Set<MatchParticipant>();
+    public DbSet<MatchSet> MatchSetSet => Set<MatchSet>();
+    public DbSet<Inning> InningSet => Set<Inning>();
+    public DbSet<MatchEvent> MatchEventSet => Set<MatchEvent>();
+
+    // Competition
+    public DbSet<Tournament> TournamentSet => Set<Tournament>();
+    public DbSet<TournamentStage> TournamentStageSet => Set<TournamentStage>();
+    public DbSet<StageGroup> StageGroupSet => Set<StageGroup>();
+    public DbSet<TournamentEntry> TournamentEntrySet => Set<TournamentEntry>();
+    public DbSet<StageStanding> StageStandingSet => Set<StageStanding>();
+    public DbSet<League> LeagueSet => Set<League>();
+    public DbSet<Season> SeasonSet => Set<Season>();
+    public DbSet<SeasonTeam> SeasonTeamSet => Set<SeasonTeam>();
+    public DbSet<TeamFixture> TeamFixtureSet => Set<TeamFixture>();
+
+    // Stats
+    public DbSet<PlayerStats> PlayerStatsSet => Set<PlayerStats>();
+    public DbSet<PlayerOrganizationStats> PlayerOrganizationStatsSet => Set<PlayerOrganizationStats>();
+    public DbSet<RatingHistory> RatingHistorySet => Set<RatingHistory>();
+    public DbSet<AuditLog> AuditLogSet => Set<AuditLog>();
+
+    // Legacy kiosk sync (Pi pushes flat match summaries here until it speaks MatchEvent)
+    public DbSet<MatchStat> MatchStatSet => Set<MatchStat>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Club>(entity =>
+        // ---------- owned / JSON value objects ----------
+        modelBuilder.Entity<Organization>(e =>
         {
-            entity.Property(c => c.Code).IsRequired().HasMaxLength(10);
-            entity.Property(c => c.Name).IsRequired().HasMaxLength(200);
-            entity.HasIndex(c => c.Code).IsUnique();
+            e.OwnsOne(o => o.Address, a => a.ToJson());
+            e.OwnsMany(o => o.OpeningHours, h => h.ToJson());
+            e.HasIndex(o => o.Slug).IsUnique();
+            e.HasIndex(o => o.Code).IsUnique();
+            e.Property(o => o.Name).HasMaxLength(200);
+            e.Property(o => o.Slug).HasMaxLength(100);
+            e.Property(o => o.Code).HasMaxLength(10);
+            e.HasOne(o => o.DefaultRuleSet).WithMany().HasForeignKey(o => o.DefaultRuleSetId);
         });
 
-        modelBuilder.Entity<ScoreboardClient>(entity =>
+        modelBuilder.Entity<PricingRule>(e =>
         {
-            entity.Property(c => c.Id).HasMaxLength(10);
-            entity.Property(c => c.Name).HasMaxLength(200);
-
-            entity.HasOne(c => c.Club)
-                .WithMany()
-                .HasForeignKey(c => c.ClubId)
-                .OnDelete(DeleteBehavior.SetNull);
+            e.OwnsMany(p => p.TimeSlots, s => s.ToJson());
         });
 
-        modelBuilder.Entity<Player>(entity =>
+        modelBuilder.Entity<Match>(e =>
         {
-            entity.Property(p => p.Nickname).HasMaxLength(100);
-            entity.Property(p => p.Name).HasMaxLength(200);
-            entity.Property(p => p.Email).HasMaxLength(200);
-            entity.Property(p => p.BaseCountry).HasMaxLength(100);
-            entity.Property(p => p.BaseCity).HasMaxLength(100);
-
-            entity.HasOne(p => p.Club)
-                .WithMany(c => c.Players)
-                .HasForeignKey(p => p.ClubId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.OwnsOne(m => m.Rules, r => r.ToJson());
+            e.HasIndex(m => new { m.OrganizationId, m.StartedAt });
         });
 
-        modelBuilder.Entity<MatchStat>(entity =>
+        modelBuilder.Entity<TableSession>(e =>
         {
-            entity.Property(s => s.ClientId).HasMaxLength(10);
-            entity.Property(s => s.Player1Name).HasMaxLength(100);
-            entity.Property(s => s.Player2Name).HasMaxLength(100);
-
-            entity.HasOne<ScoreboardClient>()
-                .WithMany()
-                .HasForeignKey(s => s.ClientId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.OwnsOne(s => s.PricingSnapshot, p =>
+            {
+                p.ToJson();
+                p.OwnsMany(x => x.TimeSlots);
+            });
+            e.HasOne(s => s.Reservation).WithMany().HasForeignKey(s => s.ReservationId);
+            e.HasIndex(s => new { s.OrganizationId, s.OpenedAt });
         });
 
-        modelBuilder.Entity<Team>(entity =>
+        // ---------- identity ----------
+        modelBuilder.Entity<User>(e =>
         {
-            entity.Property(t => t.Name).HasMaxLength(200);
-
-            entity.HasOne(t => t.Club)
-                .WithMany(c => c.Teams)
-                .HasForeignKey(t => t.ClubId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(u => u.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
+            e.HasIndex(u => u.Phone).IsUnique().HasFilter("\"Phone\" IS NOT NULL");
+            e.Property(u => u.Email).HasMaxLength(200);
+            e.Property(u => u.DisplayName).HasMaxLength(200);
+            e.HasOne(u => u.Player).WithOne(p => p.User).HasForeignKey<Player>(p => p.UserId);
         });
 
-        modelBuilder.Entity<TeamPlayer>(entity =>
+        modelBuilder.Entity<StaffMember>(e =>
         {
-            entity.HasKey(tp => new { tp.TeamId, tp.PlayerId });
-
-            entity.HasOne(tp => tp.Team)
-                .WithMany(t => t.TeamPlayers)
-                .HasForeignKey(tp => tp.TeamId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(tp => tp.Player)
-                .WithMany()
-                .HasForeignKey(tp => tp.PlayerId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(s => new { s.OrganizationId, s.UserId }).IsUnique();
         });
+
+        // ---------- tables / devices ----------
+        modelBuilder.Entity<BilliardTable>(e =>
+        {
+            e.HasIndex(t => new { t.OrganizationId, t.Number }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+            e.HasOne(t => t.CurrentSession).WithMany().HasForeignKey(t => t.CurrentSessionId);
+            e.HasOne(t => t.PricingRule).WithMany().HasForeignKey(t => t.PricingRuleId);
+            e.HasOne(t => t.Device).WithOne(d => d.Table).HasForeignKey<Device>(d => d.TableId);
+        });
+
+        modelBuilder.Entity<Device>(e =>
+        {
+            e.HasIndex(d => d.PairingCode).IsUnique().HasFilter("\"PairingCode\" IS NOT NULL");
+            e.Property(d => d.PairingCode).HasMaxLength(10);
+            e.Property(d => d.Name).HasMaxLength(200);
+        });
+
+        // ---------- people ----------
+        modelBuilder.Entity<Player>(e =>
+        {
+            e.Property(p => p.FirstName).HasMaxLength(100);
+            e.Property(p => p.LastName).HasMaxLength(100);
+            e.Property(p => p.Nickname).HasMaxLength(100);
+            e.Property(p => p.DisplayName).HasMaxLength(100);
+            e.Property(p => p.Email).HasMaxLength(200);
+            e.Property(p => p.City).HasMaxLength(100);
+            e.Property(p => p.Nationality).HasMaxLength(100);
+            e.HasIndex(p => p.CreatedInOrganizationId);
+        });
+
+        modelBuilder.Entity<Club>(e =>
+        {
+            e.Property(c => c.Name).HasMaxLength(200);
+            e.Property(c => c.ShortName).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<Team>(e =>
+        {
+            e.Property(t => t.Name).HasMaxLength(200);
+            e.Property(t => t.ShortName).HasMaxLength(20);
+            e.HasOne(t => t.Season).WithMany().HasForeignKey(t => t.SeasonId);
+            e.HasOne(t => t.HomeOrganization).WithMany().HasForeignKey(t => t.HomeOrganizationId);
+        });
+
+        modelBuilder.Entity<TeamMember>(e =>
+        {
+            e.HasIndex(m => new { m.TeamId, m.PlayerId }).IsUnique();
+        });
+
+        modelBuilder.Entity<CustomerMembership>(e =>
+        {
+            e.HasIndex(m => new { m.OrganizationId, m.MemberNo }).IsUnique();
+        });
+
+        // ---------- billing ----------
+        modelBuilder.Entity<Reservation>(e =>
+        {
+            e.HasOne(r => r.Session).WithMany().HasForeignKey(r => r.SessionId);
+            e.HasIndex(r => new { r.OrganizationId, r.StartAt });
+        });
+
+        // ---------- scoring ----------
+        modelBuilder.Entity<MatchEvent>(e =>
+        {
+            e.HasIndex(x => new { x.MatchId, x.Seq }).IsUnique();
+            e.HasOne(x => x.Match).WithMany(m => m.Events).HasForeignKey(x => x.MatchId);
+        });
+
+        modelBuilder.Entity<Match>(e =>
+        {
+            e.HasOne(m => m.Table).WithMany(t => t.Matches).HasForeignKey(m => m.TableId);
+            e.HasOne(m => m.Session).WithMany(s => s.Matches).HasForeignKey(m => m.SessionId);
+            e.HasOne(m => m.Referee).WithMany().HasForeignKey(m => m.RefereeUserId);
+            e.HasOne(m => m.ScorekeeperDevice).WithMany().HasForeignKey(m => m.ScorekeeperDeviceId);
+        });
+
+        modelBuilder.Entity<MatchParticipant>(e =>
+        {
+            e.HasIndex(p => new { p.MatchId, p.Side }).IsUnique();
+        });
+
+        // ---------- stats ----------
+        modelBuilder.Entity<PlayerStats>(e => e.HasKey(s => new { s.PlayerId, s.Discipline, s.Scope }));
+        modelBuilder.Entity<PlayerOrganizationStats>(e => e.HasKey(s => new { s.PlayerId, s.OrganizationId, s.Discipline }));
+
+        // ---------- legacy kiosk sync ----------
+        modelBuilder.Entity<MatchStat>(e =>
+        {
+            e.Property(s => s.Player1Name).HasMaxLength(100);
+            e.Property(s => s.Player2Name).HasMaxLength(100);
+            e.HasOne(s => s.Device).WithMany().HasForeignKey(s => s.DeviceId);
+        });
+
+        // ---------- conventions ----------
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            // History matters more than cascades: deletes are explicit (or soft, via DeletedAt).
+            foreach (var fk in entityType.GetForeignKeys().Where(f => !f.IsOwnership))
+            {
+                fk.DeleteBehavior = DeleteBehavior.Restrict;
+            }
+
+            foreach (var property in entityType.GetProperties().Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?)))
+            {
+                var name = property.Name;
+                var threeDecimals = name.Contains("Average") || name.Contains("Rating") || name.Contains("Delta") || name.Contains("Quantity");
+                property.SetPrecision(18);
+                property.SetScale(threeDecimals ? 3 : 2);
+            }
+        }
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        StampAudit();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        StampAudit();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void StampAudit()
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.CreatedAt = now;
+                entry.Entity.UpdatedAt = now;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = now;
+            }
+        }
     }
 }

@@ -1,0 +1,376 @@
+@page "/"
+@attribute [Authorize]
+@implements IDisposable
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>Masalar • BillardIQ</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>Masalar</h1>
+        <div class="subtitle">@(_org?.Name) • canlı masa durumu</div>
+    </div>
+    <div class="row-actions">
+        <span class="muted">Son güncelleme: @(_zone is null ? "" : Format.Time(_now, _zone))</span>
+        <button class="small" @onclick="ReloadAsync">Yenile</button>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert error">@_error</div>
+}
+
+@if (_summary is null || _org is null || _zone is null)
+{
+    <p class="muted">Yükleniyor...</p>
+}
+else
+{
+    <div class="stat-grid">
+        <div class="stat info">
+            <div class="label">Dolu masa</div>
+            <div class="value">@_summary.TablesInUse <span class="sub">/ @_summary.TotalTables</span></div>
+            <div class="sub">@_summary.TablesAvailable boş • @_summary.TablesUnavailable kapalı/bakımda</div>
+        </div>
+        <div class="stat ok">
+            <div class="label">Bugünkü ciro</div>
+            <div class="value">@Format.Money(_summary.RevenueToday, _org.Currency)</div>
+            <div class="sub">kapanan oturumlar</div>
+        </div>
+        <div class="stat">
+            <div class="label">Bugünkü oturum</div>
+            <div class="value">@_summary.SessionsToday</div>
+            <div class="sub">açılan masa sayısı</div>
+        </div>
+        <div class="stat warn">
+            <div class="label">Bugünkü maç</div>
+            <div class="value">@_summary.MatchesToday</div>
+            <div class="sub">scoreboard kayıtları</div>
+        </div>
+        <div class="stat @(_unsettled.Count > 0 ? "warn" : "ok")">
+            <div class="label">Tahsilat bekleyen</div>
+            <div class="value">@_unsettled.Count</div>
+            <div class="sub">@Format.Money(_unsettled.Sum(s => s.TotalAmount ?? 0), _org.Currency)</div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="chip @(_filter == Filter.All ? "active" : "")" @onclick="() => _filter = Filter.All">Tümü (@_views.Count)</button>
+        <button class="chip @(_filter == Filter.Free ? "active" : "")" @onclick="() => _filter = Filter.Free">Boş (@_views.Count(v => v.Table.Status is TableStatus.Available or TableStatus.Reserved))</button>
+        <button class="chip @(_filter == Filter.Busy ? "active" : "")" @onclick="() => _filter = Filter.Busy">Dolu (@_views.Count(v => v.Table.Status == TableStatus.InUse))</button>
+        <button class="chip @(_filter == Filter.Off ? "active" : "")" @onclick="() => _filter = Filter.Off">Kapalı (@_views.Count(v => v.Table.Status is TableStatus.Maintenance or TableStatus.OutOfService))</button>
+    </div>
+
+    @if (_views.Count == 0)
+    {
+        <div class="card empty">Henüz masa yok. <a href="/tables">Masa yönetiminden</a> masa ekleyin.</div>
+    }
+    else
+    {
+        <div class="table-grid">
+            @foreach (var view in Visible())
+            {
+                var table = view.Table;
+                var session = view.Session;
+                var running = session is not null && table.Status == TableStatus.InUse;
+                var paused = session?.Status == TableSessionStatus.Paused;
+                var css = paused ? "paused" : table.Status.ToString().ToLowerInvariant();
+                <div class="table-card @css">
+                    <div class="top">
+                        <span class="table-number">Masa @table.Number</span>
+                        <span class="pill @css">@(paused ? "Duraklatıldı" : Format.TableStatus(table.Status))</span>
+                    </div>
+                    <div class="label">@(string.IsNullOrWhiteSpace(table.Label) ? Format.TableType(table.Type) : $"{table.Label} • {Format.TableType(table.Type)}")</div>
+
+                    @if (running && session is not null)
+                    {
+                        <div class="timer">@Format.Clock(ElapsedSeconds(session))</div>
+                        <div class="muted">Başlangıç @Format.Time(session.OpenedAt, _zone)</div>
+                        <div class="amount">≈ @Format.Money(Estimate(session), _org.Currency)</div>
+                    }
+                    else
+                    {
+                        <div class="timer idle">00:00:00</div>
+                        <div class="muted">@(table.Status is TableStatus.Maintenance or TableStatus.OutOfService ? "Kullanıma kapalı" : "Kullanıma hazır")</div>
+                        <div class="amount">&nbsp;</div>
+                    }
+
+                    <div class="actions">
+                        @if (running && session is not null)
+                        {
+                            @if (paused)
+                            {
+                                <button disabled="@_busy" @onclick="() => ResumeAsync(session.Id)">Devam et</button>
+                            }
+                            else
+                            {
+                                <button disabled="@_busy" @onclick="() => PauseAsync(session.Id)">Duraklat</button>
+                            }
+                            <button class="danger" disabled="@_busy" @onclick="() => _closing = view">Masayı kapat</button>
+                        }
+                        else if (table.Status is TableStatus.Available or TableStatus.Reserved)
+                        {
+                            <button class="primary" disabled="@_busy" @onclick="() => OpenAsync(table.Id)">Masayı aç</button>
+                            <button class="ghost" title="Bakıma al" disabled="@_busy" @onclick="() => SetStatusAsync(table.Id, TableStatus.Maintenance)">🔧</button>
+                        }
+                        else
+                        {
+                            <button disabled="@_busy" @onclick="() => SetStatusAsync(table.Id, TableStatus.Available)">Kullanıma al</button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="split" style="margin-top:1.5rem">
+        <div class="card">
+            <h2>Tahsilat bekleyenler</h2>
+            @if (_unsettled.Count == 0)
+            {
+                <div class="empty">Bekleyen tahsilat yok.</div>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Masa</th><th>Süre</th><th class="num">Tutar</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var session in _unsettled)
+                            {
+                                <tr>
+                                    <td>Masa @session.Table.Number</td>
+                                    <td>@Format.Minutes(session.BilledMinutes ?? 0)</td>
+                                    <td class="num">@Format.Money(session.TotalAmount ?? 0, _org.Currency)</td>
+                                    <td>
+                                        <div class="row-actions">
+                                            <button class="small primary" disabled="@_busy" @onclick="() => SettleAsync(session.Id, PaymentMethod.Cash)">Nakit</button>
+                                            <button class="small" disabled="@_busy" @onclick="() => SettleAsync(session.Id, PaymentMethod.Card)">Kart</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <div class="card">
+            <h2>Son oturumlar</h2>
+            @if (_recent.Count == 0)
+            {
+                <div class="empty">Henüz kapanan oturum yok.</div>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Masa</th><th>Kapanış</th><th>Süre</th><th class="num">Tutar</th></tr></thead>
+                        <tbody>
+                            @foreach (var session in _recent)
+                            {
+                                <tr>
+                                    <td>Masa @session.Table.Number</td>
+                                    <td>@(session.ClosedAt is { } closed ? Format.DateTime(closed, _zone) : "")</td>
+                                    <td>@Format.Minutes(session.BilledMinutes ?? 0)</td>
+                                    <td class="num">
+                                        @Format.Money(session.TotalAmount ?? 0, _org.Currency)
+                                        @if (session.Status == TableSessionStatus.Closed)
+                                        {
+                                            <span class="pill paused">Bekliyor</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (_closing is { Session: { } closingSession } && _org is not null && _zone is not null)
+{
+    var elapsed = PricingCalculator.ElapsedMinutes(closingSession, DateTimeOffset.UtcNow);
+    var bill = PricingCalculator.Calculate(closingSession.PricingSnapshot, closingSession.OpenedAt, elapsed,
+        _org.BillingRoundingMinutes, _org.MinimumBillableMinutes, _zone);
+    <div class="modal-backdrop" @onclick="() => _closing = null">
+        <div class="modal" @onclick:stopPropagation="true">
+            <h2>Masa @_closing.Table.Number kapatılsın mı?</h2>
+            <p class="muted">Sayaç durdurulur ve masa boşa alınır. Tahsilatı sonraki adımda yapabilirsiniz.</p>
+            <div class="bill">
+                <div class="line"><span>Geçen süre</span><span>@Format.Minutes(elapsed)</span></div>
+                <div class="line"><span>Faturalanan süre</span><span>@Format.Minutes(bill.BilledMinutes)</span></div>
+                <div class="line total"><span>Masa ücreti</span><span>@Format.Money(bill.Amount, _org.Currency)</span></div>
+            </div>
+            <div class="form-actions">
+                <button class="danger" disabled="@_busy" @onclick="() => CloseAsync(closingSession.Id)">Masayı kapat</button>
+                <button @onclick="() => _closing = null">Vazgeç</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_paying is not null && _org is not null && _zone is not null)
+{
+    <div class="modal-backdrop">
+        <div class="modal">
+            <h2>Masa @_paying.Table.Number kapatıldı</h2>
+            <div class="bill">
+                <div class="line"><span>Faturalanan süre</span><span>@Format.Minutes(_paying.BilledMinutes ?? 0)</span></div>
+                <div class="line"><span>Masa ücreti</span><span>@Format.Money(_paying.TableAmount ?? 0, _org.Currency)</span></div>
+                @if (_paying.ItemsAmount > 0)
+                {
+                    <div class="line"><span>Ürünler</span><span>@Format.Money(_paying.ItemsAmount, _org.Currency)</span></div>
+                }
+                <div class="line total"><span>Ödenecek</span><span>@Format.Money(_paying.TotalAmount ?? 0, _org.Currency)</span></div>
+            </div>
+            <div class="pay-buttons">
+                <button class="primary" disabled="@_busy" @onclick="() => SettleAsync(_paying.Id, PaymentMethod.Cash)">Nakit tahsil et</button>
+                <button class="primary" disabled="@_busy" @onclick="() => SettleAsync(_paying.Id, PaymentMethod.Card)">Kartla tahsil et</button>
+            </div>
+            <div class="form-actions">
+                <button class="ghost" @onclick="() => _paying = null">Sonra tahsil et</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private enum Filter { All, Free, Busy, Off }
+
+    private Tenant? _tenant;
+    private Organization? _org;
+    private TimeZoneInfo? _zone;
+    private List<TableView> _views = [];
+    private DashboardSummary? _summary;
+    private List<TableSession> _unsettled = [];
+    private List<TableSession> _recent = [];
+    private DateTimeOffset _now = DateTimeOffset.UtcNow;
+    private Filter _filter = Filter.All;
+    private string? _error;
+    private bool _busy;
+    private TableView? _closing;
+    private TableSession? _paying;
+    private Timer? _timer;
+    private int _tick;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenant = await TenantContext.GetAsync();
+        await LoadAsync();
+        _timer = new Timer(_ => _ = InvokeAsync(OnTickAsync), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    private async Task OnTickAsync()
+    {
+        _now = DateTimeOffset.UtcNow;
+        // Timer text is computed from _now on every render; other staff/devices may change tables, so re-read every 10s.
+        if (++_tick % 10 == 0 && !_busy)
+        {
+            try
+            {
+                await LoadAsync();
+            }
+            catch (Exception ex)
+            {
+                _error = ex.Message;
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        var orgId = _tenant!.OrganizationId;
+        _org = await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId));
+        _zone = PricingCalculator.ResolveTimeZone(_org.TimeZone);
+        _views = await Db.RunAsync((TableService s) => s.ListAsync(orgId));
+        _summary = await Db.RunAsync((TableService s) => s.SummaryAsync(orgId));
+        _unsettled = await Db.RunAsync((TableService s) => s.UnsettledSessionsAsync(orgId));
+        _recent = await Db.RunAsync((TableService s) => s.RecentSessionsAsync(orgId));
+        _now = DateTimeOffset.UtcNow;
+    }
+
+    private Task ReloadAsync() => RunAsync(() => Task.CompletedTask);
+
+    private IEnumerable<TableView> Visible() => _filter switch
+    {
+        Filter.Free => _views.Where(v => v.Table.Status is TableStatus.Available or TableStatus.Reserved),
+        Filter.Busy => _views.Where(v => v.Table.Status == TableStatus.InUse),
+        Filter.Off => _views.Where(v => v.Table.Status is TableStatus.Maintenance or TableStatus.OutOfService),
+        _ => _views
+    };
+
+    private double ElapsedSeconds(TableSession session)
+    {
+        var paused = session.PausedMinutes * 60.0;
+        if (session.PausedAt is { } pausedAt)
+        {
+            paused += (_now - pausedAt).TotalSeconds;
+        }
+
+        return (_now - session.OpenedAt).TotalSeconds - paused;
+    }
+
+    private decimal Estimate(TableSession session) =>
+        PricingCalculator.Estimate(
+            session.PricingSnapshot, session.OpenedAt, PricingCalculator.ElapsedMinutes(session, _now),
+            _org!.BillingRoundingMinutes, _org.MinimumBillableMinutes, _zone!);
+
+    private Task OpenAsync(int tableId) =>
+        RunAsync(() => Db.RunAsync((TableService s) => s.OpenSessionAsync(_tenant!.OrganizationId, tableId, _tenant.StaffMemberId)));
+
+    private Task PauseAsync(int sessionId) =>
+        RunAsync(() => Db.RunAsync((TableService s) => s.PauseSessionAsync(_tenant!.OrganizationId, sessionId)));
+
+    private Task ResumeAsync(int sessionId) =>
+        RunAsync(() => Db.RunAsync((TableService s) => s.ResumeSessionAsync(_tenant!.OrganizationId, sessionId)));
+
+    private Task SetStatusAsync(int tableId, TableStatus status) =>
+        RunAsync(() => Db.RunAsync((TableService s) => s.SetTableStatusAsync(_tenant!.OrganizationId, tableId, status)));
+
+    private Task SettleAsync(int sessionId, PaymentMethod method) =>
+        RunAsync(async () =>
+        {
+            await Db.RunAsync((TableService s) => s.SettleSessionAsync(_tenant!.OrganizationId, sessionId, _tenant.StaffMemberId, method));
+            _paying = null;
+        });
+
+    private Task CloseAsync(int sessionId) =>
+        RunAsync(async () =>
+        {
+            var tableNumber = _closing!.Table.Number;
+            var closed = await Db.RunAsync((TableService s) => s.CloseSessionAsync(_tenant!.OrganizationId, sessionId, _tenant.StaffMemberId));
+            _closing = null;
+            _paying = closed;
+            _paying.Table = new BilliardTable { Number = tableNumber };
+        });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            await action();
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            _error = ex.Message;
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

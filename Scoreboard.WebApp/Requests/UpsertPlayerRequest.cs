@@ -1,5 +1,3 @@
-using Scoreboard.WebApp.Models;
-
 namespace Scoreboard.WebApp.Requests;
 
 public record UpsertPlayerRequest(

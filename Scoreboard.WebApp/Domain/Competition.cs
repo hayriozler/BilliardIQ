@@ -4,12 +4,12 @@ namespace Scoreboard.WebApp.Domain;
 
 public class Tournament : BaseEntity, ITenantScoped
 {
-    public Guid OrganizationId { get; set; }
+    public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;
     public string Slug { get; set; } = default!;
     public string? Description { get; set; }
     public Discipline Discipline { get; set; }
-    public Guid DefaultRuleSetId { get; set; }
+    public int DefaultRuleSetId { get; set; }
     public TournamentStatus Status { get; set; }
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
@@ -30,11 +30,11 @@ public class Tournament : BaseEntity, ITenantScoped
 
 public class TournamentStage : BaseEntity
 {
-    public Guid TournamentId { get; set; }
+    public int TournamentId { get; set; }
     public int Order { get; set; }               // 1 = ön eleme, 2 = grup, 3 = final
     public string Name { get; set; } = default!; // 'Gruplar', 'Son 16'
     public StageType Type { get; set; }
-    public Guid? RuleSetId { get; set; }         // aşamaya özel kural
+    public int? RuleSetId { get; set; }         // aşamaya özel kural
     public int? QualifiersPerGroup { get; set; }
     public DateOnly? StartDate { get; set; }
     public List<Tiebreaker> Tiebreakers { get; set; } =
@@ -49,10 +49,10 @@ public class TournamentStage : BaseEntity
 
 public class StageGroup : BaseEntity
 {
-    public Guid StageId { get; set; }
+    public int StageId { get; set; }
     public string Name { get; set; } = default!; // 'A Grubu'
     public int Order { get; set; }
-    public List<Guid> TableIds { get; set; } = []; // grubun oynandığı masalar
+    public List<int> TableIds { get; set; } = []; // grubun oynandığı masalar
 
     public TournamentStage Stage { get; set; } = default!;
     public ICollection<StageStanding> Standings { get; set; } = [];
@@ -60,9 +60,9 @@ public class StageGroup : BaseEntity
 
 public class TournamentEntry : BaseEntity
 {
-    public Guid TournamentId { get; set; }
-    public Guid PlayerId { get; set; }
-    public Guid? ClubId { get; set; }            // turnuva anındaki kulübü
+    public int TournamentId { get; set; }
+    public int PlayerId { get; set; }
+    public int? ClubId { get; set; }            // turnuva anındaki kulübü
     public int? Seed { get; set; }
     public EntryStatus Status { get; set; }
     public int? HandicapTargetPoints { get; set; }
@@ -79,9 +79,9 @@ public class TournamentEntry : BaseEntity
 /// <summary>Aşama / grup puan durumu (projeksiyon)</summary>
 public class StageStanding : BaseEntity
 {
-    public Guid StageId { get; set; }
-    public Guid? GroupId { get; set; }
-    public Guid EntryId { get; set; }
+    public int StageId { get; set; }
+    public int? GroupId { get; set; }
+    public int EntryId { get; set; }
     public int Played { get; set; }
     public int Won { get; set; }
     public int Drawn { get; set; }
@@ -104,7 +104,7 @@ public class StageStanding : BaseEntity
 
 public class League : BaseEntity
 {
-    public Guid? OrganizationId { get; set; }    // federasyon ligi → null
+    public int? OrganizationId { get; set; }    // federasyon ligi → null
     public string Name { get; set; } = default!; // 'İstanbul 3 Bant Takım Ligi'
     public Discipline Discipline { get; set; }
     public string? Level { get; set; }           // 'Süper Lig', '1. Lig'
@@ -115,12 +115,12 @@ public class League : BaseEntity
 
 public class Season : BaseEntity
 {
-    public Guid LeagueId { get; set; }
+    public int LeagueId { get; set; }
     public string Name { get; set; } = default!; // '2026-2027'
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
     public SeasonStatus Status { get; set; }
-    public Guid RuleSetId { get; set; }
+    public int RuleSetId { get; set; }
     public int BoardsPerFixture { get; set; } = 4;
     public int PointsForWin { get; set; } = 2;
     public int PointsForDraw { get; set; } = 1;
@@ -135,8 +135,8 @@ public class Season : BaseEntity
 /// <summary>Sezona katılan takım + puan durumu (projeksiyon)</summary>
 public class SeasonTeam : BaseEntity
 {
-    public Guid SeasonId { get; set; }
-    public Guid TeamId { get; set; }
+    public int SeasonId { get; set; }
+    public int TeamId { get; set; }
     public int Played { get; set; }
     public int Won { get; set; }
     public int Drawn { get; set; }
@@ -154,18 +154,18 @@ public class SeasonTeam : BaseEntity
 /// <summary>Takım vs takım müsabakası — N adet bireysel Match içerir</summary>
 public class TeamFixture : BaseEntity
 {
-    public Guid SeasonId { get; set; }
+    public int SeasonId { get; set; }
     public int Round { get; set; }               // hafta
-    public Guid HomeTeamId { get; set; }
-    public Guid AwayTeamId { get; set; }
-    public Guid OrganizationId { get; set; }
+    public int HomeTeamId { get; set; }
+    public int AwayTeamId { get; set; }
+    public int OrganizationId { get; set; }
     public DateTimeOffset ScheduledAt { get; set; }
     public FixtureStatus Status { get; set; }
     public int HomeBoardsWon { get; set; }
     public int AwayBoardsWon { get; set; }
     public int? HomeLeaguePoints { get; set; }
     public int? AwayLeaguePoints { get; set; }
-    public Guid? RefereeUserId { get; set; }
+    public int? RefereeUserId { get; set; }
     public string? Notes { get; set; }
 
     public Season Season { get; set; } = default!;

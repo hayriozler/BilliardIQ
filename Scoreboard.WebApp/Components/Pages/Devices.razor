@@ -1,0 +1,170 @@
+@page "/devices"
+@attribute [Authorize]
+@implements IDisposable
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>Cihazlar • BillardIQ</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>Cihazlar</h1>
+        <div class="subtitle">Scoreboard cihazlarını eşleştirin. Cihazın ayarlarına aşağıdaki eşleştirme kodunu girin.</div>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert error">@_error</div>
+}
+
+@if (_created is not null)
+{
+    <div class="alert success">
+        <strong>@_created.Name</strong> eklendi. Eşleştirme kodu: <span class="code-box">@_created.PairingCode</span>
+        — cihazdaki <em>ClientId</em> ayarına bu kodu girin.
+    </div>
+}
+
+<div class="card">
+    <h2>Yeni cihaz</h2>
+    <div class="form-row">
+        <label class="field">Ad
+            <input type="text" @bind="_name" placeholder="Masa 3 scoreboard" />
+        </label>
+        <label class="field">Bağlı masa
+            <select @bind="_tableId">
+                <option value="">Masa seçilmedi</option>
+                @foreach (var table in _tables.Where(t => !_devices.Any(d => d.TableId == t.Id)))
+                {
+                    <option value="@table.Id">Masa @table.Number@(string.IsNullOrWhiteSpace(table.Label) ? "" : $" ({table.Label})")</option>
+                }
+            </select>
+        </label>
+        <button class="primary" disabled="@_busy" @onclick="AddAsync">Cihaz ekle</button>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Eşleşmiş cihazlar (@_devices.Count)</h2>
+    @if (_devices.Count == 0)
+    {
+        <div class="empty">Henüz cihaz yok.</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Ad</th><th>Kod</th><th>Masa</th><th>Son görülme</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var device in _devices)
+                    {
+                        var online = device.LastSeenAt is { } seen && (DateTimeOffset.UtcNow - seen).TotalMinutes < 5;
+                        <tr>
+                            <td>@device.Name</td>
+                            <td><span class="code-box">@device.PairingCode</span></td>
+                            <td>@(device.Table is null ? "—" : $"Masa {device.Table.Number}")</td>
+                            <td>
+                                <span class="pill @(online ? "available" : "off")">@(online ? "Çevrimiçi" : "Çevrimdışı")</span>
+                                <span class="muted">@(device.LastSeenAt is { } last && _zone is not null ? Format.DateTime(last, _zone) : "hiç bağlanmadı")</span>
+                            </td>
+                            <td>
+                                @if (_confirmDelete == device.Id)
+                                {
+                                    <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(device.Id)">Silmeyi onayla</button>
+                                    <button class="small ghost" @onclick="() => _confirmDelete = null">Vazgeç</button>
+                                }
+                                else
+                                {
+                                    <button class="small ghost" @onclick="() => _confirmDelete = device.Id">Kaldır</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private Tenant? _tenant;
+    private List<Device> _devices = [];
+    private List<BilliardTable> _tables = [];
+    private TimeZoneInfo? _zone;
+    private Device? _created;
+    private string _name = "";
+    private string _tableId = "";
+    private string? _error;
+    private bool _busy;
+    private int? _confirmDelete;
+    private Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenant = await TenantContext.GetAsync();
+        await LoadAsync();
+        _timer = new Timer(_ => _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                await LoadAsync();
+                StateHasChanged();
+            }
+            catch (Exception)
+            {
+                // transient read failure; the next tick retries
+            }
+        }), null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
+    }
+
+    private async Task LoadAsync()
+    {
+        var orgId = _tenant!.OrganizationId;
+        _devices = await Db.RunAsync((DeviceService s) => s.ListAsync(orgId));
+        _tables = (await Db.RunAsync((TableService s) => s.ListAsync(orgId))).Select(v => v.Table).ToList();
+        _zone = PricingCalculator.ResolveTimeZone((await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId))).TimeZone);
+    }
+
+    private async Task AddAsync()
+    {
+        _error = null;
+        _created = null;
+        _busy = true;
+        try
+        {
+            int? tableId = int.TryParse(_tableId, out var parsed) ? parsed : null;
+            _created = await Db.RunAsync((DeviceService s) => s.RegisterAsync(_tenant!.OrganizationId, _name, tableId));
+            _name = "";
+            _tableId = "";
+        }
+        catch (ArgumentException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        _busy = true;
+        try
+        {
+            await Db.RunAsync((DeviceService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+            _confirmDelete = null;
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

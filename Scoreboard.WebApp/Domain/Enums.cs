@@ -12,6 +12,14 @@ public enum DeviceType { Scoreboard, Display, Pos }
 public enum DevicePlatform { Android, Ios, Web }
 
 // ---------- People ----------
+public enum Level
+{
+    Beginner = 1,
+    Intermidiate = 2,
+    Advanced = 4,
+    Professional = 8
+}
+
 public enum Gender { Male, Female, Other, Undisclosed }
 public enum Handedness { Right, Left }
 public enum ClubMembershipRole { Member, Captain, Coach, Manager }

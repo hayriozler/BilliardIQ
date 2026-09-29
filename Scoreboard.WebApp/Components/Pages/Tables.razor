@@ -1,0 +1,224 @@
+@page "/tables"
+@attribute [Authorize]
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>Masa yönetimi • BillardIQ</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>Masa yönetimi</h1>
+        <div class="subtitle">Masaları ekleyin, düzenleyin, bakıma alın veya kaldırın.</div>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert error">@_error</div>
+}
+
+@if (_tenant is { CanManage: true })
+{
+    <div class="card">
+        <h2>@(_form.Id == 0 ? "Yeni masa" : $"Masa {_form.Number} düzenleniyor")</h2>
+        <EditForm Model="_form" OnValidSubmit="SaveAsync" FormName="table-form">
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <label class="field">Masa no
+                    <InputNumber @bind-Value="_form.Number" />
+                </label>
+                <label class="field">Etiket (isteğe bağlı)
+                    <InputText @bind-Value="_form.Label" placeholder="VIP 1" />
+                </label>
+                <label class="field">Masa tipi
+                    <InputSelect @bind-Value="_form.Type">
+                        @foreach (var type in Enum.GetValues<TableType>())
+                        {
+                            <option value="@type">@Format.TableType(type)</option>
+                        }
+                    </InputSelect>
+                </label>
+                <label class="field">Fiyat listesi
+                    <InputSelect @bind-Value="_form.PricingRuleId">
+                        <option value="">Varsayılan fiyat listesi</option>
+                        @foreach (var rule in _rules)
+                        {
+                            <option value="@rule.Id">@rule.Name (@Format.Money(rule.DefaultHourlyRate, _currency)/saat)</option>
+                        }
+                    </InputSelect>
+                </label>
+            </div>
+            <ValidationSummary />
+            <div class="form-actions">
+                <button type="submit" class="primary" disabled="@_busy">@(_form.Id == 0 ? "Masa ekle" : "Kaydet")</button>
+                @if (_form.Id != 0)
+                {
+                    <button type="button" @onclick="ResetForm">Vazgeç</button>
+                }
+            </div>
+        </EditForm>
+    </div>
+}
+
+<div class="card">
+    <h2>Masalar (@_views.Count)</h2>
+    @if (_views.Count == 0)
+    {
+        <div class="empty">Henüz masa yok.</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>No</th><th>Etiket</th><th>Tip</th><th>Durum</th><th>Fiyat listesi</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var view in _views)
+                    {
+                        var table = view.Table;
+                        var css = view.Session?.Status == TableSessionStatus.Paused ? "paused" : table.Status.ToString().ToLowerInvariant();
+                        <tr>
+                            <td><strong>@table.Number</strong></td>
+                            <td>@table.Label</td>
+                            <td>@Format.TableType(table.Type)</td>
+                            <td><span class="pill @css">@Format.TableStatus(table.Status)</span></td>
+                            <td>@(RuleName(table.PricingRuleId))</td>
+                            <td>
+                                @if (_tenant is { CanManage: true })
+                                {
+                                    <div class="row-actions">
+                                        <button class="small" @onclick="() => Edit(table)">Düzenle</button>
+                                        @if (table.CurrentSessionId is null)
+                                        {
+                                            @if (table.Status is TableStatus.Maintenance or TableStatus.OutOfService)
+                                            {
+                                                <button class="small" disabled="@_busy" @onclick="() => SetStatusAsync(table.Id, TableStatus.Available)">Kullanıma al</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="small" disabled="@_busy" @onclick="() => SetStatusAsync(table.Id, TableStatus.Maintenance)">Bakıma al</button>
+                                                <button class="small" disabled="@_busy" @onclick="() => SetStatusAsync(table.Id, TableStatus.OutOfService)">Kapat</button>
+                                            }
+
+                                            @if (_confirmDelete == table.Id)
+                                            {
+                                                <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(table.Id)">Silmeyi onayla</button>
+                                                <button class="small ghost" @onclick="() => _confirmDelete = null">Vazgeç</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="small ghost" @onclick="() => _confirmDelete = table.Id">Sil</button>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="hint">Açık oturum var</span>
+                                        }
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private Tenant? _tenant;
+    private List<TableView> _views = [];
+    private List<PricingRule> _rules = [];
+    private string _currency = "TRY";
+    private TableFormModel _form = new();
+    private string? _error;
+    private bool _busy;
+    private int? _confirmDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenant = await TenantContext.GetAsync();
+        await LoadAsync();
+        ResetForm();
+    }
+
+    private async Task LoadAsync()
+    {
+        var orgId = _tenant!.OrganizationId;
+        _views = await Db.RunAsync((TableService s) => s.ListAsync(orgId));
+        _rules = await Db.RunAsync((PricingService s) => s.ListAsync(orgId));
+        _currency = (await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId))).Currency;
+    }
+
+    private string RuleName(int? ruleId) =>
+        ruleId is null ? "Varsayılan" : _rules.FirstOrDefault(r => r.Id == ruleId)?.Name ?? "Varsayılan";
+
+    private void ResetForm() =>
+        _form = new TableFormModel { Number = (_views.Count == 0 ? 0 : _views.Max(v => v.Table.Number)) + 1 };
+
+    private void Edit(BilliardTable table) =>
+        _form = new TableFormModel
+        {
+            Id = table.Id,
+            Number = table.Number,
+            Label = table.Label,
+            Type = table.Type,
+            PricingRuleId = table.PricingRuleId?.ToString() ?? ""
+        };
+
+    private Task SaveAsync() => RunAsync(async () =>
+    {
+        int? ruleId = int.TryParse(_form.PricingRuleId, out var parsed) ? parsed : null;
+        await Db.RunAsync((TableService s) =>
+            s.UpsertTableAsync(_tenant!.OrganizationId, _form.Id, _form.Number, _form.Label, _form.Type, ruleId));
+        ResetForm();
+    });
+
+    private Task SetStatusAsync(int tableId, TableStatus status) =>
+        RunAsync(() => Db.RunAsync((TableService s) => s.SetTableStatusAsync(_tenant!.OrganizationId, tableId, status)));
+
+    private Task DeleteAsync(int tableId) => RunAsync(async () =>
+    {
+        await Db.RunAsync((TableService s) => s.DeleteTableAsync(_tenant!.OrganizationId, tableId));
+        _confirmDelete = null;
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+        if (_form.Id == 0 && _error is null)
+        {
+            ResetForm();
+        }
+    }
+
+    private class TableFormModel
+    {
+        public int Id { get; set; }
+
+        [Range(1, 999, ErrorMessage = "Masa numarası 1-999 arasında olmalı.")]
+        public int Number { get; set; }
+
+        public string? Label { get; set; }
+
+        public TableType Type { get; set; } = TableType.Match284;
+
+        public string PricingRuleId { get; set; } = "";
+    }
+}

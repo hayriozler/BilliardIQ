@@ -1,22 +1,26 @@
+using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Middlewares;
 
+/// <summary>
+/// Identifies a kiosk by the pairing code it sends in X-Client-Id and resolves the device and its salon (organization).
+/// The admin-facing /api/devices routes use cookie authentication instead.
+/// </summary>
 public class ClientIdMiddleware(RequestDelegate next)
 {
     public const string HeaderName = "X-Client-Id";
     public const string ItemKey = "ClientId";
-    public const string ClubIdItemKey = "ClubId";
+    public const string DeviceIdItemKey = "DeviceId";
+    public const string OrganizationIdItemKey = "OrganizationId";
 
     private static readonly PathString _apiPath = "/api";
-    private static readonly PathString _clientsPath = "/api/clients";
-    private static readonly PathString _clubsPath = "/api/clubs";
+    private static readonly PathString _devicesPath = "/api/devices";
 
     public async Task InvokeAsync(HttpContext context, DataContext db)
     {
         if (!context.Request.Path.StartsWithSegments(_apiPath) ||
-            context.Request.Path.StartsWithSegments(_clientsPath) ||
-            context.Request.Path.StartsWithSegments(_clubsPath))
+            context.Request.Path.StartsWithSegments(_devicesPath))
         {
             await next(context);
             return;
@@ -29,19 +33,22 @@ public class ClientIdMiddleware(RequestDelegate next)
             return;
         }
 
-        var clientId = values.ToString();
-        var client = await db.ScoreboardClientSet.FindAsync(clientId);
-        if (client is null)
+        var clientId = values.ToString().Trim();
+        var device = await db.DeviceSet.FirstOrDefaultAsync(d => d.PairingCode == clientId && d.DeletedAt == null);
+        if (device is null)
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsJsonAsync(new { error = "Unknown client id." });
             return;
         }
 
-        client.LastSeenAt = DateTimeOffset.UtcNow;
+        device.LastSeenAt = DateTimeOffset.UtcNow;
+        device.IsOnline = true;
         await db.SaveChangesAsync();
+
         context.Items[ItemKey] = clientId;
-        context.Items[ClubIdItemKey] = client.ClubId;
+        context.Items[DeviceIdItemKey] = device.Id;
+        context.Items[OrganizationIdItemKey] = device.OrganizationId;
 
         await next(context);
     }
@@ -49,9 +56,9 @@ public class ClientIdMiddleware(RequestDelegate next)
 
 public static class HttpContextClientIdExtensions
 {
-    public static string? GetClientId(this HttpContext context) =>
-        context.Items.TryGetValue(ClientIdMiddleware.ItemKey, out var value) ? value as string : null;
+    public static string GetClientId(this HttpContext context) => (string)context.Items[ClientIdMiddleware.ItemKey]!;
 
-    public static int? GetClubId(this HttpContext context) =>
-        context.Items.TryGetValue(ClientIdMiddleware.ClubIdItemKey, out var value) ? value as int? : null;
+    public static int GetDeviceId(this HttpContext context) => (int)context.Items[ClientIdMiddleware.DeviceIdItemKey]!;
+
+    public static int GetOrganizationId(this HttpContext context) => (int)context.Items[ClientIdMiddleware.OrganizationIdItemKey]!;
 }

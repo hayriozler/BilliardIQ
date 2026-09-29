@@ -1,3 +1,4 @@
 namespace Scoreboard.WebApp.Requests;
 
-public record UpsertTeamRequest(int Id, string Name);
+/// <param name="ClubId">Optional; teams created without one join the salon's first club.</param>
+public record UpsertTeamRequest(int Id, string Name, int? ClubId = null);
