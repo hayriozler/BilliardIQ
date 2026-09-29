@@ -1,8 +1,0 @@
-**/bin/
-**/obj/
-**/.vs/
-**/.vscode/
-**/logs/
-Zeymera.BillardIQ.Client/
-publish-pi/
-.git/

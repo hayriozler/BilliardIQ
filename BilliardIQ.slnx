@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+  <Project Path="Scoreboard.Client/Zeymera.BillardIQ.Client.csproj" />
+  <Project Path="Scoreboard.WebApp/Zeymera.BillardIQ.WebApp.csproj" />
+</Solution>

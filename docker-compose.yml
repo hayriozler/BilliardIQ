@@ -1,0 +1,6 @@
+services:
+  zeymera.billardiq.webapp:
+    image: ${DOCKER_REGISTRY-}zeymerabillardiqwebapp
+    build:
+      context: Scoreboard.WebApp
+      dockerfile: Dockerfile
