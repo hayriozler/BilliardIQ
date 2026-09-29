@@ -1,4 +1,4 @@
-namespace BilliardIQ.Mobile.Pages.BasePages;
+namespace BillardIQ.Mobile.Pages.BasePages;
 
 public abstract class BasePage : ContentPage
 {

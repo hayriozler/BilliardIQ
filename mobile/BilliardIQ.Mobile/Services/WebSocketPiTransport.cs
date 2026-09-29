@@ -1,7 +1,7 @@
 using System.Net.WebSockets;
 using System.Text;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 
 internal sealed class WebSocketPiTransport(string uri) : IPiTransport
 {

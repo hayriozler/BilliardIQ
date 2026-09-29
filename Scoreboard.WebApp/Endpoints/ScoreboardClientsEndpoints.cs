@@ -12,7 +12,7 @@ public static class ScoreboardClientsEndpoints
     {
         var group = app.MapGroup("/api/clients").WithTags("Clients");
 
-        group.MapGet("/", async (ScoreboardDbContext db, int? clubId) =>
+        group.MapGet("/", async (DataContext db, int? clubId) =>
         {
             var query = db.ScoreboardClientSet.AsQueryable();
             if (clubId is not null)
@@ -26,7 +26,7 @@ public static class ScoreboardClientsEndpoints
                 .ToListAsync();
         });
 
-        group.MapPost("/", async (RegisterScoreboardClientRequest request, ScoreboardDbContext db) =>
+        group.MapPost("/", async (RegisterScoreboardClientRequest request, DataContext db) =>
         {
             if (request.ClubId is not null && await db.ClubSet.FindAsync(request.ClubId) is null)
             {
@@ -52,7 +52,7 @@ public static class ScoreboardClientsEndpoints
             return Results.Created($"/api/clients/{client.Id}", new ScoreboardClientDto(client.Id, client.Name, client.ClubId, client.TableNumber, client.CreatedAt, client.LastSeenAt));
         });
 
-        group.MapDelete("/{id}", async (string id, ScoreboardDbContext db) =>
+        group.MapDelete("/{id}", async (string id, DataContext db) =>
         {
             var client = await db.ScoreboardClientSet.FindAsync(id);
             if (client is null)

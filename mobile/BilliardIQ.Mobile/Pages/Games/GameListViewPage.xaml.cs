@@ -1,6 +1,6 @@
-using BilliardIQ.Mobile.PageModels.GamePageModels;
+using BillardIQ.Mobile.PageModels.GamePageModels;
 
-namespace BilliardIQ.Mobile.Pages.Games;
+namespace BillardIQ.Mobile.Pages.Games;
 
 public partial class GameListViewPage : BasePage
 {

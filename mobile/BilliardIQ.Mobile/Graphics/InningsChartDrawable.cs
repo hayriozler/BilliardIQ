@@ -1,4 +1,4 @@
-namespace BilliardIQ.Mobile.Graphics;
+namespace BillardIQ.Mobile.Graphics;
 
 public sealed class InningsChartDrawable : IDrawable
 {

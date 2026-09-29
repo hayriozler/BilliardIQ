@@ -1,4 +1,4 @@
-namespace BilliardIQ.Mobile.Pages.Controls;
+namespace BillardIQ.Mobile.Pages.Controls;
 
 public partial class NewGameButton
 {

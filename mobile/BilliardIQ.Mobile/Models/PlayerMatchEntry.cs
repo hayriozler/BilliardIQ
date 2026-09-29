@@ -1,6 +1,6 @@
-using BilliardIQ.Mobile.Services;
+using BillardIQ.Mobile.Services;
 
-namespace BilliardIQ.Mobile.Models;
+namespace BillardIQ.Mobile.Models;
 
 public class PlayerMatchEntry
 {

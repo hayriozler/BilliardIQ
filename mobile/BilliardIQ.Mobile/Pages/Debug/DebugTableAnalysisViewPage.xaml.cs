@@ -1,6 +1,6 @@
-using BilliardIQ.Mobile.PageModels.Debug;
+using BillardIQ.Mobile.PageModels.Debug;
 
-namespace BilliardIQ.Mobile.Pages.Debug;
+namespace BillardIQ.Mobile.Pages.Debug;
 
 public partial class DebugTableAnalysisViewPage : BasePage
 {

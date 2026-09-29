@@ -1,10 +1,10 @@
-using BilliardIQ.Mobile.Data;
-using BilliardIQ.Mobile.Models;
-using BilliardIQ.Mobile.Services;
+using BillardIQ.Mobile.Data;
+using BillardIQ.Mobile.Models;
+using BillardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace BilliardIQ.Mobile.PageModels.Ssh;
+namespace BillardIQ.Mobile.PageModels.Ssh;
 
 public partial class SshConsolePageModel : BasePageModel
 {

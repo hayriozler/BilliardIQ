@@ -1,7 +1,7 @@
 
-using BilliardIQ.Mobile.Utilities;
+using BillardIQ.Mobile.Utilities;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 
 public sealed class ShowAlertHandler : IAlertHandler
 {

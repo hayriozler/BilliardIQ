@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Serilog;
-using Serilog.Events;
 using Scoreboard.Client.Components;
 using Scoreboard.Client.Endpoints;
 using Scoreboard.Client.Services;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 

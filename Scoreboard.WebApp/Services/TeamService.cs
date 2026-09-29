@@ -4,7 +4,7 @@ using Scoreboard.WebApp.Models;
 
 namespace Scoreboard.WebApp.Services;
 
-public class TeamService(ScoreboardDbContext db)
+public class TeamService(DataContext db)
 {
     public Task<List<Team>> ListForClubAsync(int clubId) =>
         db.TeamSet

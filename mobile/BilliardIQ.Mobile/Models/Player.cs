@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace BilliardIQ.Mobile.Models;
+namespace BillardIQ.Mobile.Models;
 
 public class Player
 {

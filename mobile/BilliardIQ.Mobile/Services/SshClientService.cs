@@ -1,6 +1,6 @@
 using Renci.SshNet;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 
 public class SshClientService : ISshClientService
 {

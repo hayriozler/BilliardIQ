@@ -1,13 +1,13 @@
-using BilliardIQ.Mobile.Data;
-using BilliardIQ.Mobile.Models;
-using BilliardIQ.Mobile.Services;
-using BilliardIQ.Mobile.Utilities;
+using BillardIQ.Mobile.Data;
+using BillardIQ.Mobile.Models;
+using BillardIQ.Mobile.Services;
+using BillardIQ.Mobile.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace BilliardIQ.Mobile.PageModels.ScoreboardPageModels;
+namespace BillardIQ.Mobile.PageModels.ScoreboardPageModels;
 
 public partial class ScoreboardPageModel : BasePageModel
 {

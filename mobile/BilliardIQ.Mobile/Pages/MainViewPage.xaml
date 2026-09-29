@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <basePages:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
-             xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels"
-             xmlns:controls="clr-namespace:BilliardIQ.Mobile.Pages.Controls"
+             xmlns:basePages="clr-namespace:BillardIQ.Mobile.Pages.BasePages"
+             xmlns:pageModels="clr-namespace:BillardIQ.Mobile.PageModels"
+             xmlns:controls="clr-namespace:BillardIQ.Mobile.Pages.Controls"
              x:DataType="pageModels:MainPageModel"
-             x:Class="BilliardIQ.Mobile.Pages.MainViewPage">
+             x:Class="BillardIQ.Mobile.Pages.MainViewPage">
     <Grid>
         <controls:NewPhotoButton
             IsEnabled="True"

@@ -5,7 +5,7 @@ using Emgu.CV.Util;
 using SDSize  = System.Drawing.Size;
 using SDPoint = System.Drawing.Point;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 
 /// <summary>
 /// OpenCV (EmguCV) kullanarak bilardo toplarını ve masa köşelerini tespit eder.

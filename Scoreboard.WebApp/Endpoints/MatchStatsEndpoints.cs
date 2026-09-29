@@ -13,7 +13,7 @@ public static class MatchStatsEndpoints
     {
         var group = app.MapGroup("/api/stats").WithTags("MatchStats");
 
-        group.MapGet("/", async (ScoreboardDbContext db, HttpContext context) =>
+        group.MapGet("/", async (DataContext db, HttpContext context) =>
         {
             var clientId = context.GetClientId()!;
             return await db.MatchStatSet
@@ -23,7 +23,7 @@ public static class MatchStatsEndpoints
                 .ToListAsync();
         });
 
-        group.MapPost("/", async (SubmitMatchStatRequest request, ScoreboardDbContext db, HttpContext context) =>
+        group.MapPost("/", async (SubmitMatchStatRequest request, DataContext db, HttpContext context) =>
         {
             var clientId = context.GetClientId()!;
 
@@ -52,7 +52,7 @@ public static class MatchStatsEndpoints
             return Results.Ok(ToDto(stat));
         });
 
-        group.MapDelete("/{id:int}", async (int id, ScoreboardDbContext db, HttpContext context) =>
+        group.MapDelete("/{id:int}", async (int id, DataContext db, HttpContext context) =>
         {
             var clientId = context.GetClientId()!;
             var stat = await db.MatchStatSet.FirstOrDefaultAsync(s => s.Id == id && s.ClientId == clientId);

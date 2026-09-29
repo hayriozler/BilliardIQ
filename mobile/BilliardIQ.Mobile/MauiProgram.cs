@@ -1,41 +1,41 @@
 
-using BilliardIQ.Mobile.Data;
-using BilliardIQ.Mobile.PageModels.Admin;
-using BilliardIQ.Mobile.PageModels.Analyzers;
-using BilliardIQ.Mobile.PageModels.ConnectionPageModels;
-using BilliardIQ.Mobile.PageModels.GamePageModels;
-using BilliardIQ.Mobile.PageModels.PlayerPageModels;
-using BilliardIQ.Mobile.PageModels.PlayPageModels;
-using BilliardIQ.Mobile.PageModels.ScoreboardPageModels;
-using BilliardIQ.Mobile.PageModels.Ssh;
-using BilliardIQ.Mobile.PageModels.Stats;
-using BilliardIQ.Mobile.Pages.Admin;
-using BilliardIQ.Mobile.Pages.Analyzers;
-using BilliardIQ.Mobile.Pages.Connection;
-using BilliardIQ.Mobile.Pages.Games;
-using BilliardIQ.Mobile.Pages.Play;
-using BilliardIQ.Mobile.Pages.Players;
-using BilliardIQ.Mobile.Pages.Scoreboard;
-using BilliardIQ.Mobile.Pages.Ssh;
-using BilliardIQ.Mobile.Pages.Stats;
-using BilliardIQ.Mobile.Services;
+using BillardIQ.Mobile.Data;
+using BillardIQ.Mobile.PageModels.Admin;
+using BillardIQ.Mobile.PageModels.Analyzers;
+using BillardIQ.Mobile.PageModels.ConnectionPageModels;
+using BillardIQ.Mobile.PageModels.GamePageModels;
+using BillardIQ.Mobile.PageModels.PlayerPageModels;
+using BillardIQ.Mobile.PageModels.PlayPageModels;
+using BillardIQ.Mobile.PageModels.ScoreboardPageModels;
+using BillardIQ.Mobile.PageModels.Ssh;
+using BillardIQ.Mobile.PageModels.Stats;
+using BillardIQ.Mobile.Pages.Admin;
+using BillardIQ.Mobile.Pages.Analyzers;
+using BillardIQ.Mobile.Pages.Connection;
+using BillardIQ.Mobile.Pages.Games;
+using BillardIQ.Mobile.Pages.Play;
+using BillardIQ.Mobile.Pages.Players;
+using BillardIQ.Mobile.Pages.Scoreboard;
+using BillardIQ.Mobile.Pages.Ssh;
+using BillardIQ.Mobile.Pages.Stats;
+using BillardIQ.Mobile.Services;
 using Plugin.Maui.OCR;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 
 #if DEBUG
-using BilliardIQ.Mobile.PageModels.Debug;
-using BilliardIQ.Mobile.Pages.Debug;
+using BillardIQ.Mobile.PageModels.Debug;
+using BillardIQ.Mobile.Pages.Debug;
 #endif
 
 #if ANDROID
-using BilliardIQ.Mobile.Platforms.Android;
+using BillardIQ.Mobile.Platforms.Android;
 #endif
 #if IOS
-using BilliardIQ.Mobile.Platforms.iOS;
+using BillardIQ.Mobile.Platforms.iOS;
 #endif
 
-namespace BilliardIQ.Mobile;
+namespace BillardIQ.Mobile;
 
 public static class MauiProgram
 {

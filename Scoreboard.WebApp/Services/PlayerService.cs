@@ -4,7 +4,7 @@ using Scoreboard.WebApp.Models;
 
 namespace Scoreboard.WebApp.Services;
 
-public class PlayerService(ScoreboardDbContext db, IWebHostEnvironment env)
+public class PlayerService(DataContext db, IWebHostEnvironment env)
 {
     public Task<List<Player>> ListForClubAsync(int clubId) =>
         db.PlayerSet.Where(p => p.ClubId == clubId).OrderBy(p => p.Name).ToListAsync();

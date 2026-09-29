@@ -1,13 +1,13 @@
-using BilliardIQ.Mobile.Data;
-using BilliardIQ.Mobile.Models;
-using BilliardIQ.Mobile.Services;
+using BillardIQ.Mobile.Data;
+using BillardIQ.Mobile.Models;
+using BillardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Plugin.Maui.OCR;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 
-namespace BilliardIQ.Mobile.PageModels.GamePageModels;
+namespace BillardIQ.Mobile.PageModels.GamePageModels;
 
 public partial class NewGamePageModel : BasePageModel, IQueryAttributable
 {

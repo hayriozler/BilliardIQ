@@ -12,7 +12,7 @@ public class ClientIdMiddleware(RequestDelegate next)
     private static readonly PathString _clientsPath = "/api/clients";
     private static readonly PathString _clubsPath = "/api/clubs";
 
-    public async Task InvokeAsync(HttpContext context, ScoreboardDbContext db)
+    public async Task InvokeAsync(HttpContext context, DataContext db)
     {
         if (!context.Request.Path.StartsWithSegments(_apiPath) ||
             context.Request.Path.StartsWithSegments(_clientsPath) ||

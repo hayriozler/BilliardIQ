@@ -3,7 +3,7 @@ using Scoreboard.WebApp.Models;
 
 namespace Scoreboard.WebApp.Data;
 
-public class ScoreboardDbContext(DbContextOptions<ScoreboardDbContext> options) : DbContext(options)
+public class DataContext(DbContextOptions<DataContext> options) : DbContext(options)
 {
     public DbSet<Club> ClubSet => Set<Club>();
     public DbSet<ScoreboardClient> ScoreboardClientSet => Set<ScoreboardClient>();

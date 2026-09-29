@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 
 public  sealed partial class LocalizationManager : INotifyPropertyChanged
 {

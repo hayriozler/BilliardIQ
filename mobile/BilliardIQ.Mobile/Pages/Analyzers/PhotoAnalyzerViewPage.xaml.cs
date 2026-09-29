@@ -1,9 +1,9 @@
-using BilliardIQ.Mobile.PageModels.Analyzers;
-using BilliardIQ.Mobile.Services;
+using BillardIQ.Mobile.PageModels.Analyzers;
+using BillardIQ.Mobile.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
-namespace BilliardIQ.Mobile.Pages.Analyzers;
+namespace BillardIQ.Mobile.Pages.Analyzers;
 
 public sealed class CapturedPhoto : INotifyPropertyChanged
 {

@@ -1,7 +1,7 @@
-using BilliardIQ.Mobile.Models;
-using BilliardIQ.Mobile.Services;
+using BillardIQ.Mobile.Models;
+using BillardIQ.Mobile.Services;
 
-namespace BilliardIQ.Mobile.Data;
+namespace BillardIQ.Mobile.Data;
 
 public class MatchScoreStatRepository(DatabaseExecutor dbExecutor) : BaseRepo
 {

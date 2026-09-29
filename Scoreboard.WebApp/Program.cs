@@ -12,7 +12,7 @@ const string clientCorsPolicy = "Client";
 
 builder.Services.AddOpenApi();
 
-builder.Services.AddDbContext<ScoreboardDbContext>(options =>
+builder.Services.AddDbContext<DataContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddScoped<ClubService>();

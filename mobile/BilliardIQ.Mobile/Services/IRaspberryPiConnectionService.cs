@@ -1,6 +1,6 @@
-using BilliardIQ.Mobile.Models;
+using BillardIQ.Mobile.Models;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 
 public interface IRaspberryPiConnectionService
 {

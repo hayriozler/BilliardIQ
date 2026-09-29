@@ -1,12 +1,12 @@
-using BilliardIQ.Mobile.Data;
-using BilliardIQ.Mobile.Graphics;
-using BilliardIQ.Mobile.Models;
-using BilliardIQ.Mobile.Services;
-using BilliardIQ.Mobile.Utilities;
+using BillardIQ.Mobile.Data;
+using BillardIQ.Mobile.Graphics;
+using BillardIQ.Mobile.Models;
+using BillardIQ.Mobile.Services;
+using BillardIQ.Mobile.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 
-namespace BilliardIQ.Mobile.PageModels.Stats;
+namespace BillardIQ.Mobile.PageModels.Stats;
 
 public partial class PlayerStatsDetailPageModel : BasePageModel, IQueryAttributable
 {

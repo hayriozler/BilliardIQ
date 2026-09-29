@@ -4,7 +4,7 @@ namespace Scoreboard.WebApp.Responses;
 
 public record PlayerDto(
     int Id,
-    int ClubId,
+    int? ClubId,
     string Nickname,
     string Name,
     string? PhotoPath,

@@ -7,7 +7,7 @@ A kiosk-style digital scoreboard for billiards, built on Blazor Server.
 | Project | What it is |
 |---|---|
 | `Scoreboard.Client` | The scoreboard display itself. Blazor Server app (net10.0), state persisted via EF Core/SQLite. This is what you run on the machine driving the screen. |
-| `Zeymera.BillardIQ.WebApp` | ASP.NET Core Blazor Web App backed by PostgreSQL (EF Core). Hosts an admin UI for managing clubs/teams/players, plus a minimal API that receives what a kiosk's `RemoteSyncService` pushes it — clients, players, match stats — see "Remote data push" below. |
+| `Scoreboard.WebApp` | ASP.NET Core Blazor Web App backed by PostgreSQL (EF Core). Hosts an admin UI for managing clubs/teams/players, plus a minimal API that receives what a kiosk's `RemoteSyncService` pushes it — clients, players, match stats — see "Remote data push" below. |
 
 ## Running the scoreboard
 
@@ -141,7 +141,7 @@ The scoreboard accepts the same commands from two sources. Every one of them end
 
 ## Player roster
 
-The `player` table (SQLite, same database as the scoreboard state) is a local roster independent of `Zeymera.BillardIQ.WebApp` — `Id` is auto-increment, plus `Nickname`, `Name`, `ShortcutNumber` (optional, used for the free-text lookup below — not the same as `Id`), and `PhotoPath` (a relative path under `wwwroot/Players/`; the photo bytes live on disk, not in the DB). The remote `UpsertPlayer` command may still pass an explicit `id` (e.g. to match a MAUI app's own id scheme) — EF/SQLite only auto-assign when the value is left at its default, so both paths work side by side.
+The `player` table (SQLite, same database as the scoreboard state) is a local roster independent of `Scoreboard.WebApp` — `Id` is auto-increment, plus `Nickname`, `Name`, `ShortcutNumber` (optional, used for the free-text lookup below — not the same as `Id`), and `PhotoPath` (a relative path under `wwwroot/Players/`; the photo bytes live on disk, not in the DB). The remote `UpsertPlayer` command may still pass an explicit `id` (e.g. to match a MAUI app's own id scheme) — EF/SQLite only auto-assign when the value is left at its default, so both paths work side by side.
 
 - **`/players`** — a page (linked from the board's controls overlay) to add/edit/delete roster players by hand, with a photo upload and a shortcut number.
 - **Assigning a roster player to the board** — press `P` (or use the "Choose Player" button per slot in the controls overlay) to open a picker dialog listing the roster; picking one links that slot to the player's `Id` (`ScoreboardState.Player1Id`/`Player2Id`). Once linked, the board displays that player's `Nickname` (falling back to `Name` if the nickname is empty) and their photo next to the name, instead of the free-typed `Player1Name`/`Player2Name`. "Use manual name instead" in the dialog unlinks it and reverts to the free-text name. Typing a number into the free-text name field is also treated as a lookup — if a roster player has that number as their `ShortcutNumber`, that player is linked instead of using the digits as a literal name.
@@ -162,7 +162,7 @@ The match target itself (`Current.MatchTarget`, default 20 on a brand-new databa
 
 ## Remote data push
 
-`Zeymera.BillardIQ.WebApp` is backed by PostgreSQL (EF Core, `Npgsql`) — six resources: `Club` (a venue, e.g. a billiards hall — `Endpoints/ClubsEndpoints.cs`), `ScoreboardClient` (one per monitor/kiosk at that club, optionally linked to a `Club` via `ClubId` + which physical `TableNumber` it's showing — `Endpoints/ScoreboardClientsEndpoints.cs`), `Player` and `Team` (owned directly by a `Club`, managed either through the admin UI at `/clubs` or the API below), `MatchStat` (a finished match's final stats, still keyed by `ClientId` + the kiosk's own local ids), and `TeamPlayer` (the join table linking a `Team` to its member `Player`s). `Services/ClubService.cs`, `Services/PlayerService.cs` and `Services/TeamService.cs` hold the actual CRUD logic and are shared between the Blazor pages (`Components/Pages/`) and the minimal API endpoints below, so the two never drift apart. No league matches, no live-scoreboard mirror — those were removed as unnecessary for the current scope. `Zeymera.BillardIQ.WebApp.http` at the project root has ready-to-run requests for all of this (VS Code's REST Client extension or Visual Studio's built-in `.http` support) — it walks through creating a club, registering clients for it, then pushing players/stats/teams using the resulting client id.
+`Scoreboard.WebApp` is backed by PostgreSQL (EF Core, `Npgsql`) — six resources: `Club` (a venue, e.g. a billiards hall — `Endpoints/ClubsEndpoints.cs`), `ScoreboardClient` (one per monitor/kiosk at that club, optionally linked to a `Club` via `ClubId` + which physical `TableNumber` it's showing — `Endpoints/ScoreboardClientsEndpoints.cs`), `Player` and `Team` (owned directly by a `Club`, managed either through the admin UI at `/clubs` or the API below), `MatchStat` (a finished match's final stats, still keyed by `ClientId` + the kiosk's own local ids), and `TeamPlayer` (the join table linking a `Team` to its member `Player`s). `Services/ClubService.cs`, `Services/PlayerService.cs` and `Services/TeamService.cs` hold the actual CRUD logic and are shared between the Blazor pages (`Components/Pages/`) and the minimal API endpoints below, so the two never drift apart. No league matches, no live-scoreboard mirror — those were removed as unnecessary for the current scope. `Scoreboard.WebApp.http` at the project root has ready-to-run requests for all of this (VS Code's REST Client extension or Visual Studio's built-in `.http` support) — it walks through creating a club, registering clients for it, then pushing players/stats/teams using the resulting client id.
 
 `POST /api/clubs` generates its own `Code` (via `Data/PairingCodeGenerator.cs`, the same generator `POST /api/clients` uses) and returns it in the response — a short random code identifying the club itself, distinct from any individual kiosk's own `ScoreboardClient.Id`. That same `Code` is also the club's login credential for the admin UI (see below).
 
@@ -188,11 +188,11 @@ Every `PollSeconds` (default 15), the service checks for unsent rows and pushes 
 
 On the WebApp side, `POST /api/players` upserts on the player's own `Id` (`0` creates, non-zero updates) rather than insert-only, so a retried push after a lost response updates the existing row instead of duplicating it — though the kiosk's remote sync flow currently expects the pre-refactor upsert-by-a-kiosk-chosen-id semantics, so `RemoteSyncService` needs revisiting before this is actually enabled end to end. `POST /api/stats` is a plain insert — a lost-response retry can create a duplicate stat row, which is an acceptable tradeoff for a scoreboard history log.
 
-`Zeymera.BillardIQ.WebApp` has no EF Core migrations applied anywhere yet (no local Postgres was reachable to test against) — run `dotnet ef database update` from `Zeymera.BillardIQ.WebApp/` against wherever Postgres actually lives before relying on any of this.
+`Scoreboard.WebApp` has no EF Core migrations applied anywhere yet (no local Postgres was reachable to test against) — run `dotnet ef database update` from `Scoreboard.WebApp/` against wherever Postgres actually lives before relying on any of this.
 
 ## Club/team/player admin UI
 
-`Zeymera.BillardIQ.WebApp` also serves a small Blazor Server admin UI (same project, same process as the API — not a separate app), gated behind a cookie login so one club can never see another's roster:
+`Scoreboard.WebApp` also serves a small Blazor Server admin UI (same project, same process as the API — not a separate app), gated behind a cookie login so one club can never see another's roster:
 
 - **`/clubs`** — public. Register a new club; shows the generated `Code` once (also usable as `ClientId` filtering for `/api/clients?clubId=`).
 - **`/login`** — public. Enter a club's `Code` to sign in (`Endpoints/ClubAuthEndpoints.cs`, plain `POST /login` cookie sign-in, not a Blazor-bound form, since Blazor Server circuits can't write auth cookies mid-circuit).
