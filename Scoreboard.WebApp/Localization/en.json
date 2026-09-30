@@ -1,4 +1,9 @@
 {
+  "Yakında bitiyor": "Expiring soon",
+  "Silinen tahsilatlar": "Deleted collections",
+  "Silinen tahsilat yok.": "No deleted collections.",
+  "Silinme zamanı": "Deleted at",
+  "Sadece bekleyen tahsilat silinebilir.": "Only a pending collection can be deleted.",
   "Avatar": "Avatar",
   "Avatar seç": "Choose avatar",
   "Kaldır": "Remove",

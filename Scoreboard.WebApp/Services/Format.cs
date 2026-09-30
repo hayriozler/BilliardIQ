@@ -15,6 +15,9 @@ public static class Format
         return $"{amount.ToString("N2", Culture)} {symbol}";
     }
 
+    /// <summary>Calendar date in the current language, e.g. "30 Eyl 2026" / "30 Sep 2026".</summary>
+    public static string Date(DateOnly value) => value.ToString("d MMM yyyy", CultureInfo.CurrentCulture);
+
     public static string Clock(double totalSeconds)
     {
         var span = TimeSpan.FromSeconds(Math.Max(0, totalSeconds));

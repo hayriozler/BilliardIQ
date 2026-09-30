@@ -1,27 +1,49 @@
 using System.Globalization;
+using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Scoreboard.WebApp.Services;
 
+/// <summary>
+/// Animal avatars: 20 illustrated animals × 5 team colours = 100 avatars, id 0..99.
+/// The artwork lives in <c>Avatars/animals.json</c> (embedded; the scoreboard client links the same file), so the
+/// panel and the scoreboard always draw the same picture for the same id. Each animal is described by its left half,
+/// which is mirrored, plus optional shapes behind and in front of the face.
+/// </summary>
 public static class AvatarGenerator
 {
-    public const int Count = 100;
+    private sealed record Palette(string Bg, string Bg2, string C1, string C2, string C3);
 
-    private static readonly string[][] _palettes =
-    [
-        ["#FFD6A5", "#FF934F", "#2D3142"],
-        ["#A0E7E5", "#00B4D8", "#03045E"],
-        ["#B8F2E6", "#5E548E", "#22223B"],
-        ["#FFC6FF", "#BDB2FF", "#4C3B6E"],
-        ["#FFADAD", "#FF6B6B", "#5C1A1A"],
-        ["#CAFFBF", "#57CC99", "#1B4332"],
-        ["#FDFFB6", "#FFD60A", "#6B5B00"],
-        ["#9BF6FF", "#48CAE4", "#023047"],
-        ["#FFC8DD", "#FFAFCC", "#6D2E46"],
-        ["#D0F4DE", "#95D5B2", "#1B4332"],
-    ];
+    private sealed record Animal(string Name, string Back, string Half, string Front);
 
-    public static string GetColor(int seed) => _palettes[Math.Abs(seed) % _palettes.Length][1];
+    private sealed record Catalog(
+        [property: JsonPropertyName("palettes")] List<PaletteDto> Palettes,
+        [property: JsonPropertyName("animals")] List<AnimalDto> Animals);
+
+    private sealed record PaletteDto(string Name, string Bg, string Bg2, string C1, string C2, string C3);
+
+    private sealed record AnimalDto(string Name, string Back, string Half, string Front);
+
+    private static readonly List<Palette> _palettes;
+    private static readonly List<Animal> _animals;
+
+    static AvatarGenerator()
+    {
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Avatars.animals.json")
+            ?? throw new InvalidOperationException("Embedded avatar catalog 'Avatars.animals.json' is missing.");
+        var catalog = JsonSerializer.Deserialize<Catalog>(stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? throw new InvalidOperationException("Avatar catalog is empty.");
+        _palettes = catalog.Palettes.Select(p => new Palette(p.Bg, p.Bg2, p.C1, p.C2, p.C3)).ToList();
+        _animals = catalog.Animals.Select(a => new Animal(a.Name, a.Back, a.Half, a.Front)).ToList();
+    }
+
+    /// <summary>Number of distinct avatars; valid ids are 0 to Count - 1.</summary>
+    public static int Count => _animals.Count * _palettes.Count;
+
+    /// <summary>Accent colour of an avatar, handy for tinting UI next to it.</summary>
+    public static string GetColor(int seed) => Resolve(seed).Palette.C1;
 
     public static int SeedFromName(string name)
     {
@@ -36,48 +58,19 @@ public static class AvatarGenerator
 
     public static string ToSvg(int seed, int size = 64)
     {
-        var rnd = new Random(seed);
-        var palette = _palettes[Math.Abs(seed) % _palettes.Length];
-        var bg = palette[0];
-        var face = palette[1];
-        var accent = palette[2];
+        var (animal, palette) = Resolve(seed);
+        string Paint(string shapes) => shapes.Replace("{c1}", palette.C1).Replace("{c2}", palette.C2).Replace("{c3}", palette.C3);
 
-        var faceR = size * (0.3 + rnd.NextDouble() * 0.08);
-        var cx = size / 2.0 + (rnd.NextDouble() - 0.5) * size * 0.1;
-        var cy = size / 2.0 + (rnd.NextDouble() - 0.5) * size * 0.1;
-
-        var eyeDx = faceR * (0.36 + rnd.NextDouble() * 0.12);
-        var eyeDy = -faceR * 0.1;
-        var eyeR = faceR * (0.09 + rnd.NextDouble() * 0.05);
-
-        var mouthY = cy + faceR * 0.34;
-        var mouthWidth = faceR * (0.45 + rnd.NextDouble() * 0.2);
-        var smile = rnd.NextDouble() > 0.25;
-        var mouthCurve = smile ? faceR * 0.3 : -faceR * 0.05;
-        var mouthPath = FormattableString.Invariant(
-            $"M {cx - mouthWidth / 2:0.##} {mouthY:0.##} Q {cx:0.##} {mouthY + mouthCurve:0.##} {cx + mouthWidth / 2:0.##} {mouthY:0.##}");
-
-        var cheeks = rnd.NextDouble() > 0.5;
-
+        var half = Paint(animal.Half);
         var sb = new StringBuilder();
-        sb.Append(CultureInfo.InvariantCulture, $"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {size} {size}' width='{size}' height='{size}'>");
-        sb.Append(CultureInfo.InvariantCulture, $"<rect width='{size}' height='{size}' rx='{size * 0.18:0.##}' fill='{bg}' />");
-        sb.Append(CultureInfo.InvariantCulture, $"<circle cx='{cx:0.##}' cy='{cy:0.##}' r='{faceR:0.##}' fill='{face}' />");
-
-        if (cheeks)
-        {
-            var cheekR = faceR * 0.14;
-            var cheekDx = faceR * 0.62;
-            var cheekY = cy + faceR * 0.12;
-            sb.Append(CultureInfo.InvariantCulture, $"<circle cx='{cx - cheekDx:0.##}' cy='{cheekY:0.##}' r='{cheekR:0.##}' fill='{accent}' opacity='0.25' />");
-            sb.Append(CultureInfo.InvariantCulture, $"<circle cx='{cx + cheekDx:0.##}' cy='{cheekY:0.##}' r='{cheekR:0.##}' fill='{accent}' opacity='0.25' />");
-        }
-
-        sb.Append(CultureInfo.InvariantCulture, $"<circle cx='{cx - eyeDx:0.##}' cy='{cy + eyeDy:0.##}' r='{eyeR:0.##}' fill='{accent}' />");
-        sb.Append(CultureInfo.InvariantCulture, $"<circle cx='{cx + eyeDx:0.##}' cy='{cy + eyeDy:0.##}' r='{eyeR:0.##}' fill='{accent}' />");
-        sb.Append(CultureInfo.InvariantCulture, $"<path d='{mouthPath}' stroke='{accent}' stroke-width='{faceR * 0.09:0.##}' fill='none' stroke-linecap='round' />");
+        sb.Append(CultureInfo.InvariantCulture, $"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' width='{size}' height='{size}'>");
+        sb.Append(CultureInfo.InvariantCulture, $"<defs><radialGradient id='g' cx='50%' cy='35%' r='75%'><stop offset='0' stop-color='{palette.Bg2}'/><stop offset='1' stop-color='{palette.Bg}'/></radialGradient></defs>");
+        sb.Append("<rect width='64' height='64' rx='11' fill='url(#g)'/>");
+        sb.Append(Paint(animal.Back));
+        sb.Append("<g>").Append(half).Append("</g>");
+        sb.Append("<g transform='matrix(-1 0 0 1 64 0)'>").Append(half).Append("</g>");
+        sb.Append(Paint(animal.Front));
         sb.Append("</svg>");
-
         return sb.ToString();
     }
 
@@ -85,5 +78,11 @@ public static class AvatarGenerator
     {
         var bytes = Encoding.UTF8.GetBytes(ToSvg(seed, size));
         return $"data:image/svg+xml;base64,{Convert.ToBase64String(bytes)}";
+    }
+
+    private static (Animal Animal, Palette Palette) Resolve(int seed)
+    {
+        var id = Math.Abs(seed) % Count;
+        return (_animals[id % _animals.Count], _palettes[id / _animals.Count % _palettes.Count]);
     }
 }

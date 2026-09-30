@@ -1,0 +1,745 @@
+@page "/tournaments/{Id:int}"
+@attribute [Authorize]
+@using Scoreboard.WebApp.Services.Tournaments
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>@(_cup?.Name ?? L["Turnuva"]) • BillardIQ</PageTitle>
+
+@if (_notFound)
+{
+    <div class="card empty">@L["Turnuva bulunamadı."] <a href="/tournaments">@L["Turnuvalar"]</a></div>
+    return;
+}
+
+@if (_cup is null)
+{
+    <p class="muted">@L["Yükleniyor..."]</p>
+    return;
+}
+
+<div class="page-head">
+    <div>
+        <h1>@_cup.Name</h1>
+        <div class="subtitle">
+            <span class="pill @StatusCss(_cup.Status)">@StatusName(_cup.Status)</span>
+            @FormatName(_cup.Format) • @L["{0} katılımcı", _cup.Participants.Count] • @L["{0} tur", TotalRounds]
+            @if (_cup.MaxInnings is { } maxInnings)
+            {
+                <span> • @L["en fazla {0} el", maxInnings]</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(_cup.Description))
+            {
+                <div>@_cup.Description</div>
+            }
+        </div>
+    </div>
+    <div class="row-actions">
+        <a class="small-link" href="/tournaments">← @L["Turnuvalar"]</a>
+        @if (_tenant is { CanManage: true })
+        {
+            @if (_cup.Status == CupStatus.Draft)
+            {
+                <button class="primary" disabled="@_busy" @onclick="StartAsync">@L["Turnuvayı başlat"]</button>
+            }
+            else if (_confirmReset)
+            {
+                <span class="hint">@L["Tüm maçlar ve sonuçlar silinir."]</span>
+                <button class="small danger" disabled="@_busy" @onclick="ResetAsync">@L["Sıfırlamayı onayla"]</button>
+                <button class="small ghost" @onclick="() => _confirmReset = false">@L["Vazgeç"]</button>
+            }
+            else
+            {
+                <button class="small ghost" @onclick="() => _confirmReset = true">@L["Turnuvayı sıfırla"]</button>
+            }
+        }
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert error">@_error</div>
+}
+
+<div class="toolbar">
+    <button class="chip @(_tab == "participants" ? "active" : "")" @onclick='() => _tab = "participants"'>@L["Katılımcılar"] (@_cup.Participants.Count)</button>
+    <button class="chip @(_tab == "rules" ? "active" : "")" @onclick='() => _tab = "rules"'>@L["Tur kuralları"]</button>
+    <button class="chip @(_tab == "fixtures" ? "active" : "")" @onclick='() => _tab = "fixtures"'>@L["Fikstür"]</button>
+    <button class="chip @(_tab == "standings" ? "active" : "")" @onclick='() => _tab = "standings"'>@(_cup.Format == CupFormat.RoundRobin ? L["Puan durumu"] : L["Eleme tablosu"])</button>
+</div>
+
+@if (_tab == "participants")
+{
+    <div class="split">
+        <div class="card">
+            <h2>@L["Katılımcılar"] (@_cup.Participants.Count)</h2>
+            @if (_cup.Participants.Count == 0)
+            {
+                <div class="empty">@L["Henüz katılımcı yok."]</div>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>@L["Sıra"]</th><th>@L["Oyuncu"]</th><th>@L["Handikap sayısı"]</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var participant in _cup.Participants.OrderBy(p => p.Seed ?? int.MaxValue).ThenBy(p => p.Id))
+                            {
+                                var edit = _pedit.GetValueOrDefault(participant.Id) ?? new ParticipantEdit();
+                                <tr>
+                                    <td>
+                                        @if (CanEditSetup)
+                                        {
+                                            <input type="number" min="1" style="width:4.5rem" @bind="edit.Seed" />
+                                        }
+                                        else
+                                        {
+                                            @participant.Seed
+                                        }
+                                    </td>
+                                    <td><strong>@participant.Player.DisplayName</strong></td>
+                                    <td>
+                                        @if (CanEditSetup)
+                                        {
+                                            <input type="number" min="1" style="width:6rem" placeholder="@L["boş"]" @bind="edit.Handicap" />
+                                        }
+                                        else
+                                        {
+                                            @(participant.HandicapTarget?.ToString() ?? "—")
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (CanEditSetup)
+                                        {
+                                            <div class="row-actions">
+                                                <button class="small" disabled="@_busy" @onclick="() => SaveParticipantAsync(participant.Id)">@L["Kaydet"]</button>
+                                                <button class="small ghost" disabled="@_busy" @onclick="() => RemoveParticipantAsync(participant.Id)">@L["Kaldır"]</button>
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (CanEditSetup)
+                {
+                    <p class="hint">@L["Handikaplı turlarda her oyuncu kendi handikap sayısını çeker. Eleme usulünde sıra numarası seri başı sırasını belirler (1 = en güçlü)."]</p>
+                }
+            }
+        </div>
+
+        @if (CanEditSetup)
+        {
+            <div class="card">
+                <h2>@L["Oyuncu ekle"]</h2>
+                @if (_available.Count == 0)
+                {
+                    <div class="empty">@L["Eklenecek oyuncu kalmadı."] <a href="/players">@L["Oyuncular"]</a></div>
+                }
+                else
+                {
+                    <div class="team-players">
+                        @foreach (var player in _available)
+                        {
+                            var playerId = player.Id;
+                            <label class="player-toggle">
+                                <input type="checkbox" checked="@_selectedPlayers.Contains(playerId)" @onchange="e => TogglePlayer(playerId, (bool)e.Value!)" />
+                                @player.DisplayName
+                                @if (player.DefaultTargetPoints is { } target)
+                                {
+                                    <span class="muted">(@target)</span>
+                                }
+                            </label>
+                        }
+                    </div>
+                    <div class="form-actions">
+                        <button class="primary" disabled="@(_busy || _selectedPlayers.Count == 0)" @onclick="AddParticipantsAsync">@L["Seçilenleri ekle"] (@_selectedPlayers.Count)</button>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+else if (_tab == "rules")
+{
+    <div class="card">
+        <h2>@L["Tur kuralları"]</h2>
+        <p class="hint">@L["Her tur aralığı için puanlama kuralı seçin: Handikaplı (herkes kendi sayısını çeker) veya Sabit (iki oyuncu da aynı sayıyı çeker, ör. 40)."]</p>
+        <p>
+            @L["Toplam tur"]: <strong>@TotalRounds</strong>
+            @if (TotalRounds > 0)
+            {
+                @if (_uncovered.Count == 0 && _overlapping.Count == 0)
+                {
+                    <span class="pill available">@L["Tüm turlar için kural tanımlı"]</span>
+                }
+                @if (_uncovered.Count > 0)
+                {
+                    <span class="pill off">@L["Kuralı olmayan turlar: {0}", string.Join(", ", _uncovered)]</span>
+                }
+                @if (_overlapping.Count > 0)
+                {
+                    <span class="pill paused">@L["Çakışan turlar: {0}", string.Join(", ", _overlapping)]</span>
+                }
+            }
+            else
+            {
+                <span class="muted">@L["Tur sayısı için önce en az iki katılımcı ekleyin."]</span>
+            }
+        </p>
+
+        @if (CanEditSetup)
+        {
+            <h2 style="margin-top:1rem">@L["Hızlı kurulum"]</h2>
+            <div class="form-row">
+                <label class="field">@L["İlk N tur handikaplı"]
+                    <input type="number" min="0" @bind="_quickHandicapRounds" />
+                </label>
+                <label class="field">@L["Kalan turlarda sabit hedef"]
+                    <input type="number" min="1" @bind="_quickFixed" />
+                </label>
+                <button class="primary" disabled="@(_busy || TotalRounds == 0)" @onclick="QuickAsync">@L["Uygula"]</button>
+                <button disabled="@(_busy || TotalRounds == 0)" @onclick="AllHandicapAsync">@L["Tümü handikaplı"]</button>
+            </div>
+            <p class="hint">@L["Örnek: 10 turluk turnuvada 8 yazıp sabit hedefe 40 girin → ilk 8 tur handikaplı, son 2 tur 40 çekmeli."]</p>
+        }
+
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>@L["Başlangıç turu"]</th><th>@L["Bitiş turu"]</th><th>@L["Kural"]</th><th>@L["Sabit hedef"]</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var row in _rules)
+                    {
+                        <tr>
+                            @if (CanEditSetup)
+                            {
+                                <td><input type="number" min="1" style="width:5rem" @bind="row.FromRound" @bind:after="Recheck" /></td>
+                                <td><input type="number" min="1" style="width:5rem" @bind="row.ToRound" @bind:after="Recheck" /></td>
+                                <td>
+                                    <select @bind="row.Mode">
+                                        <option value="@CupRuleMode.Handicap">@L["Handikaplı"]</option>
+                                        <option value="@CupRuleMode.Fixed">@L["Sabit hedef"]</option>
+                                    </select>
+                                </td>
+                                <td><input type="number" min="1" style="width:6rem" disabled="@(row.Mode != CupRuleMode.Fixed)" @bind="row.FixedTarget" /></td>
+                                <td><button class="small ghost" @onclick="() => { _rules.Remove(row); Recheck(); }">@L["Kaldır"]</button></td>
+                            }
+                            else
+                            {
+                                <td>@row.FromRound</td>
+                                <td>@row.ToRound</td>
+                                <td>@(row.Mode == CupRuleMode.Handicap ? L["Handikaplı"] : L["Sabit hedef"])</td>
+                                <td>@(row.Mode == CupRuleMode.Fixed ? row.FixedTarget?.ToString() : "—")</td>
+                                <td></td>
+                            }
+                        </tr>
+                    }
+                    @if (_rules.Count == 0)
+                    {
+                        <tr><td colspan="5" class="muted">@L["Henüz kural aralığı yok."]</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (CanEditSetup)
+        {
+            <div class="form-actions">
+                <button class="small" @onclick="AddRuleRow">+ @L["Kural aralığı"]</button>
+                <button class="primary" disabled="@_busy" @onclick="SaveRulesAsync">@L["Kuralları kaydet"]</button>
+            </div>
+        }
+    </div>
+}
+else if (_tab == "fixtures")
+{
+    @if (_cup.Status == CupStatus.Draft)
+    {
+        <div class="card empty">@L["Fikstür, turnuva başlatılınca oluşur."]</div>
+    }
+    else
+    {
+        @foreach (var round in _cup.Matches.GroupBy(m => m.Round).OrderBy(g => g.Key))
+        {
+            <div class="card">
+                <h2>@RoundName(round.Key) <span class="muted">• @RuleText(round.Key)</span></h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>#</th><th>@L["Oyuncu"] A</th><th>@L["Oyuncu"] B</th><th>@L["Hedef"]</th><th>@L["Masa"]</th><th>@L["Sonuç"]</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var match in round.OrderBy(m => m.Number))
+                            {
+                                <tr>
+                                    <td>@match.Number</td>
+                                    <td class="@(match.WinnerParticipantId == match.ParticipantAId && match.ParticipantAId is not null ? "win" : "")">@Name(match.ParticipantAId)</td>
+                                    <td class="@(match.WinnerParticipantId == match.ParticipantBId && match.ParticipantBId is not null ? "win" : "")">@Name(match.ParticipantBId)</td>
+                                    <td>@TargetText(match)</td>
+                                    <td>
+                                        @if (match.Status == CupMatchStatus.Bye)
+                                        {
+                                            <span class="muted">—</span>
+                                        }
+                                        else if (_tenant is { CanManage: true })
+                                        {
+                                            <select @onchange="e => SetTableAsync(match.Id, e.Value?.ToString())">
+                                                <option value="">—</option>
+                                                @foreach (var table in _tables)
+                                                {
+                                                    <option value="@table.Id" selected="@(match.TableId == table.Id)">@L["Masa {0}", table.Number]</option>
+                                                }
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            @(match.Table is null ? "—" : L["Masa {0}", match.Table.Number])
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (match.Status == CupMatchStatus.Bye)
+                                        {
+                                            <span class="pill paused">@L["Bay"]</span>
+                                            <span class="muted">@Name(match.WinnerParticipantId)</span>
+                                        }
+                                        else if (match.ParticipantAId is null || match.ParticipantBId is null)
+                                        {
+                                            <span class="muted">@L["Rakipler belli değil"]</span>
+                                        }
+                                        else if (match.Status == CupMatchStatus.Finished)
+                                        {
+                                            <strong>@match.ScoreA - @match.ScoreB</strong>
+                                            <span class="muted">• @L["{0} el", match.Innings] • @L["seri"] @match.HighRunA / @match.HighRunB</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="pill inuse">@L["Oynanmadı"]</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (_tenant is { CanManage: true } && match.Status != CupMatchStatus.Bye && match.ParticipantAId is not null && match.ParticipantBId is not null)
+                                        {
+                                            <div class="row-actions">
+                                                <button class="small" disabled="@_busy" @onclick="() => OpenResult(match)">@(match.Status == CupMatchStatus.Finished ? L["Düzenle"] : L["Sonuç gir"])</button>
+                                                @if (match.Status == CupMatchStatus.Finished)
+                                                {
+                                                    <button class="small ghost" disabled="@_busy" @onclick="() => ClearAsync(match.Id)">@L["Temizle"]</button>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                                @if (_editMatchId == match.Id)
+                                {
+                                    <tr>
+                                        <td colspan="7">
+                                            <div class="form-grid">
+                                                <label class="field">@Name(match.ParticipantAId) — @L["sayı"]
+                                                    <input type="number" min="0" @bind="_res.ScoreA" @bind:after="() => Suggest(match)" />
+                                                </label>
+                                                <label class="field">@Name(match.ParticipantBId) — @L["sayı"]
+                                                    <input type="number" min="0" @bind="_res.ScoreB" @bind:after="() => Suggest(match)" />
+                                                </label>
+                                                <label class="field">@L["El sayısı"]
+                                                    <input type="number" min="0" @bind="_res.Innings" />
+                                                </label>
+                                                <label class="field">@Name(match.ParticipantAId) — @L["en iyi seri"]
+                                                    <input type="number" min="0" @bind="_res.HighRunA" />
+                                                </label>
+                                                <label class="field">@Name(match.ParticipantBId) — @L["en iyi seri"]
+                                                    <input type="number" min="0" @bind="_res.HighRunB" />
+                                                </label>
+                                                <label class="field">@L["Kazanan"]
+                                                    <select @bind="_res.Winner">
+                                                        <option value="0">@L["Kazanan seçin"]</option>
+                                                        <option value="@match.ParticipantAId">@Name(match.ParticipantAId)</option>
+                                                        <option value="@match.ParticipantBId">@Name(match.ParticipantBId)</option>
+                                                    </select>
+                                                </label>
+                                            </div>
+                                            <div class="form-actions">
+                                                <button class="primary" disabled="@_busy" @onclick="() => SaveResultAsync(match)">@L["Sonucu kaydet"]</button>
+                                                <button @onclick="() => _editMatchId = null">@L["Vazgeç"]</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+}
+else
+{
+    @if (_cup.Status == CupStatus.Draft)
+    {
+        <div class="card empty">@L["Sonuçlar, turnuva başlatılınca görünür."]</div>
+    }
+    else if (_cup.Format == CupFormat.RoundRobin)
+    {
+        <div class="card">
+            <h2>@L["Puan durumu"]</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th><th>@L["Oyuncu"]</th><th class="num">@L["O"]</th><th class="num">@L["G"]</th><th class="num">@L["M"]</th>
+                            <th class="num">@L["Puan"]</th><th class="num">@L["Sayı"]</th><th class="num">@L["El"]</th>
+                            <th class="num">@L["Ortalama"]</th><th class="num">@L["En iyi seri"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ var rank = 0; }
+                        @foreach (var row in _standings)
+                        {
+                            rank++;
+                            <tr>
+                                <td>@rank</td>
+                                <td><strong>@Name(row.ParticipantId)</strong></td>
+                                <td class="num">@row.Played</td>
+                                <td class="num">@row.Won</td>
+                                <td class="num">@row.Lost</td>
+                                <td class="num"><strong>@row.MatchPoints</strong></td>
+                                <td class="num">@row.PointsFor–@row.PointsAgainst</td>
+                                <td class="num">@row.Innings</td>
+                                <td class="num">@row.Average.ToString("0.000")</td>
+                                <td class="num">@row.BestHighRun</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <p class="hint">@L["Galibiyet 2 puan. Bay geçen oyuncuya 2 puan yazılır; sayı ve el istatistiğine eklenmez. Sıralama: puan, ortalama, sayı farkı."]</p>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <h2>@L["Eleme tablosu"]</h2>
+            <div class="bracket">
+                @foreach (var round in _cup.Matches.GroupBy(m => m.Round).OrderBy(g => g.Key))
+                {
+                    <div class="bracket-round">
+                        <h3>@RoundName(round.Key)</h3>
+                        @foreach (var match in round.OrderBy(m => m.Number))
+                        {
+                            <div class="bracket-match">
+                                <div class="@(match.WinnerParticipantId == match.ParticipantAId && match.ParticipantAId is not null ? "win" : "")">
+                                    <span>@Name(match.ParticipantAId)</span>
+                                    <span class="score">@(match.Status == CupMatchStatus.Finished ? match.ScoreA.ToString() : "")</span>
+                                </div>
+                                <div class="@(match.WinnerParticipantId == match.ParticipantBId && match.ParticipantBId is not null ? "win" : "")">
+                                    <span>@(match.Status == CupMatchStatus.Bye ? L["Bay"] : Name(match.ParticipantBId))</span>
+                                    <span class="score">@(match.Status == CupMatchStatus.Finished ? match.ScoreB.ToString() : "")</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            @if (_champion is not null)
+            {
+                <p style="margin-top:1rem">🏆 <strong>@L["Şampiyon"]: @_champion</strong></p>
+            }
+        </div>
+        <div class="card">
+            <h2>@L["Oyuncu istatistikleri"]</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>@L["Oyuncu"]</th><th class="num">@L["O"]</th><th class="num">@L["G"]</th><th class="num">@L["M"]</th><th class="num">@L["Sayı"]</th><th class="num">@L["El"]</th><th class="num">@L["Ortalama"]</th><th class="num">@L["En iyi seri"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in _standings)
+                        {
+                            <tr>
+                                <td><strong>@Name(row.ParticipantId)</strong></td>
+                                <td class="num">@row.Played</td>
+                                <td class="num">@row.Won</td>
+                                <td class="num">@row.Lost</td>
+                                <td class="num">@row.PointsFor</td>
+                                <td class="num">@row.Innings</td>
+                                <td class="num">@row.Average.ToString("0.000")</td>
+                                <td class="num">@row.BestHighRun</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Tenant? _tenant;
+    private Cup? _cup;
+    private bool _notFound;
+    private List<Player> _available = [];
+    private List<BilliardTable> _tables = [];
+    private List<CupStandingRow> _standings = [];
+    private Dictionary<int, string> _names = [];
+    private Dictionary<int, ParticipantEdit> _pedit = [];
+    private HashSet<int> _selectedPlayers = [];
+    private List<RuleRow> _rules = [];
+    private List<int> _uncovered = [];
+    private List<int> _overlapping = [];
+    private string? _champion;
+    private string _tab = "participants";
+    private string? _error;
+    private bool _busy;
+    private bool _confirmReset;
+    private int _quickHandicapRounds;
+    private int? _quickFixed = 40;
+    private int? _editMatchId;
+    private ResultForm _res = new();
+    private bool _tabChosen;
+
+    private bool CanEditSetup => _tenant is { CanManage: true } && _cup is { Status: CupStatus.Draft };
+
+    private int TotalRounds => _cup is null ? 0
+        : _cup.Status == CupStatus.Draft ? CupLogic.TotalRounds(_cup.Format, _cup.Participants.Count) : _cup.TotalRounds;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenant = await TenantContext.GetAsync();
+        await LoadAsync(resetEditors: true);
+    }
+
+    private async Task LoadAsync(bool resetEditors = false)
+    {
+        var orgId = _tenant!.OrganizationId;
+        var cup = await Db.RunAsync((CupService s) => s.GetAsync(orgId, Id));
+        if (cup is null)
+        {
+            _notFound = true;
+            return;
+        }
+
+        _cup = cup;
+        _names = cup.Participants.ToDictionary(p => p.Id, p => p.Player.DisplayName);
+        _tables = (await Db.RunAsync((TableService s) => s.ListAsync(orgId))).Select(v => v.Table).ToList();
+        _standings = CupService.Standings(cup);
+        var finalMatch = cup.Format == CupFormat.SingleElimination && cup.TotalRounds > 0
+            ? cup.Matches.FirstOrDefault(m => m.Round == cup.TotalRounds) : null;
+        _champion = finalMatch is { Status: CupMatchStatus.Finished, WinnerParticipantId: { } champion } ? Name(champion) : null;
+
+        if (cup.Status == CupStatus.Draft)
+        {
+            _available = await Db.RunAsync((CupService s) => s.AvailablePlayersAsync(orgId, Id));
+            _selectedPlayers.IntersectWith(_available.Select(p => p.Id));
+        }
+
+        if (resetEditors || cup.Status == CupStatus.Draft)
+        {
+            _pedit = cup.Participants.ToDictionary(p => p.Id, p => new ParticipantEdit { Handicap = p.HandicapTarget, Seed = p.Seed });
+        }
+
+        if (resetEditors)
+        {
+            _rules = cup.RuleBlocks.OrderBy(b => b.FromRound)
+                .Select(b => new RuleRow { FromRound = b.FromRound, ToRound = b.ToRound, Mode = b.Mode, FixedTarget = b.FixedTarget }).ToList();
+            _quickHandicapRounds = TotalRounds;
+        }
+
+        if (!_tabChosen)
+        {
+            _tab = cup.Status == CupStatus.Draft ? "participants" : "fixtures";
+            _tabChosen = true;
+        }
+
+        Recheck();
+    }
+
+    private void Recheck()
+    {
+        var blocks = _rules.Select(r => new RuleBlockInput(r.FromRound, r.ToRound, r.Mode, r.FixedTarget)).ToList();
+        (_uncovered, _overlapping) = CupLogic.CheckCoverage(blocks, TotalRounds);
+    }
+
+    // ---------------------------------------------------------------- labels
+
+    private string Name(int? participantId) =>
+        participantId is { } id && _names.TryGetValue(id, out var name) ? name : "—";
+
+    private string FormatName(CupFormat format) =>
+        format == CupFormat.RoundRobin ? L["Lig usulü (herkes herkesle)"] : L["Eleme usulü"];
+
+    private string StatusName(CupStatus status) => status switch
+    {
+        CupStatus.Draft => L["Taslak"],
+        CupStatus.Running => L["Devam ediyor"],
+        _ => L["Bitti"]
+    };
+
+    private static string StatusCss(CupStatus status) => status switch
+    {
+        CupStatus.Draft => "reserved",
+        CupStatus.Running => "inuse",
+        _ => "available"
+    };
+
+    private string RoundName(int round)
+    {
+        if (_cup is null || _cup.Format == CupFormat.RoundRobin) return L["{0}. tur", round];
+        return (_cup.TotalRounds - round) switch
+        {
+            0 => L["Final"],
+            1 => L["Yarı final"],
+            2 => L["Çeyrek final"],
+            var diff => L["Son {0}", 1 << (diff + 1)]
+        };
+    }
+
+    private string RuleText(int round)
+    {
+        var block = _cup?.RuleBlocks.FirstOrDefault(b => round >= b.FromRound && round <= b.ToRound);
+        if (block is null) return "—";
+        return block.Mode == CupRuleMode.Handicap ? L["Handikaplı"] : L["{0} çekmeli", block.FixedTarget ?? 0];
+    }
+
+    private static string TargetText(CupMatch match) =>
+        match.TargetA is null ? "—" : match.TargetA == match.TargetB ? match.TargetA.ToString()! : $"{match.TargetA} / {match.TargetB}";
+
+    // ---------------------------------------------------------------- participants
+
+    private void TogglePlayer(int playerId, bool on)
+    {
+        if (on) _selectedPlayers.Add(playerId); else _selectedPlayers.Remove(playerId);
+    }
+
+    private Task AddParticipantsAsync() => RunAsync(async () =>
+    {
+        var ids = _selectedPlayers.ToList();
+        await Db.RunAsync((CupService s) => s.AddParticipantsAsync(_tenant!.OrganizationId, Id, ids));
+        _selectedPlayers.Clear();
+        _quickHandicapRounds = 0;
+    });
+
+    private Task RemoveParticipantAsync(int participantId) => RunAsync(() =>
+        Db.RunAsync((CupService s) => s.RemoveParticipantAsync(_tenant!.OrganizationId, Id, participantId)));
+
+    private Task SaveParticipantAsync(int participantId) => RunAsync(() =>
+    {
+        var edit = _pedit[participantId];
+        return Db.RunAsync((CupService s) => s.SetParticipantAsync(_tenant!.OrganizationId, Id, participantId, edit.Handicap, edit.Seed));
+    });
+
+    // ---------------------------------------------------------------- rules
+
+    private void AddRuleRow()
+    {
+        var next = _rules.Count == 0 ? 1 : _rules.Max(r => r.ToRound) + 1;
+        _rules.Add(new RuleRow { FromRound = next, ToRound = Math.Max(next, TotalRounds), Mode = CupRuleMode.Handicap });
+        Recheck();
+    }
+
+    private Task SaveRulesAsync() => RunAsync(async () =>
+    {
+        var blocks = _rules.Select(r => new RuleBlockInput(r.FromRound, r.ToRound, r.Mode, r.FixedTarget)).ToList();
+        await Db.RunAsync((CupService s) => s.SetRuleBlocksAsync(_tenant!.OrganizationId, Id, blocks));
+    }, reloadEditors: true);
+
+    private Task QuickAsync() => RunAsync(
+        () => Db.RunAsync((CupService s) => s.QuickRulesAsync(_tenant!.OrganizationId, Id, _quickHandicapRounds, _quickFixed)),
+        reloadEditors: true);
+
+    private Task AllHandicapAsync() => RunAsync(
+        () => Db.RunAsync((CupService s) => s.QuickRulesAsync(_tenant!.OrganizationId, Id, TotalRounds, null)),
+        reloadEditors: true);
+
+    // ---------------------------------------------------------------- start / reset
+
+    private Task StartAsync() => RunAsync(async () =>
+    {
+        await Db.RunAsync((CupService s) => s.StartAsync(_tenant!.OrganizationId, Id));
+        _tab = "fixtures";
+    }, reloadEditors: true);
+
+    private Task ResetAsync() => RunAsync(async () =>
+    {
+        await Db.RunAsync((CupService s) => s.ResetAsync(_tenant!.OrganizationId, Id));
+        _confirmReset = false;
+        _editMatchId = null;
+        _tab = "participants";
+    }, reloadEditors: true);
+
+    // ---------------------------------------------------------------- results
+
+    private void OpenResult(CupMatch match)
+    {
+        _editMatchId = match.Id;
+        _res = match.Status == CupMatchStatus.Finished
+            ? new ResultForm
+            {
+                ScoreA = match.ScoreA, ScoreB = match.ScoreB, Innings = match.Innings,
+                HighRunA = match.HighRunA, HighRunB = match.HighRunB, Winner = match.WinnerParticipantId ?? 0
+            }
+            : new ResultForm();
+    }
+
+    private void Suggest(CupMatch match)
+    {
+        var who = CupLogic.SuggestWinner(_res.ScoreA, _res.ScoreB, match.TargetA, match.TargetB);
+        _res.Winner = who switch { 1 => match.ParticipantAId ?? 0, 2 => match.ParticipantBId ?? 0, _ => 0 };
+    }
+
+    private Task SaveResultAsync(CupMatch match) => RunAsync(async () =>
+    {
+        await Db.RunAsync((CupService s) => s.RecordResultAsync(
+            _tenant!.OrganizationId, match.Id, _res.ScoreA, _res.ScoreB, _res.Innings, _res.HighRunA, _res.HighRunB, _res.Winner));
+        _editMatchId = null;
+    });
+
+    private Task ClearAsync(int matchId) => RunAsync(() => Db.RunAsync((CupService s) => s.ClearResultAsync(_tenant!.OrganizationId, matchId)));
+
+    private Task SetTableAsync(int matchId, string? value) => RunAsync(() =>
+    {
+        int? tableId = int.TryParse(value, out var parsed) ? parsed : null;
+        return Db.RunAsync((CupService s) => s.SetTableAsync(_tenant!.OrganizationId, matchId, tableId));
+    });
+
+    private async Task RunAsync(Func<Task> action, bool reloadEditors = false)
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            _error = L.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync(reloadEditors);
+    }
+
+    private class ParticipantEdit
+    {
+        public int? Handicap { get; set; }
+        public int? Seed { get; set; }
+    }
+
+    private class RuleRow
+    {
+        public int FromRound { get; set; } = 1;
+        public int ToRound { get; set; } = 1;
+        public CupRuleMode Mode { get; set; }
+        public int? FixedTarget { get; set; }
+    }
+
+    private class ResultForm
+    {
+        public int ScoreA { get; set; }
+        public int ScoreB { get; set; }
+        public int Innings { get; set; }
+        public int HighRunA { get; set; }
+        public int HighRunB { get; set; }
+        public int Winner { get; set; }
+    }
+}

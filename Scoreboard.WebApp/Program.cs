@@ -27,6 +27,8 @@ builder.Services.AddScoped<TableService>();
 builder.Services.AddScoped<PricingService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<AssociationService>();
+builder.Services.AddScoped<Scoreboard.WebApp.Services.Tournaments.CupService>();
+builder.Services.AddScoped<StatsService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ClientIdService>();
 builder.Services.AddScoped<SystemPlayerService>();

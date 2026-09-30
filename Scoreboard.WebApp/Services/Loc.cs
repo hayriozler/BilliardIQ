@@ -65,9 +65,20 @@ public sealed class Loc
         var result = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var (code, _) in Languages.Where(l => l.Code != DefaultLanguage))
         {
-            using var stream = assembly.GetManifestResourceStream($"Localization.{code}.json");
-            if (stream is null) continue;
-            result[code] = JsonSerializer.Deserialize<Dictionary<string, string>>(stream) ?? [];
+            // Localization/{code}.json plus any feature file such as Localization/{code}.tournaments.json.
+            var merged = new Dictionary<string, string>();
+            foreach (var name in assembly.GetManifestResourceNames()
+                         .Where(n => n.StartsWith($"Localization.{code}.", StringComparison.OrdinalIgnoreCase) && n.EndsWith(".json"))
+                         .OrderBy(n => n, StringComparer.Ordinal))
+            {
+                using var stream = assembly.GetManifestResourceStream(name)!;
+                foreach (var (key, value) in JsonSerializer.Deserialize<Dictionary<string, string>>(stream) ?? [])
+                {
+                    merged[key] = value;
+                }
+            }
+
+            if (merged.Count > 0) result[code] = merged;
         }
 
         return result;

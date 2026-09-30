@@ -912,3 +912,68 @@ a.small-link:hover {
 .avatar-cell.active {
     border-color: var(--primary, #0f766e);
 }
+
+/* statistics */
+td.num.win { color: var(--ok); font-weight: 600; }
+td.num.loss { color: var(--danger); font-weight: 600; }
+
+.chart-box { width: 100%; }
+.chart { width: 100%; height: auto; display: block; }
+.chart-axis { stroke: #cbd5e1; stroke-width: 1; }
+.chart-bar { fill: var(--primary, #0f766e); opacity: .85; }
+.chart-bar:hover { opacity: 1; }
+.chart-mean { stroke: var(--warn, #d97706); stroke-width: 1.2; stroke-dasharray: 4 3; }
+.chart-label { font-size: 9px; fill: #64748b; }
+.range-select { min-width: 160px; }
+
+/* Tournaments */
+td.win { font-weight: 700; color: var(--ok, #15803d); }
+
+.bracket {
+    display: flex;
+    gap: 1.25rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 0.75rem;
+    min-width: 200px;
+}
+
+.bracket-round h3 {
+    margin: 0 0 0.25rem;
+    font-size: 0.85rem;
+    color: var(--muted, #64748b);
+}
+
+.bracket-match {
+    border: 1px solid var(--border, #d5dbe4);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.bracket-match > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.4rem 0.6rem;
+}
+
+.bracket-match > div + div {
+    border-top: 1px solid var(--border, #d5dbe4);
+}
+
+.bracket-match > div.win {
+    background: var(--ok-soft, #e7f6ec);
+    font-weight: 700;
+}
+
+.bracket-match .score {
+    min-width: 1.5rem;
+    text-align: right;
+}

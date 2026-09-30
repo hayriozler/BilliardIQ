@@ -73,6 +73,8 @@ public class TableSession : BaseEntity, ITenantScoped
     public decimal PaidAmount { get; set; }
     public int OpenedByStaffId { get; set; }
     public int? ClosedByStaffId { get; set; }
+    public DateTimeOffset? VoidedAt { get; set; }   // tahsilatı silinen (iptal edilen) oturum
+    public int? VoidedByStaffId { get; set; }
     public string? Notes { get; set; }
 
     public Organization Organization { get; set; } = default!;

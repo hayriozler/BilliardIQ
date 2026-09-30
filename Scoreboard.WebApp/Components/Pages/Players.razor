@@ -118,8 +118,14 @@
                                 }
                                 @if (player.LicenseValidUntil is { } validUntil)
                                 {
-                                    var expired = validUntil < DateOnly.FromDateTime(DateTime.Today);
-                                    <span class="pill @(expired ? "off" : "available")">@(expired ? L["Süresi doldu"] : L["Geçerli"]) • @validUntil.ToString("d", System.Globalization.CultureInfo.CurrentCulture)</span>
+                                    var daysLeft = validUntil.DayNumber - DateOnly.FromDateTime(DateTime.Today).DayNumber;
+                                    var (licenseCss, licenseText) = daysLeft < 0 ? ("off", L["Süresi doldu"])
+                                        : daysLeft <= 30 ? ("paused", L["Yakında bitiyor"])
+                                        : ("available", L["Geçerli"]);
+                                    <div>
+                                        <span class="pill @licenseCss">@licenseText</span>
+                                        <span class="muted">@Format.Date(validUntil)</span>
+                                    </div>
                                 }
                                 else if (string.IsNullOrEmpty(player.FederationLicenseNo) && player.Association is null)
                                 {

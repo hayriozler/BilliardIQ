@@ -1,0 +1,30 @@
+@* Photo if there is one, otherwise the chosen avatar, otherwise the player's initial. *@
+@if (Player.PhotoUrl is not null)
+{
+    <img src="@($"/{Player.PhotoUrl}")" class="thumb" style="@SizeStyle" alt="" />
+}
+else if (Player.AvatarId is int avatarId)
+{
+    <img src="@AvatarGenerator.ToDataUri(avatarId, Size)" class="thumb" style="@SizeStyle" alt="" />
+}
+else
+{
+    <div class="avatar" style="@SizeStyle">@Initial</div>
+}
+
+@code {
+    [Parameter, EditorRequired] public Player Player { get; set; } = default!;
+
+    [Parameter] public int Size { get; set; } = 40;
+
+    private string SizeStyle => $"width:{Size}px;height:{Size}px;font-size:{Size * 0.42:0}px";
+
+    private string Initial
+    {
+        get
+        {
+            var text = Player.Nickname ?? Player.FirstName;
+            return string.IsNullOrEmpty(text) ? "?" : text[..1].ToUpperInvariant();
+        }
+    }
+}

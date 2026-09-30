@@ -1,0 +1,60 @@
+@* Simple SVG bar chart. Values are drawn left to right; the dashed line is the mean of the values. *@
+<div class="chart-box">
+    @if (Values.Count == 0)
+    {
+        <div class="empty">@EmptyText</div>
+    }
+    else
+    {
+        var max = Math.Max(1, Values.Max());
+        var plotLeft = 34.0;
+        var plotTop = 10.0;
+        var plotWidth = 600.0 - plotLeft - 8;
+        var plotHeight = 150.0 - plotTop - 22;
+        var slot = plotWidth / Values.Count;
+        var barWidth = Math.Min(28.0, slot * 0.7);
+        var mean = Values.Average();
+        var meanY = plotTop + plotHeight - mean / max * plotHeight;
+        <svg viewBox="0 0 600 150" class="chart" role="img" preserveAspectRatio="xMidYMid meet">
+            <line x1="@F(plotLeft)" y1="@F(plotTop + plotHeight)" x2="592" y2="@F(plotTop + plotHeight)" class="chart-axis" />
+            <line x1="@F(plotLeft)" y1="@F(plotTop)" x2="@F(plotLeft)" y2="@F(plotTop + plotHeight)" class="chart-axis" />
+            @Label(plotLeft - 4, plotTop + 4, "end", Fmt(max))
+            @Label(plotLeft - 4, plotTop + plotHeight, "end", "0")
+            @for (var i = 0; i < Values.Count; i++)
+            {
+                var value = Values[i];
+                var height = value / max * plotHeight;
+                var x = plotLeft + slot * i + (slot - barWidth) / 2;
+                <rect x="@F(x)" y="@F(plotTop + plotHeight - height)" width="@F(barWidth)" height="@F(height)" rx="3" class="chart-bar">
+                    <title>@TooltipFor(i)</title>
+                </rect>
+                @if (Values.Count <= 24)
+                {
+                    @Label(x + barWidth / 2, plotTop + plotHeight + 13, "middle", LabelFor(i))
+                }
+            }
+            <line x1="@F(plotLeft)" y1="@F(meanY)" x2="592" y2="@F(meanY)" class="chart-mean" />
+            @Label(592, meanY - 3, "end", "Ø " + Fmt(mean))
+        </svg>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<double> Values { get; set; } = [];
+
+    /// <summary>Optional x-axis / tooltip labels, same length as <see cref="Values"/>.</summary>
+    [Parameter] public IReadOnlyList<string>? Labels { get; set; }
+
+    [Parameter] public string EmptyText { get; set; } = "";
+
+    private static MarkupString Label(double x, double y, string anchor, string text) =>
+        new($"<text x=\"{F(x)}\" y=\"{F(y)}\" class=\"chart-label\" text-anchor=\"{anchor}\">{System.Net.WebUtility.HtmlEncode(text)}</text>");
+
+    private static string F(double value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string Fmt(double value) => value.ToString("0.#", System.Globalization.CultureInfo.CurrentCulture);
+
+    private string LabelFor(int i) => Labels is not null && i < Labels.Count ? Labels[i] : (i + 1).ToString();
+
+    private string TooltipFor(int i) => $"{LabelFor(i)}: {Fmt(Values[i])}";
+}

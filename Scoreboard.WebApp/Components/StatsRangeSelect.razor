@@ -1,0 +1,25 @@
+<label class="field range-select">@L["Dönem"]
+    <select value="@Value" @onchange="OnChangedAsync">
+        <option value="all">@L["Tüm zamanlar"]</option>
+        <option value="30">@L["Son 30 gün"]</option>
+        <option value="90">@L["Son 90 gün"]</option>
+        <option value="year">@L["Bu yıl"]</option>
+    </select>
+</label>
+
+@code {
+    [Parameter] public string Value { get; set; } = "all";
+
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    private Task OnChangedAsync(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value?.ToString() ?? "all");
+
+    /// <summary>Start of the chosen period, or null for all time.</summary>
+    public static DateTimeOffset? Since(string range) => range switch
+    {
+        "30" => DateTimeOffset.UtcNow.AddDays(-30),
+        "90" => DateTimeOffset.UtcNow.AddDays(-90),
+        "year" => new DateTimeOffset(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, TimeSpan.Zero),
+        _ => null
+    };
+}

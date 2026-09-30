@@ -1,0 +1,94 @@
+@page "/stats/teams"
+@attribute [Authorize]
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>@L["Takım istatistikleri"] • BillardIQ</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>@L["Takım istatistikleri"]</h1>
+        <div class="subtitle">@L["Takım üyelerinin oynadığı maçların toplamı. Bir üyenin her maçı bir kez sayılır."]</div>
+    </div>
+    <div class="row-actions">
+        <a class="small-link" href="/stats/players">@L["Oyuncu istatistikleri"]</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="form-row">
+        <StatsRangeSelect Value="@_range" ValueChanged="OnRangeChangedAsync" />
+    </div>
+</div>
+
+<div class="card">
+    <h2>@L["Takımlar"] (@(_rows?.Count ?? 0))</h2>
+    @if (_rows is null)
+    {
+        <p class="muted">@L["Yükleniyor..."]</p>
+    }
+    else if (_rows.Count == 0)
+    {
+        <div class="empty">@L["Henüz takım yok."] <a href="/teams">@L["Takımlar"]</a></div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th><th></th><th>@L["Takım adı"]</th><th class="num">@L["Üyeler"]</th>
+                        <th class="num">@L["Maçlar"]</th><th class="num">@L["Galibiyet"]</th><th class="num">@L["Mağlubiyet"]</th>
+                        <th class="num">@L["Kazanma %"]</th><th class="num">@L["Ort. El"]</th><th class="num">@L["Ort. / El"]</th>
+                        <th class="num">@L["En yüksek seri"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < _rows.Count; i++)
+                    {
+                        var row = _rows[i];
+                        var s = row.Summary;
+                        <tr>
+                            <td>@(i + 1)</td>
+                            <td>@if (row.Team.AvatarId is int avatarId) { <img src="@AvatarGenerator.ToDataUri(avatarId, 36)" class="thumb" alt="" /> }</td>
+                            <td><a href="/stats/teams/@row.Team.Id"><strong>@row.Team.Name</strong></a><div class="muted">@row.Team.Club.Name</div></td>
+                            <td class="num">@row.MemberCount</td>
+                            <td class="num">@s.Matches</td>
+                            <td class="num win">@s.Wins</td>
+                            <td class="num loss">@s.Losses</td>
+                            <td class="num">@(s.Matches == 0 ? "—" : s.WinPercent.ToString("0") + " %")</td>
+                            <td class="num">@(s.Matches == 0 ? "—" : s.AverageInnings.ToString("0.0"))</td>
+                            <td class="num">@(s.Matches == 0 ? "—" : s.AveragePerInning.ToString("0.000"))</td>
+                            <td class="num">@(s.Matches == 0 ? "—" : s.BestHighRun.ToString())</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private Tenant? _tenant;
+    private List<TeamStatRow>? _rows;
+    private string _range = "all";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenant = await TenantContext.GetAsync();
+        await LoadAsync();
+    }
+
+    private async Task OnRangeChangedAsync(string range)
+    {
+        _range = range;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var orgId = _tenant!.OrganizationId;
+        var since = StatsRangeSelect.Since(_range);
+        _rows = await Db.RunAsync((StatsService s) => s.TeamsAsync(orgId, since));
+    }
+}

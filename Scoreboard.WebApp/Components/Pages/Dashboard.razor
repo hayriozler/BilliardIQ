@@ -153,6 +153,18 @@ else
                                         <div class="row-actions">
                                             <button class="small primary" disabled="@_busy" @onclick="() => SettleAsync(session.Id, PaymentMethod.Cash)">@L["Nakit"]</button>
                                             <button class="small" disabled="@_busy" @onclick="() => SettleAsync(session.Id, PaymentMethod.Card)">@L["Kart"]</button>
+                                            @if (_tenant is { CanManage: true })
+                                            {
+                                                @if (_confirmVoid == session.Id)
+                                                {
+                                                    <button class="small danger" disabled="@_busy" @onclick="() => VoidAsync(session.Id)">@L["Silmeyi onayla"]</button>
+                                                    <button class="small ghost" @onclick="() => _confirmVoid = null">@L["Vazgeç"]</button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="small ghost" disabled="@_busy" @onclick="() => _confirmVoid = session.Id">@L["Sil"]</button>
+                                                }
+                                            }
                                         </div>
                                     </td>
                                 </tr>
@@ -163,6 +175,7 @@ else
             }
         </div>
 
+        <div>
         <div class="card">
             <h2>@L["Son oturumlar"]</h2>
             @if (_recent.Count == 0)
@@ -194,6 +207,33 @@ else
                     </table>
                 </div>
             }
+        </div>
+
+        <div class="card">
+            <h2>@L["Silinen tahsilatlar"] (@_voided.Count)</h2>
+            @if (_voided.Count == 0)
+            {
+                <div class="empty">@L["Silinen tahsilat yok."]</div>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>@L["Masa"]</th><th>@L["Silinme zamanı"]</th><th class="num">@L["Tutar"]</th></tr></thead>
+                        <tbody>
+                            @foreach (var session in _voided)
+                            {
+                                <tr>
+                                    <td>@L["Masa {0}", session.Table.Number]</td>
+                                    <td>@(session.VoidedAt is { } voidedAt ? Format.DateTime(voidedAt, _zone) : "")</td>
+                                    <td class="num">@Format.Money(session.TotalAmount ?? 0, _org.Currency)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
         </div>
     </div>
 }
@@ -322,6 +362,8 @@ else
     private DashboardSummary? _summary;
     private List<TableSession> _unsettled = [];
     private List<TableSession> _recent = [];
+    private List<TableSession> _voided = [];
+    private int? _confirmVoid;
     private DateTimeOffset _now = DateTimeOffset.UtcNow;
     private Filter _filter = Filter.All;
     private string? _error;
@@ -371,6 +413,7 @@ else
         _summary = await Db.RunAsync((TableService s) => s.SummaryAsync(orgId));
         _unsettled = await Db.RunAsync((TableService s) => s.UnsettledSessionsAsync(orgId));
         _recent = await Db.RunAsync((TableService s) => s.RecentSessionsAsync(orgId));
+        _voided = await Db.RunAsync((TableService s) => s.VoidedSessionsAsync(orgId));
         _now = DateTimeOffset.UtcNow;
     }
 
@@ -402,6 +445,12 @@ else
 
     private Task OpenAsync(int tableId) =>
         RunAsync(() => Db.RunAsync((TableService s) => s.OpenSessionAsync(_tenant!.OrganizationId, tableId, _tenant.StaffMemberId)));
+
+    private Task VoidAsync(int sessionId) => RunAsync(async () =>
+    {
+        await Db.RunAsync((TableService s) => s.VoidPendingCollectionAsync(_tenant!.OrganizationId, sessionId, _tenant.StaffMemberId));
+        _confirmVoid = null;
+    });
 
     private Task OpenOrderAsync(TableView view) => RunAsync(async () =>
     {

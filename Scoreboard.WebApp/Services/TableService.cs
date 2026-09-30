@@ -192,6 +192,30 @@ public class TableService(DataContext db)
         return session;
     }
 
+    /// <summary>Deletes a pending collection. The session stays on record as voided and no revenue is counted for it.</summary>
+    public async Task VoidPendingCollectionAsync(int organizationId, int sessionId, int staffId)
+    {
+        var session = await FindSessionAsync(organizationId, sessionId);
+        if (session.Status != TableSessionStatus.Closed)
+        {
+            throw new InvalidOperationException("Sadece bekleyen tahsilat silinebilir.");
+        }
+
+        session.Status = TableSessionStatus.Voided;
+        session.VoidedAt = DateTimeOffset.UtcNow;
+        session.VoidedByStaffId = staffId;
+        await db.SaveChangesAsync();
+    }
+
+    public Task<List<TableSession>> VoidedSessionsAsync(int organizationId, int take = 20) =>
+        db.TableSessionSet
+            .AsNoTracking()
+            .Include(s => s.Table)
+            .Where(s => s.OrganizationId == organizationId && s.Status == TableSessionStatus.Voided && s.VoidedAt != null)
+            .OrderByDescending(s => s.VoidedAt)
+            .Take(take)
+            .ToListAsync();
+
     public Task<List<TableSession>> UnsettledSessionsAsync(int organizationId) =>
         db.TableSessionSet
             .AsNoTracking()

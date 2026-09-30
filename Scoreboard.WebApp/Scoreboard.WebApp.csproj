@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Localization/*.json" LogicalName="Localization.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Avatars/animals.json" LogicalName="Avatars.animals.json" />
   </ItemGroup>
 
   <ItemGroup>

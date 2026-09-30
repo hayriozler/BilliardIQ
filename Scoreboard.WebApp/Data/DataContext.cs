@@ -45,6 +45,12 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
     public DbSet<TournamentStage> TournamentStageSet => Set<TournamentStage>();
     public DbSet<StageGroup> StageGroupSet => Set<StageGroup>();
     public DbSet<TournamentEntry> TournamentEntrySet => Set<TournamentEntry>();
+
+    // Salon tournaments (Turnuvalar module)
+    public DbSet<Cup> CupSet => Set<Cup>();
+    public DbSet<CupParticipant> CupParticipantSet => Set<CupParticipant>();
+    public DbSet<CupRuleBlock> CupRuleBlockSet => Set<CupRuleBlock>();
+    public DbSet<CupMatch> CupMatchSet => Set<CupMatch>();
     public DbSet<StageStanding> StageStandingSet => Set<StageStanding>();
     public DbSet<League> LeagueSet => Set<League>();
     public DbSet<Season> SeasonSet => Set<Season>();
@@ -135,6 +141,36 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
         });
 
         // ---------- people ----------
+        // ---------- salon tournaments ----------
+        modelBuilder.Entity<Cup>(e =>
+        {
+            e.Property(c => c.Name).HasMaxLength(200);
+            e.Property(c => c.Description).HasMaxLength(1000);
+            e.HasIndex(c => c.OrganizationId);
+            e.HasOne(c => c.Organization).WithMany().HasForeignKey(c => c.OrganizationId);
+        });
+
+        modelBuilder.Entity<CupParticipant>(e =>
+        {
+            e.HasIndex(p => new { p.CupId, p.PlayerId }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+            e.HasOne(p => p.Cup).WithMany(c => c.Participants).HasForeignKey(p => p.CupId);
+            e.HasOne(p => p.Player).WithMany().HasForeignKey(p => p.PlayerId);
+        });
+
+        modelBuilder.Entity<CupRuleBlock>(e =>
+        {
+            e.HasOne(b => b.Cup).WithMany(c => c.RuleBlocks).HasForeignKey(b => b.CupId);
+        });
+
+        modelBuilder.Entity<CupMatch>(e =>
+        {
+            e.HasIndex(m => new { m.CupId, m.Round, m.Number }).IsUnique();
+            e.HasOne(m => m.Cup).WithMany(c => c.Matches).HasForeignKey(m => m.CupId);
+            e.HasOne(m => m.ParticipantA).WithMany().HasForeignKey(m => m.ParticipantAId);
+            e.HasOne(m => m.ParticipantB).WithMany().HasForeignKey(m => m.ParticipantBId);
+            e.HasOne(m => m.Table).WithMany().HasForeignKey(m => m.TableId);
+        });
+
         modelBuilder.Entity<Association>(e =>
         {
             e.Property(a => a.Name).HasMaxLength(150);
