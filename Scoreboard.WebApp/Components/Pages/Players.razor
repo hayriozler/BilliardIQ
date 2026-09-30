@@ -3,12 +3,12 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>Oyuncular • BillardIQ</PageTitle>
+<PageTitle>@L["Oyuncular"] • BillardIQ</PageTitle>
 
 <div class="page-head">
     <div>
-        <h1>Oyuncular</h1>
-        <div class="subtitle">Salonunuzun oyuncu kayıtları. Scoreboard cihazları bu listeyi kullanır.</div>
+        <h1>@L["Oyuncular"]</h1>
+        <div class="subtitle">@L["Salonunuzun oyuncu kayıtları. Scoreboard cihazları bu listeyi kullanır."]</div>
     </div>
 </div>
 
@@ -18,15 +18,31 @@
 }
 
 <div class="card">
-    <h2>@(_form.Id == 0 ? "Yeni oyuncu" : "Oyuncuyu düzenle")</h2>
+    <h2>@(_form.Id == 0 ? L["Yeni oyuncu"] : L["Oyuncuyu düzenle"])</h2>
     <EditForm Model="_form" OnValidSubmit="SaveAsync" FormName="player-form">
         <DataAnnotationsValidator />
         <div class="form-grid">
-            <label class="field">Takma ad<InputText @bind-Value="_form.Nickname" /></label>
-            <label class="field">Ad soyad<InputText @bind-Value="_form.Name" /></label>
-            <label class="field">E-posta<InputText @bind-Value="_form.Email" /></label>
+            <label class="field">@L["Takma ad"]<InputText @bind-Value="_form.Nickname" /></label>
+            <label class="field">@L["Bağlı dernek / federasyon"]
+                <InputSelect @bind-Value="_form.AssociationId">
+                    <option value="">@L["Seçilmedi"]</option>
+                    @foreach (var association in _associations)
+                    {
+                        <option value="@association.Id">@association.Name</option>
+                    }
+                </InputSelect>
+                @if (_associations.Count == 0)
+                {
+                    <span class="hint"><a href="/associations">@L["Dernek / federasyon tanımlayın"]</a></span>
+                }
+            </label>
+            <label class="field">@L["Lisans no"]<InputText @bind-Value="_form.LicenseNo" maxlength="50" /></label>
+            <label class="field">@L["Lisans geçerlilik tarihi"]<InputDate @bind-Value="_form.LicenseValidUntil" /></label>
+            <label class="field">@L["Kısayol numarası"]<InputNumber @bind-Value="_form.ShortcutNumber" min="1" max="9999" placeholder="@L["isteğe bağlı"]" /></label>
+            <label class="field">@L["Ad soyad"]<InputText @bind-Value="_form.Name" /></label>
+            <label class="field">@L["E-posta"]<InputText @bind-Value="_form.Email" /></label>
             <label class="field">
-                Seviye
+                @L["Seviye"]
                 <InputSelect @bind-Value="_form.Level">
                     @foreach (var level in Enum.GetValues<Level>())
                     {
@@ -34,37 +50,38 @@
                     }
                 </InputSelect>
             </label>
-            <label class="field">Ülke<InputText @bind-Value="_form.BaseCountry" /></label>
-            <label class="field">Şehir<InputText @bind-Value="_form.BaseCity" /></label>
-            <label class="field">Fotoğraf<InputFile OnChange="OnPhotoSelectedAsync" accept="image/*" /></label>
+            <label class="field">@L["Ülke"]<InputText @bind-Value="_form.BaseCountry" /></label>
+            <label class="field">@L["Şehir"]<InputText @bind-Value="_form.BaseCity" /></label>
+            <label class="field">@L["Fotoğraf"]<InputFile OnChange="OnPhotoSelectedAsync" accept="image/*" /></label>
+            <div class="field">@L["Avatar"]<AvatarPicker @bind-Value="_form.AvatarId" /></div>
         </div>
-        <ValidationSummary />
+        <LocalizedValidationSummary />
         <div class="form-actions">
-            <button type="submit" class="primary" disabled="@_busy">@(_form.Id == 0 ? "Oyuncu ekle" : "Kaydet")</button>
+            <button type="submit" class="primary" disabled="@_busy">@(_form.Id == 0 ? L["Oyuncu ekle"] : L["Kaydet"])</button>
             @if (_form.Id != 0)
             {
-                <button type="button" @onclick="ResetForm">Vazgeç</button>
+                <button type="button" @onclick="ResetForm">@L["Vazgeç"]</button>
             }
         </div>
     </EditForm>
 </div>
 
 <div class="card">
-    <h2>Oyuncular (@(_players?.Count ?? 0))</h2>
+    <h2>@L["Oyuncular"] (@(_players?.Count ?? 0))</h2>
     @if (_players is null)
     {
-        <p class="muted">Yükleniyor...</p>
+        <p class="muted">@L["Yükleniyor..."]</p>
     }
     else if (_players.Count == 0)
     {
-        <div class="empty">Henüz oyuncu yok.</div>
+        <div class="empty">@L["Henüz oyuncu yok."]</div>
     }
     else
     {
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr><th></th><th>Takma ad</th><th>Ad soyad</th><th>Seviye</th><th>E-posta</th><th>Konum</th><th></th></tr>
+                    <tr><th></th><th>@L["No"]</th><th>@L["Takma ad"]</th><th>@L["Ad soyad"]</th><th>@L["Seviye"]</th><th>@L["E-posta"]</th><th>@L["Konum"]</th><th>@L["Lisans"]</th><th></th></tr>
                 </thead>
                 <tbody>
                     @foreach (var player in _players)
@@ -75,28 +92,64 @@
                                 {
                                     <img src="@($"/{player.PhotoUrl}")" class="thumb" alt="" />
                                 }
+                                else if (player.AvatarId is int avatarId)
+                                {
+                                    <img src="@AvatarGenerator.ToDataUri(avatarId, 40)" class="thumb" alt="" />
+                                }
                                 else
                                 {
                                     <div class="avatar">@Initial(player)</div>
                                 }
                             </td>
-                            <td><strong>@player.Nickname</strong></td>
+                            <td>@(player.ShortcutNumber?.ToString() ?? "—")</td>
+                            <td><strong>@player.Nickname</strong>@if (player.IsSystem) {<span class="pill off" title="@L["Sistem oyuncusu değiştirilemez ve silinemez."]">🔒 @L["Sistem"]</span>}</td>
                             <td>@($"{player.FirstName} {player.LastName}".Trim())</td>
                             <td>@LevelName(player.Level)</td>
                             <td>@player.Email</td>
                             <td>@string.Join(", ", new[] { player.City, player.Nationality }.Where(s => !string.IsNullOrWhiteSpace(s)))</td>
                             <td>
+                                @if (player.Association is not null)
+                                {
+                                    <div class="muted">@player.Association.Name</div>
+                                }
+                                @if (!string.IsNullOrEmpty(player.FederationLicenseNo))
+                                {
+                                    <div>@player.FederationLicenseNo</div>
+                                }
+                                @if (player.LicenseValidUntil is { } validUntil)
+                                {
+                                    var expired = validUntil < DateOnly.FromDateTime(DateTime.Today);
+                                    <span class="pill @(expired ? "off" : "available")">@(expired ? L["Süresi doldu"] : L["Geçerli"]) • @validUntil.ToString("d", System.Globalization.CultureInfo.CurrentCulture)</span>
+                                }
+                                else if (string.IsNullOrEmpty(player.FederationLicenseNo) && player.Association is null)
+                                {
+                                    <span class="muted">—</span>
+                                }
+                            </td>
+                            <td>
                                 <div class="row-actions">
-                                    <button class="small" @onclick="() => Edit(player)">Düzenle</button>
+                                @if (player.IsSystem)
+                                {
+                                    <span class="hint">@L["Sistem oyuncusu değiştirilemez ve silinemez."]</span>
+                                }
+                                else
+                                {
+                                    <button class="small" @onclick="() => Edit(player)">@L["Düzenle"]</button>
+                                    <a class="small-link" href="/teams" title="@L["Takımlar"]">👥 @L["Takımlar"]</a>
+                                    @if (!string.IsNullOrWhiteSpace(player.Email))
+                                    {
+                                        <a class="small-link" href="mailto:@player.Email" title="@player.Email">✉ @L["E-posta"]</a>
+                                    }
                                     @if (_confirmDelete == player.Id)
                                     {
-                                        <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(player.Id)">Silmeyi onayla</button>
-                                        <button class="small ghost" @onclick="() => _confirmDelete = null">Vazgeç</button>
+                                        <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(player.Id)">@L["Silmeyi onayla"]</button>
+                                        <button class="small ghost" @onclick="() => _confirmDelete = null">@L["Vazgeç"]</button>
                                     }
                                     else
                                     {
-                                        <button class="small ghost" @onclick="() => _confirmDelete = player.Id">Sil</button>
+                                        <button class="small ghost" @onclick="() => _confirmDelete = player.Id">@L["Sil"]</button>
                                     }
+                                }
                                 </div>
                             </td>
                         </tr>
@@ -113,6 +166,7 @@
     private string? _error;
     private bool _busy;
     private int? _confirmDelete;
+    private List<Association> _associations = [];
     private PlayerFormModel _form = new();
     private string? _pendingPhotoBase64;
     private string? _pendingPhotoExtension;
@@ -127,14 +181,15 @@
     {
         var orgId = _tenant!.OrganizationId;
         _players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId));
+        _associations = await Db.RunAsync((AssociationService s) => s.ListAsync(orgId));
     }
 
     private static string LevelName(Level level) => level switch
     {
-        Level.Beginner => "Başlangıç",
-        Level.Intermidiate => "Orta",
-        Level.Advanced => "İleri",
-        Level.Professional => "Profesyonel",
+        Level.Beginner => Loc.Translate("Acemi"),
+        Level.Intermidiate => Loc.Translate("Orta"),
+        Level.Advanced => Loc.Translate("İleri"),
+        Level.Professional => Loc.Translate("Profesyonel"),
         _ => level.ToString()
     };
 
@@ -150,6 +205,11 @@
         {
             Id = player.Id,
             Nickname = player.Nickname ?? string.Empty,
+            ShortcutNumber = player.ShortcutNumber,
+            AvatarId = player.AvatarId,
+            LicenseNo = player.FederationLicenseNo ?? string.Empty,
+            AssociationId = player.AssociationId?.ToString() ?? string.Empty,
+            LicenseValidUntil = player.LicenseValidUntil,
             Name = $"{player.FirstName} {player.LastName}".Trim(),
             Email = player.Email ?? string.Empty,
             Level = player.Level,
@@ -184,14 +244,15 @@
         try
         {
             await Db.RunAsync((PlayerService s) => s.UpsertAsync(
-                _tenant!.OrganizationId, _form.Id, _form.Nickname, _form.Name, null,
+                _tenant!.OrganizationId, _form.Id, _form.Nickname, _form.Name, _form.AvatarId,
                 _form.Email, _form.Level, _form.BaseCountry, _form.BaseCity,
-                _pendingPhotoBase64, _pendingPhotoExtension));
+                _pendingPhotoBase64, _pendingPhotoExtension, _form.ShortcutNumber, _form.LicenseNo, _form.LicenseValidUntil,
+                int.TryParse(_form.AssociationId, out var associationId) ? associationId : null));
             ResetForm();
         }
         catch (Exception ex) when (ex is ArgumentException or IOException)
         {
-            _error = ex.Message;
+            _error = L.Error(ex);
         }
         finally
         {
@@ -221,8 +282,17 @@
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Takma ad gerekli.")]
         public string Nickname { get; set; } = string.Empty;
+
+        public int? ShortcutNumber { get; set; }
+
+        public int? AvatarId { get; set; }
+
+        public string LicenseNo { get; set; } = string.Empty;
+
+        public string AssociationId { get; set; } = string.Empty;
+
+        public DateOnly? LicenseValidUntil { get; set; }
 
         [Required(ErrorMessage = "Ad soyad gerekli.")]
         public string Name { get; set; } = string.Empty;

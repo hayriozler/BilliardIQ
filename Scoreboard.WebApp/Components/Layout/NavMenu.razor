@@ -9,33 +9,37 @@
     <AuthorizeView>
         <Authorized>
             <div class="org">
-                <span>Salon</span>
+                <span>@L["Salon"]</span>
                 <strong>@context.User.FindFirst(AuthClaims.OrganizationName)?.Value</strong>
             </div>
 
             <nav>
-                <NavLink href="/" Match="NavLinkMatch.All"><span class="nav-ico">📊</span>Masalar</NavLink>
-                <NavLink href="/tables"><span class="nav-ico">🟩</span>Masa yönetimi</NavLink>
-                <NavLink href="/pricing"><span class="nav-ico">💰</span>Fiyatlandırma</NavLink>
+                <NavLink href="/" Match="NavLinkMatch.All"><span class="nav-ico">📊</span>@L["Masalar"]</NavLink>
+                <NavLink href="/tables"><span class="nav-ico">🟩</span>@L["Masa yönetimi"]</NavLink>
+                <NavLink href="/pricing"><span class="nav-ico">💰</span>@L["Fiyatlandırma"]</NavLink>
+                <NavLink href="/products"><span class="nav-ico">🍹</span>@L["Ürünler"]</NavLink>
 
-                <div class="nav-section">Oyuncular</div>
-                <NavLink href="/players"><span class="nav-ico">🧑</span>Oyuncular</NavLink>
-                <NavLink href="/clubs"><span class="nav-ico">🏛️</span>Kulüpler</NavLink>
-                <NavLink href="/teams"><span class="nav-ico">👥</span>Takımlar</NavLink>
+                <div class="nav-section">@L["Oyuncular"]</div>
+                <NavLink href="/players"><span class="nav-ico">🧑</span>@L["Oyuncular"]</NavLink>
+                <NavLink href="/associations"><span class="nav-ico">🏅</span>@L["Dernekler"]</NavLink>
+                <NavLink href="/clubs"><span class="nav-ico">🏛️</span>@L["Kulüpler"]</NavLink>
+                <NavLink href="/teams"><span class="nav-ico">👥</span>@L["Takımlar"]</NavLink>
 
-                <div class="nav-section">Sistem</div>
-                <NavLink href="/devices"><span class="nav-ico">📟</span>Cihazlar</NavLink>
+                <div class="nav-section">@L["Sistem"]</div>
+                <NavLink href="/devices"><span class="nav-ico">📟</span>@L["Bağlantı"]</NavLink>
                 @if (context.User.IsInRole(nameof(StaffRole.Owner)) || context.User.IsInRole(nameof(StaffRole.Manager)))
                 {
-                    <NavLink href="/staff"><span class="nav-ico">🔑</span>Kullanıcılar</NavLink>
+                    <NavLink href="/staff"><span class="nav-ico">🔑</span>@L["Kullanıcılar"]</NavLink>
                 }
             </nav>
 
+            <LanguageSwitcher />
+
             <div class="user-box">
                 <strong>@context.User.Identity?.Name</strong>
-                <span>@string.Join(", ", context.User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value))</span>
+                <span>@string.Join(", ", context.User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => Enum.TryParse<StaffRole>(c.Value, out var r) ? Format.Role(r) : c.Value))</span>
                 <form method="post" action="/logout">
-                    <button type="submit">Çıkış yap</button>
+                    <button type="submit">@L["Çıkış yap"]</button>
                 </form>
             </div>
         </Authorized>

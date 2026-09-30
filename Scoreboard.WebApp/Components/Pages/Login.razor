@@ -1,6 +1,6 @@
 @page "/login"
 
-<PageTitle>Giriş • BillardIQ</PageTitle>
+<PageTitle>@L["Giriş"] • BillardIQ</PageTitle>
 
 <div class="auth-card">
     <div class="brand-row">
@@ -8,26 +8,26 @@
         <span>BillardIQ</span>
     </div>
 
-    <h1>Hoş geldiniz</h1>
-    <p class="muted">Salon yönetim paneline giriş yapın.</p>
+    <h1>@L["Hoş geldiniz"]</h1>
+    <p class="muted">@L["Salon yönetim paneline giriş yapın."]</p>
 
     @if (Error == "1")
     {
-        <div class="alert error">E-posta veya şifre hatalı.</div>
+        <div class="alert error">@L["E-posta veya şifre hatalı."]</div>
     }
 
     <form method="post" action="/login">
         <input type="hidden" name="returnUrl" value="@ReturnUrl" />
-        <label class="field">E-posta
+        <label class="field">@L["E-posta"]
             <input type="email" name="email" value="@Email" autocomplete="username" required autofocus />
         </label>
-        <label class="field">Şifre
+        <label class="field">@L["Şifre"]
             <input type="password" name="password" autocomplete="current-password" required />
         </label>
-        <button type="submit" class="primary">Giriş yap</button>
+        <button type="submit" class="primary">@L["Giriş yap"]</button>
     </form>
 
-    <div class="switch">Salonunuz henüz kayıtlı değil mi? <a href="/register">Salon kaydı oluşturun</a></div>
+    <div class="switch">@L["Salonunuz henüz kayıtlı değil mi?"] <a href="/register">@L["Salon kaydı oluşturun"]</a></div>
 </div>
 
 @code {

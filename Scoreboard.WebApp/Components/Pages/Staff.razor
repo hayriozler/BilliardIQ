@@ -3,12 +3,12 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>Kullanıcılar • BillardIQ</PageTitle>
+<PageTitle>@L["Kullanıcılar"] • BillardIQ</PageTitle>
 
 <div class="page-head">
     <div>
-        <h1>Kullanıcılar</h1>
-        <div class="subtitle">Panele giriş yapabilecek personel hesapları.</div>
+        <h1>@L["Kullanıcılar"]</h1>
+        <div class="subtitle">@L["Panele giriş yapabilecek personel hesapları."]</div>
     </div>
 </div>
 
@@ -22,12 +22,12 @@
 }
 
 <div class="card">
-    <h2>Yeni kullanıcı</h2>
+    <h2>@L["Yeni kullanıcı"]</h2>
     <div class="form-grid">
-        <label class="field">Ad soyad<input type="text" @bind="_name" /></label>
-        <label class="field">E-posta<input type="email" @bind="_email" autocomplete="off" /></label>
-        <label class="field">Şifre (en az @AuthService.MinPasswordLength karakter)<input type="password" @bind="_password" autocomplete="new-password" /></label>
-        <label class="field">Rol
+        <label class="field">@L["Ad soyad"]<input type="text" @bind="_name" /></label>
+        <label class="field">@L["E-posta"]<input type="email" @bind="_email" autocomplete="off" /></label>
+        <label class="field">@L["Şifre (en az {0} karakter)", AuthService.MinPasswordLength]<input type="password" @bind="_password" autocomplete="new-password" /></label>
+        <label class="field">@L["Rol"]
             <select @bind="_role">
                 @foreach (var role in new[] { StaffRole.Manager, StaffRole.Cashier, StaffRole.Waiter, StaffRole.Referee })
                 {
@@ -37,15 +37,15 @@
         </label>
     </div>
     <div class="form-actions">
-        <button class="primary" disabled="@_busy" @onclick="AddAsync">Kullanıcı ekle</button>
+        <button class="primary" disabled="@_busy" @onclick="AddAsync">@L["Kullanıcı ekle"]</button>
     </div>
 </div>
 
 <div class="card">
-    <h2>Personel (@_staff.Count)</h2>
+    <h2>@L["Personel"] (@_staff.Count)</h2>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Ad soyad</th><th>E-posta</th><th>Rol</th><th>Son giriş</th><th>Durum</th><th></th></tr></thead>
+            <thead><tr><th>@L["Ad soyad"]</th><th>@L["E-posta"]</th><th>@L["Rol"]</th><th>@L["Son giriş"]</th><th>@L["Durum"]</th><th></th></tr></thead>
             <tbody>
                 @foreach (var member in _staff)
                 {
@@ -54,17 +54,17 @@
                         <td>@member.User.Email</td>
                         <td>@string.Join(", ", member.Roles.Select(Format.Role))</td>
                         <td>@(member.User.LastLoginAt is { } login && _zone is not null ? Format.DateTime(login, _zone) : "—")</td>
-                        <td><span class="pill @(member.IsActive ? "available" : "off")">@(member.IsActive ? "Aktif" : "Pasif")</span></td>
+                        <td><span class="pill @(member.IsActive ? "available" : "off")">@(member.IsActive ? L["Aktif"] : L["Pasif"])</span></td>
                         <td>
                             @if (member.User.Id != _tenant?.UserId)
                             {
                                 <button class="small" disabled="@_busy" @onclick="() => SetActiveAsync(member.Id, !member.IsActive)">
-                                    @(member.IsActive ? "Devre dışı bırak" : "Etkinleştir")
+                                    @(member.IsActive ? L["Devre dışı bırak"] : L["Etkinleştir"])
                                 </button>
                             }
                             else
                             {
-                                <span class="hint">Siz</span>
+                                <span class="hint">@L["Siz"]</span>
                             }
                         </td>
                     </tr>
@@ -75,13 +75,13 @@
 </div>
 
 <div class="card">
-    <h2>Şifremi değiştir</h2>
+    <h2>@L["Şifremi değiştir"]</h2>
     <div class="form-grid">
-        <label class="field">Mevcut şifre<input type="password" @bind="_currentPassword" autocomplete="current-password" /></label>
-        <label class="field">Yeni şifre<input type="password" @bind="_newPassword" autocomplete="new-password" /></label>
+        <label class="field">@L["Mevcut şifre"]<input type="password" @bind="_currentPassword" autocomplete="current-password" /></label>
+        <label class="field">@L["Yeni şifre"]<input type="password" @bind="_newPassword" autocomplete="new-password" /></label>
     </div>
     <div class="form-actions">
-        <button disabled="@_busy" @onclick="ChangePasswordAsync">Şifreyi değiştir</button>
+        <button disabled="@_busy" @onclick="ChangePasswordAsync">@L["Şifreyi değiştir"]</button>
     </div>
 </div>
 
@@ -116,7 +116,7 @@
     {
         await Db.RunAsync((AuthService s) => s.AddStaffAsync(_tenant!.OrganizationId, _name, _email, _password, _role));
         _name = _email = _password = "";
-        _message = "Kullanıcı eklendi.";
+        _message = L["Kullanıcı eklendi."];
     });
 
     private Task SetActiveAsync(int staffId, bool active) => RunAsync(() =>
@@ -126,7 +126,7 @@
     {
         await Db.RunAsync((AuthService s) => s.ChangePasswordAsync(_tenant!.UserId, _currentPassword, _newPassword));
         _currentPassword = _newPassword = "";
-        _message = "Şifre değiştirildi.";
+        _message = L["Şifre değiştirildi."];
     });
 
     private async Task RunAsync(Func<Task> action)
@@ -140,7 +140,7 @@
         }
         catch (ArgumentException ex)
         {
-            _error = ex.Message;
+            _error = L.Error(ex);
         }
         finally
         {

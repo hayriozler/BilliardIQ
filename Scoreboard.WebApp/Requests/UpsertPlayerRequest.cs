@@ -10,4 +10,8 @@ public record UpsertPlayerRequest(
     string Email,
     Level Level,
     string BaseCountry,
-    string BaseCity);
+    string BaseCity,
+    int? ShortcutNumber = null,
+    string? LicenseNo = null,
+    DateOnly? LicenseValidUntil = null,
+    int? AssociationId = null);

@@ -7,6 +7,7 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
 {
     public Task<List<Player>> ListForOrganizationAsync(int organizationId) =>
         db.PlayerSet
+            .Include(p => p.Association)
             .Where(p => p.CreatedInOrganizationId == organizationId && p.DeletedAt == null)
             .OrderBy(p => p.DisplayName)
             .ToListAsync();
@@ -26,15 +27,52 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         string baseCountry,
         string baseCity,
         string? photoBase64,
-        string? photoExtension)
+        string? photoExtension,
+        int? shortcutNumber = null,
+        string? licenseNo = null,
+        DateOnly? licenseValidUntil = null,
+        int? associationId = null)
     {
+        if (avatarId is < 0 || avatarId >= AvatarGenerator.Count)
+        {
+            throw new ArgumentException("Geçersiz avatar.");
+        }
+
+        if (associationId is not null && !await db.AssociationSet.AnyAsync(a =>
+                a.Id == associationId && a.OrganizationId == organizationId && a.DeletedAt == null))
+        {
+            throw new ArgumentException("Dernek / federasyon bulunamadı.");
+        }
+
+        licenseNo = string.IsNullOrWhiteSpace(licenseNo) ? null : licenseNo.Trim();
+        if (licenseNo is { Length: > 50 })
+        {
+            throw new ArgumentException("Lisans no en fazla 50 karakter olabilir.");
+        }
+
         name = name.Trim();
         if (name.Length == 0 && string.IsNullOrWhiteSpace(nickname))
         {
             throw new ArgumentException("Ad veya takma ad gerekli.");
         }
 
+        if (shortcutNumber is < 1 or > 9999)
+        {
+            throw new ArgumentException("Kısayol numarası 1-9999 arasında olmalı.");
+        }
+
+        if (shortcutNumber is not null && await db.PlayerSet.AnyAsync(p =>
+                p.CreatedInOrganizationId == organizationId && p.ShortcutNumber == shortcutNumber && p.Id != id))
+        {
+            throw new LocalizedArgumentException("{0} numaralı kısayol başka bir oyuncuda kayıtlı.", shortcutNumber.Value);
+        }
+
         var player = id != 0 ? await GetAsync(organizationId, id) : null;
+        if (player is { IsSystem: true })
+        {
+            throw new ArgumentException("Sistem oyuncuları değiştirilemez.");
+        }
+
         if (player is null)
         {
             player = new Player { CreatedInOrganizationId = organizationId };
@@ -46,6 +84,10 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         player.LastName = last;
         player.Nickname = string.IsNullOrWhiteSpace(nickname) ? null : nickname.Trim();
         player.DisplayName = player.Nickname ?? name;
+        player.ShortcutNumber = shortcutNumber;
+        player.FederationLicenseNo = licenseNo;
+        player.LicenseValidUntil = licenseValidUntil;
+        player.AssociationId = associationId;
         player.AvatarId = avatarId;
         player.Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
         player.Level = level;
@@ -87,8 +129,14 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             return false;
         }
 
+        if (player.IsSystem)
+        {
+            throw new InvalidOperationException("Sistem oyuncuları silinemez.");
+        }
+
         // Match history keeps referencing the player, so the profile is retired rather than removed.
         db.TeamMemberSet.RemoveRange(await db.TeamMemberSet.Where(m => m.PlayerId == id).ToListAsync());
+        player.ShortcutNumber = null; // frees the number for reuse
         player.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
         return true;

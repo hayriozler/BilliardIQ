@@ -3,12 +3,12 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>Takımlar • BillardIQ</PageTitle>
+<PageTitle>@L["Takımlar"] • BillardIQ</PageTitle>
 
 <div class="page-head">
     <div>
-        <h1>Takımlar</h1>
-        <div class="subtitle">Takımlar bir kulübe bağlıdır. Oyuncuları işaretleyerek kadroyu belirleyin.</div>
+        <h1>@L["Takımlar"]</h1>
+        <div class="subtitle">@L["Takımlar bir kulübe bağlıdır. Oyuncuları işaretleyerek kadroyu belirleyin."]</div>
     </div>
 </div>
 
@@ -18,41 +18,42 @@
 }
 
 <div class="card">
-    <h2>@(_form.Id == 0 ? "Yeni takım" : "Takımı düzenle")</h2>
+    <h2>@(_form.Id == 0 ? L["Yeni takım"] : L["Takımı düzenle"])</h2>
     @if (_clubs is { Count: 0 })
     {
-        <p class="hint">Kulüp seçilmezse ilk kulüp kullanılır. <a href="/clubs">Kulüp ekleyin</a>.</p>
+        <p class="hint">@L["Kulüp seçilmezse ilk kulüp kullanılır."] <a href="/clubs">@L["Kulüp ekleyin"]</a>.</p>
     }
     <EditForm Model="_form" OnValidSubmit="SaveAsync" FormName="team-form">
         <DataAnnotationsValidator />
         <div class="form-row">
-            <label class="field">Takım adı<InputText @bind-Value="_form.Name" placeholder="Kadıköy BSK A" /></label>
-            <label class="field">Kulüp
+            <label class="field">@L["Takım adı"]<InputText @bind-Value="_form.Name" placeholder="Kadıköy BSK A" /></label>
+            <label class="field">@L["Kulüp"]
                 <InputSelect @bind-Value="_form.ClubId">
-                    <option value="">@(_clubs is { Count: 0 } ? "Otomatik oluştur" : "İlk kulüp")</option>
+                    <option value="">@(_clubs is { Count: 0 } ? L["Otomatik oluştur"] : L["İlk kulüp"])</option>
                     @foreach (var club in _clubs ?? [])
                     {
                         <option value="@club.Id">@club.Name</option>
                     }
                 </InputSelect>
             </label>
-            <button type="submit" class="primary" disabled="@_busy">@(_form.Id == 0 ? "Takım ekle" : "Kaydet")</button>
+            <div class="field">@L["Avatar"]<AvatarPicker @bind-Value="_form.AvatarId" /></div>
+            <button type="submit" class="primary" disabled="@_busy">@(_form.Id == 0 ? L["Takım ekle"] : L["Kaydet"])</button>
             @if (_form.Id != 0)
             {
-                <button type="button" @onclick="ResetForm">Vazgeç</button>
+                <button type="button" @onclick="ResetForm">@L["Vazgeç"]</button>
             }
         </div>
-        <ValidationSummary />
+        <LocalizedValidationSummary />
     </EditForm>
 </div>
 
 @if (_teams is null || _players is null)
 {
-    <p class="muted">Yükleniyor...</p>
+    <p class="muted">@L["Yükleniyor..."]</p>
 }
 else if (_teams.Count == 0)
 {
-    <div class="card empty">Henüz takım yok.</div>
+    <div class="card empty">@L["Henüz takım yok."]</div>
 }
 else
 {
@@ -60,26 +61,32 @@ else
     {
         <div class="team-card">
             <div class="team-header">
-                <div>
+                <div class="team-title">
+                    @if (team.AvatarId is int teamAvatar)
+                    {
+                        <img src="@AvatarGenerator.ToDataUri(teamAvatar, 40)" class="thumb" alt="" />
+                    }
+                    <div>
                     <strong>@team.Name</strong>
-                    <div class="muted">@team.Club.Name • @team.Members.Count oyuncu</div>
+                    <div class="muted">@team.Club.Name • @L["{0} oyuncu", team.Members.Count]</div>
+                    </div>
                 </div>
                 <div class="row-actions">
-                    <button class="small" @onclick="() => Edit(team)">Düzenle</button>
+                    <button class="small" @onclick="() => Edit(team)">@L["Düzenle"]</button>
                     @if (_confirmDelete == team.Id)
                     {
-                        <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(team.Id)">Silmeyi onayla</button>
-                        <button class="small ghost" @onclick="() => _confirmDelete = null">Vazgeç</button>
+                        <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(team.Id)">@L["Silmeyi onayla"]</button>
+                        <button class="small ghost" @onclick="() => _confirmDelete = null">@L["Vazgeç"]</button>
                     }
                     else
                     {
-                        <button class="small ghost" @onclick="() => _confirmDelete = team.Id">Sil</button>
+                        <button class="small ghost" @onclick="() => _confirmDelete = team.Id">@L["Sil"]</button>
                     }
                 </div>
             </div>
             @if (_players.Count == 0)
             {
-                <p class="hint">Önce <a href="/players">oyuncu ekleyin</a>.</p>
+                <p class="hint">@L["Önce"] <a href="/players">@L["oyuncu ekleyin"]</a>.</p>
             }
             else
             {
@@ -119,12 +126,12 @@ else
     {
         var orgId = _tenant!.OrganizationId;
         _teams = await Db.RunAsync((TeamService s) => s.ListForOrganizationAsync(orgId));
-        _players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId));
+        _players = (await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId))).Where(p => !p.IsSystem).ToList();
         _clubs = await Db.RunAsync((ClubService s) => s.ListAsync(orgId));
     }
 
     private void Edit(Team team) =>
-        _form = new TeamFormModel { Id = team.Id, Name = team.Name, ClubId = team.ClubId.ToString() };
+        _form = new TeamFormModel { Id = team.Id, Name = team.Name, ClubId = team.ClubId.ToString(), AvatarId = team.AvatarId };
 
     private void ResetForm() => _form = new TeamFormModel();
 
@@ -135,12 +142,12 @@ else
         try
         {
             int? clubId = int.TryParse(_form.ClubId, out var parsed) ? parsed : null;
-            await Db.RunAsync((TeamService s) => s.UpsertAsync(_tenant!.OrganizationId, _form.Id, _form.Name, clubId));
+            await Db.RunAsync((TeamService s) => s.UpsertAsync(_tenant!.OrganizationId, _form.Id, _form.Name, clubId, _form.AvatarId));
             ResetForm();
         }
         catch (ArgumentException ex)
         {
-            _error = ex.Message;
+            _error = L.Error(ex);
         }
         finally
         {
@@ -185,7 +192,7 @@ else
         }
         catch (ArgumentException ex)
         {
-            _error = ex.Message;
+            _error = L.Error(ex);
         }
 
         await LoadAsync();
@@ -199,5 +206,7 @@ else
         public string Name { get; set; } = string.Empty;
 
         public string ClubId { get; set; } = string.Empty;
+
+        public int? AvatarId { get; set; }
     }
 }

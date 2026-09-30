@@ -24,5 +24,4 @@ public class MatchResult
     public int Winner { get; set; }
 
     public bool SyncedAPI { get; set; }
-    public bool SyncedWS { get; set; }
 }

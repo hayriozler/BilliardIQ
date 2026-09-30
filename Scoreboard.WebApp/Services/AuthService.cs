@@ -7,7 +7,7 @@ namespace Scoreboard.WebApp.Services;
 
 public record LoginResult(User User, StaffMember Staff, Organization Organization);
 
-public class AuthService(DataContext db)
+public class AuthService(DataContext db, ClientIdService clientIds, SystemPlayerService systemPlayers)
 {
     private static readonly PasswordHasher<User> _hasher = new();
 
@@ -53,9 +53,9 @@ public class AuthService(DataContext db)
         return new LoginResult(user, staff, staff.Organization);
     }
 
-    /// <summary>Creates a salon (tenant) with its owner account, a default price list and numbered tables.</summary>
+    /// <summary>Creates a salon (tenant) with its owner account. Tables and pricing are set up after registration.</summary>
     public async Task<LoginResult> RegisterOrganizationAsync(
-        string organizationName, string ownerName, string email, string password, int tableCount, decimal hourlyRate)
+        string organizationName, string ownerName, string email, string password, string? language = null)
     {
         organizationName = organizationName.Trim();
         ownerName = ownerName.Trim();
@@ -65,8 +65,8 @@ public class AuthService(DataContext db)
         if (ownerName.Length == 0) throw new ArgumentException("Ad soyad gerekli.");
         if (!email.Contains('@')) throw new ArgumentException("Geçerli bir e-posta girin.");
         ValidatePassword(password);
-        if (tableCount is < 0 or > 100) throw new ArgumentException("Masa sayısı 0 ile 100 arasında olmalı.");
-        if (hourlyRate < 0) throw new ArgumentException("Saatlik ücret negatif olamaz.");
+        language = string.IsNullOrWhiteSpace(language) ? Loc.DefaultLanguage : language.Trim().ToLowerInvariant();
+        if (!Loc.IsSupported(language)) throw new ArgumentException("Desteklenmeyen dil.");
 
         if (await db.UserSet.AnyAsync(u => u.Email == email))
         {
@@ -78,8 +78,10 @@ public class AuthService(DataContext db)
             Name = organizationName,
             Slug = await UniqueSlugAsync(organizationName),
             Code = await UniqueCodeAsync(),
+            ClientId = await clientIds.GenerateUniqueAsync(),
             Address = new Address { Line1 = "", City = "" },
             Email = email,
+            Language = language,
             Plan = SubscriptionPlan.Free
         };
 
@@ -88,28 +90,9 @@ public class AuthService(DataContext db)
 
         var staff = new StaffMember { Organization = organization, User = user, Roles = [StaffRole.Owner] };
 
-        db.PricingRuleSet.Add(new PricingRule
-        {
-            Organization = organization,
-            Name = "Standart",
-            DefaultHourlyRate = hourlyRate,
-            IsDefault = true
-        });
-
-        for (var i = 1; i <= tableCount; i++)
-        {
-            db.BilliardTableSet.Add(new BilliardTable
-            {
-                Organization = organization,
-                Number = i,
-                Type = TableType.Match284,
-                Status = TableStatus.Available,
-                SortOrder = i
-            });
-        }
-
         db.StaffMemberSet.Add(staff);
         await db.SaveChangesAsync();
+        await systemPlayers.EnsureAsync(organization);
         return new LoginResult(user, staff, organization);
     }
 
@@ -173,7 +156,7 @@ public class AuthService(DataContext db)
     {
         if (string.IsNullOrEmpty(password) || password.Length < MinPasswordLength)
         {
-            throw new ArgumentException($"Şifre en az {MinPasswordLength} karakter olmalı.");
+            throw new LocalizedArgumentException("Şifre en az {0} karakter olmalı.", MinPasswordLength);
         }
     }
 

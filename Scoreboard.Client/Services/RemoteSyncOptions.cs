@@ -6,6 +6,8 @@ public class RemoteSyncOptions
 
     public string ClientId { get; set; } = "";
 
+    public int TableNo { get; set; }
+
     public string BaseUrl { get; set; } = "";
 
     public int PollSeconds { get; set; } = 15;

@@ -3,12 +3,12 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>Kulüpler • BillardIQ</PageTitle>
+<PageTitle>@L["Kulüpler"] • BillardIQ</PageTitle>
 
 <div class="page-head">
     <div>
-        <h1>Kulüpler</h1>
-        <div class="subtitle">Bir salon birden fazla kulüp barındırabilir. Takımlar kulüplere bağlıdır.</div>
+        <h1>@L["Kulüpler"]</h1>
+        <div class="subtitle">@L["Bir salon birden fazla kulüp barındırabilir. Takımlar kulüplere bağlıdır."]</div>
     </div>
 </div>
 
@@ -18,41 +18,41 @@
 }
 
 <div class="card">
-    <h2>@(_form.Id == 0 ? "Yeni kulüp" : "Kulübü düzenle")</h2>
+    <h2>@(_form.Id == 0 ? L["Yeni kulüp"] : L["Kulübü düzenle"])</h2>
     <EditForm Model="_form" OnValidSubmit="SaveAsync" FormName="club-form">
         <DataAnnotationsValidator />
         <div class="form-grid">
-            <label class="field">Kulüp adı<InputText @bind-Value="_form.Name" /></label>
-            <label class="field">Kısa ad<InputText @bind-Value="_form.ShortName" placeholder="KBSK" maxlength="20" /></label>
-            <label class="field">Şehir<InputText @bind-Value="_form.City" /></label>
-            <label class="field">Renk<InputText @bind-Value="_form.PrimaryColor" placeholder="#C8102E" /></label>
+            <label class="field">@L["Kulüp adı"]<InputText @bind-Value="_form.Name" /></label>
+            <label class="field">@L["Kısa ad"]<InputText @bind-Value="_form.ShortName" placeholder="KBSK" maxlength="20" /></label>
+            <label class="field">@L["Şehir"]<InputText @bind-Value="_form.City" /></label>
+            <label class="field">@L["Renk"]<InputText @bind-Value="_form.PrimaryColor" placeholder="#C8102E" /></label>
         </div>
-        <ValidationSummary />
+        <LocalizedValidationSummary />
         <div class="form-actions">
-            <button type="submit" class="primary" disabled="@_busy">@(_form.Id == 0 ? "Kulüp ekle" : "Kaydet")</button>
+            <button type="submit" class="primary" disabled="@_busy">@(_form.Id == 0 ? L["Kulüp ekle"] : L["Kaydet"])</button>
             @if (_form.Id != 0)
             {
-                <button type="button" @onclick="ResetForm">Vazgeç</button>
+                <button type="button" @onclick="ResetForm">@L["Vazgeç"]</button>
             }
         </div>
     </EditForm>
 </div>
 
 <div class="card">
-    <h2>Kulüpler (@(_clubs?.Count ?? 0))</h2>
+    <h2>@L["Kulüpler"] (@(_clubs?.Count ?? 0))</h2>
     @if (_clubs is null)
     {
-        <p class="muted">Yükleniyor...</p>
+        <p class="muted">@L["Yükleniyor..."]</p>
     }
     else if (_clubs.Count == 0)
     {
-        <div class="empty">Henüz kulüp yok.</div>
+        <div class="empty">@L["Henüz kulüp yok."]</div>
     }
     else
     {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Ad</th><th>Kısa ad</th><th>Şehir</th><th></th></tr></thead>
+                <thead><tr><th>@L["Ad"]</th><th>@L["Kısa ad"]</th><th>@L["Şehir"]</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var club in _clubs)
                     {
@@ -65,15 +65,15 @@
                             <td>@club.City</td>
                             <td>
                                 <div class="row-actions">
-                                    <button class="small" @onclick="() => Edit(club)">Düzenle</button>
+                                    <button class="small" @onclick="() => Edit(club)">@L["Düzenle"]</button>
                                     @if (_confirmDelete == club.Id)
                                     {
-                                        <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(club.Id)">Silmeyi onayla</button>
-                                        <button class="small ghost" @onclick="() => _confirmDelete = null">Vazgeç</button>
+                                        <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(club.Id)">@L["Silmeyi onayla"]</button>
+                                        <button class="small ghost" @onclick="() => _confirmDelete = null">@L["Vazgeç"]</button>
                                     }
                                     else
                                     {
-                                        <button class="small ghost" @onclick="() => _confirmDelete = club.Id">Sil</button>
+                                        <button class="small ghost" @onclick="() => _confirmDelete = club.Id">@L["Sil"]</button>
                                     }
                                 </div>
                             </td>
@@ -129,7 +129,7 @@
         }
         catch (ArgumentException ex)
         {
-            _error = ex.Message;
+            _error = L.Error(ex);
         }
         finally
         {
@@ -150,7 +150,7 @@
         }
         catch (InvalidOperationException ex)
         {
-            _error = ex.Message;
+            _error = L.Error(ex);
         }
         finally
         {

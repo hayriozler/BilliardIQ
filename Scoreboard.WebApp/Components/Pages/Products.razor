@@ -1,0 +1,303 @@
+@page "/products"
+@attribute [Authorize]
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>@L["Ürünler ve hizmetler"] • BillardIQ</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>@L["Ürünler ve hizmetler"]</h1>
+        <div class="subtitle">@L["Salonunuzda sattığınız içecek, yiyecek ve hizmetleri (ör. dart) fiyatlarıyla tanımlayın."]</div>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert error">@_error</div>
+}
+@if (_message is not null)
+{
+    <div class="alert success">@_message</div>
+}
+
+@if (_tenant is { CanManage: false })
+{
+    <div class="alert info">@L["Ürünleri yalnızca sahip veya yönetici düzenleyebilir."]</div>
+}
+
+<div class="split">
+    <div>
+        @if (_categories.Count == 0)
+        {
+            <div class="card empty">@L["Henüz kategori yok. Önce bir kategori ekleyin (ör. İçecekler, Yiyecekler, Hizmetler)."]</div>
+        }
+
+        @foreach (var category in _categories)
+        {
+            var items = _products.Where(p => p.CategoryId == category.Id).ToList();
+            <div class="card">
+                <h2>
+                    @category.Name (@items.Count)
+                </h2>
+                @if (items.Count == 0)
+                {
+                    <div class="empty">@L["Bu kategoride ürün yok."]</div>
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>@L["Ad"]</th><th class="num">@L["Fiyat"]</th><th class="num">@L["KDV %"]</th><th>@L["Durum"]</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var product in items)
+                                {
+                                    <tr>
+                                        <td><strong>@product.Name</strong></td>
+                                        <td class="num">@Format.Money(product.Price, _currency)</td>
+                                        <td class="num">@product.VatRate.ToString("0.##")</td>
+                                        <td><span class="pill @(product.IsActive ? "available" : "off")">@(product.IsActive ? L["Aktif"] : L["Pasif"])</span></td>
+                                        <td>
+                                            @if (_tenant is { CanManage: true })
+                                            {
+                                                <div class="row-actions">
+                                                    <button class="small" @onclick="() => EditProduct(product)">@L["Düzenle"]</button>
+                                                    @if (_confirmDeleteProduct == product.Id)
+                                                    {
+                                                        <button class="small danger" disabled="@_busy" @onclick="() => DeleteProductAsync(product.Id)">@L["Silmeyi onayla"]</button>
+                                                        <button class="small ghost" @onclick="() => _confirmDeleteProduct = null">@L["Vazgeç"]</button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="small ghost" @onclick="() => _confirmDeleteProduct = product.Id">@L["Sil"]</button>
+                                                    }
+                                                </div>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div>
+        <div class="card">
+            <h2>@L["Kategoriler"] (@_categories.Count)</h2>
+            @if (_categories.Count == 0)
+            {
+                <div class="empty">@L["Henüz kategori yok."]</div>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>@L["Sıra"]</th><th>@L["Kategori adı"]</th><th class="num">@L["Ürün sayısı"]</th><th></th></tr></thead>
+                        <tbody>
+                            @for (var i = 0; i < _categories.Count; i++)
+                            {
+                                var index = i;
+                                var category = _categories[index];
+                                var count = _products.Count(p => p.CategoryId == category.Id);
+                                <tr>
+                                    <td>
+                                        @(index + 1)
+                                        @if (_tenant is { CanManage: true })
+                                        {
+                                            <button class="small ghost" title="@L["Yukarı taşı"]" disabled="@(_busy || index == 0)" @onclick="() => MoveCategoryAsync(category.Id, -1)">▲</button>
+                                            <button class="small ghost" title="@L["Aşağı taşı"]" disabled="@(_busy || index == _categories.Count - 1)" @onclick="() => MoveCategoryAsync(category.Id, 1)">▼</button>
+                                        }
+                                    </td>
+                                    <td><strong>@category.Name</strong></td>
+                                    <td class="num">@count</td>
+                                    <td>
+                                        @if (_tenant is { CanManage: true })
+                                        {
+                                            <div class="row-actions">
+                                                <button class="small" @onclick="() => EditCategory(category)">@L["Düzenle"]</button>
+                                                @if (_confirmDeleteCategory == category.Id)
+                                                {
+                                                    <button class="small danger" disabled="@_busy" @onclick="() => DeleteCategoryAsync(category.Id)">@L["Silmeyi onayla"]</button>
+                                                    <button class="small ghost" @onclick="() => _confirmDeleteCategory = null">@L["Vazgeç"]</button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="small ghost" @onclick="() => _confirmDeleteCategory = category.Id">@L["Sil"]</button>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        @if (_tenant is { CanManage: true })
+        {
+            <div class="card">
+                <h2>@(_categoryForm.Id == 0 ? L["Yeni kategori"] : L["Kategoriyi düzenle"])</h2>
+                <div class="form-row">
+                    <label class="field">@L["Kategori adı"]
+                        <input type="text" @bind="_categoryForm.Name" placeholder="@L["İçecekler"]" />
+                    </label>
+                    <button class="primary" disabled="@_busy" @onclick="SaveCategoryAsync">@(_categoryForm.Id == 0 ? L["Kategori ekle"] : L["Kaydet"])</button>
+                    @if (_categoryForm.Id != 0)
+                    {
+                        <button @onclick="() => _categoryForm = new()">@L["Vazgeç"]</button>
+                    }
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>@(_productForm.Id == 0 ? L["Yeni ürün / hizmet"] : L["Ürünü düzenle"])</h2>
+                <div class="form-grid">
+                    <label class="field">@L["Ad"]
+                        <input type="text" @bind="_productForm.Name" placeholder="@L["Çay"]" />
+                    </label>
+                    <label class="field">@L["Kategori"]
+                        <select @bind="_productForm.CategoryId">
+                            <option value="0">@L["Kategori seçin"]</option>
+                            @foreach (var category in _categories)
+                            {
+                                <option value="@category.Id">@category.Name</option>
+                            }
+                        </select>
+                    </label>
+                    <label class="field">@L["Fiyat"] (@_currency)
+                        <input type="number" step="0.01" min="0" @bind="_productForm.Price" />
+                    </label>
+                    <label class="field">@L["KDV %"]
+                        <input type="number" step="0.01" min="0" max="100" @bind="_productForm.VatRate" />
+                    </label>
+                </div>
+                <label class="player-toggle" style="margin-top:0.75rem;display:inline-flex">
+                    <input type="checkbox" @bind="_productForm.IsActive" /> @L["Satışta (aktif)"]
+                </label>
+                <div class="form-actions">
+                    <button class="primary" disabled="@_busy" @onclick="SaveProductAsync">@(_productForm.Id == 0 ? L["Ürün ekle"] : L["Kaydet"])</button>
+                    @if (_productForm.Id != 0)
+                    {
+                        <button @onclick="ResetProductForm">@L["Vazgeç"]</button>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private Tenant? _tenant;
+    private List<ProductCategory> _categories = [];
+    private List<Product> _products = [];
+    private string _currency = "TRY";
+    private CategoryForm _categoryForm = new();
+    private ProductForm _productForm = new();
+    private string? _error;
+    private string? _message;
+    private bool _busy;
+    private int? _confirmDeleteCategory;
+    private int? _confirmDeleteProduct;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenant = await TenantContext.GetAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var orgId = _tenant!.OrganizationId;
+        _categories = await Db.RunAsync((ProductService s) => s.ListCategoriesAsync(orgId));
+        _products = await Db.RunAsync((ProductService s) => s.ListProductsAsync(orgId));
+        _currency = (await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId))).Currency;
+    }
+
+    private void EditCategory(ProductCategory category) => _categoryForm = new CategoryForm { Id = category.Id, Name = category.Name };
+
+    private void EditProduct(Product product) =>
+        _productForm = new ProductForm
+        {
+            Id = product.Id,
+            CategoryId = product.CategoryId,
+            Name = product.Name,
+            Price = product.Price,
+            VatRate = product.VatRate,
+            IsActive = product.IsActive
+        };
+
+    private void ResetProductForm() => _productForm = new ProductForm { CategoryId = _productForm.CategoryId };
+
+    private Task SaveCategoryAsync() => RunAsync(async () =>
+    {
+        await Db.RunAsync((ProductService s) => s.UpsertCategoryAsync(_tenant!.OrganizationId, _categoryForm.Id, _categoryForm.Name));
+        _categoryForm = new CategoryForm();
+        _message = L["Kategori kaydedildi."];
+    });
+
+    private Task MoveCategoryAsync(int id, int direction) =>
+        RunAsync(() => Db.RunAsync((ProductService s) => s.MoveCategoryAsync(_tenant!.OrganizationId, id, direction)));
+
+    private Task DeleteCategoryAsync(int id) => RunAsync(async () =>
+    {
+        await Db.RunAsync((ProductService s) => s.DeleteCategoryAsync(_tenant!.OrganizationId, id));
+        _confirmDeleteCategory = null;
+    });
+
+    private Task SaveProductAsync() => RunAsync(async () =>
+    {
+        await Db.RunAsync((ProductService s) => s.UpsertProductAsync(
+            _tenant!.OrganizationId, _productForm.Id, _productForm.CategoryId, _productForm.Name,
+            _productForm.Price, _productForm.VatRate, _productForm.IsActive));
+        ResetProductForm();
+        _message = L["Ürün kaydedildi."];
+    });
+
+    private Task DeleteProductAsync(int id) => RunAsync(async () =>
+    {
+        await Db.RunAsync((ProductService s) => s.DeleteProductAsync(_tenant!.OrganizationId, id));
+        _confirmDeleteProduct = null;
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _error = null;
+        _message = null;
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            _error = L.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+    }
+
+    private class CategoryForm
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+    }
+
+    private class ProductForm
+    {
+        public int Id { get; set; }
+        public int CategoryId { get; set; }
+        public string Name { get; set; } = "";
+        public decimal Price { get; set; }
+        public decimal VatRate { get; set; } = 10;
+        public bool IsActive { get; set; } = true;
+    }
+}

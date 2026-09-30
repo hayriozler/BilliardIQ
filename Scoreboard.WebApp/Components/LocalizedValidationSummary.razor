@@ -1,0 +1,41 @@
+@implements IDisposable
+
+@if (_messages.Count > 0)
+{
+    <ul class="validation-errors">
+        @foreach (var message in _messages)
+        {
+            <li class="validation-message">@L[message]</li>
+        }
+    </ul>
+}
+
+@code {
+    [CascadingParameter]
+    private EditContext? EditContext { get; set; }
+
+    private List<string> _messages = [];
+    private EditContext? _subscribed;
+
+    protected override void OnParametersSet()
+    {
+        if (_subscribed == EditContext) return;
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnChanged;
+        _subscribed = EditContext;
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged += OnChanged;
+        Refresh();
+    }
+
+    private void OnChanged(object? sender, ValidationStateChangedEventArgs e)
+    {
+        Refresh();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Refresh() => _messages = EditContext?.GetValidationMessages().Distinct().ToList() ?? [];
+
+    public void Dispose()
+    {
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnChanged;
+    }
+}

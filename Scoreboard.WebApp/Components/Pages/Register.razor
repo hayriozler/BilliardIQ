@@ -1,6 +1,6 @@
 @page "/register"
 
-<PageTitle>Salon kaydı • BillardIQ</PageTitle>
+<PageTitle>@L["Salon kaydı"] • BillardIQ</PageTitle>
 
 <div class="auth-card">
     <div class="brand-row">
@@ -8,8 +8,8 @@
         <span>BillardIQ</span>
     </div>
 
-    <h1>Salonunuzu kaydedin</h1>
-    <p class="muted">Salon, yönetici hesabı ve masalar birkaç saniyede hazır olur.</p>
+    <h1>@L["Salonunuzu kaydedin"]</h1>
+    <p class="muted">@L["Salon ve yönetici hesabı birkaç saniyede hazır olur. Masaları ve fiyatları kayıttan sonra tanımlarsınız."]</p>
 
     @if (!string.IsNullOrEmpty(Error))
     {
@@ -17,30 +17,31 @@
     }
 
     <form method="post" action="/register">
-        <label class="field">Salon adı
+        <label class="field">@L["Salon adı"]
             <input type="text" name="organization" value="@Organization" required autofocus />
         </label>
-        <label class="field">Ad soyad
+        <label class="field">@L["Ad soyad"]
             <input type="text" name="name" value="@Name" autocomplete="name" required />
         </label>
-        <label class="field">E-posta
+        <label class="field">@L["E-posta"]
             <input type="email" name="email" value="@Email" autocomplete="username" required />
         </label>
-        <label class="field">Şifre (en az @AuthService.MinPasswordLength karakter)
+        <label class="field">@L["Şifre (en az {0} karakter)", AuthService.MinPasswordLength]
             <input type="password" name="password" autocomplete="new-password" required minlength="@AuthService.MinPasswordLength" />
         </label>
-        <div class="form-row">
-            <label class="field">Masa sayısı
-                <input type="number" name="tables" value="@(Tables ?? 6)" min="0" max="100" />
-            </label>
-            <label class="field">Saatlik ücret (₺)
-                <input type="number" name="rate" value="@(Rate ?? 150)" min="0" step="0.01" />
-            </label>
-        </div>
-        <button type="submit" class="primary">Salonu oluştur</button>
+        <label class="field">@L["Salon dili"]
+            <select name="language">
+                @foreach (var (lang, label) in Loc.Languages)
+                {
+                    <option value="@lang" selected="@(lang == SelectedLanguage)">@label</option>
+                }
+            </select>
+        </label>
+        <p class="hint">@L["Salon dili, otomatik oluşan Oyuncu 1 ve Oyuncu 2 kayıtlarının adını belirler."]</p>
+        <button type="submit" class="primary">@L["Salonu oluştur"]</button>
     </form>
 
-    <div class="switch">Zaten hesabınız var mı? <a href="/login">Giriş yapın</a></div>
+    <div class="switch">@L["Zaten hesabınız var mı?"] <a href="/login">@L["Giriş yapın"]</a></div>
 </div>
 
 @code {
@@ -56,9 +57,8 @@
     [SupplyParameterFromQuery(Name = "email")]
     public string? Email { get; set; }
 
-    [SupplyParameterFromQuery(Name = "tables")]
-    public int? Tables { get; set; }
+    [SupplyParameterFromQuery(Name = "language")]
+    public string? Language { get; set; }
 
-    [SupplyParameterFromQuery(Name = "rate")]
-    public decimal? Rate { get; set; }
+    private string SelectedLanguage => Loc.IsSupported(Language) ? Language! : Loc.Current;
 }

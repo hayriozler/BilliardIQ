@@ -1,0 +1,22 @@
+@implements IDisposable
+@inject NavigationManager Nav
+
+<form method="post" action="/culture" class="lang-switcher">
+    <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+    @foreach (var (langCode, langName) in Loc.Languages)
+    {
+        <button type="submit" name="lang" value="@langCode" title="@langName"
+                class="@(langCode == Loc.Current ? "active" : "")">@langCode.ToUpperInvariant()</button>
+    }
+</form>
+
+@code {
+    private string ReturnUrl => "/" + Nav.ToBaseRelativePath(Nav.Uri);
+
+    protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+        InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

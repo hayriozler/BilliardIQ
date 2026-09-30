@@ -4,61 +4,85 @@ using Scoreboard.WebApp.Data;
 namespace Scoreboard.WebApp.Middlewares;
 
 /// <summary>
-/// Identifies a kiosk by the pairing code it sends in X-Client-Id and resolves the device and its salon (organization).
-/// The admin-facing /api/devices routes use cookie authentication instead.
+/// Identifies a kiosk's salon (organization) from the X-Client-Id header, and optionally its table from X-Table-No.
+/// There is no other authentication: the client id is the organization's shared kiosk identifier.
 /// </summary>
 public class ClientIdMiddleware(RequestDelegate next)
 {
     public const string HeaderName = "X-Client-Id";
-    public const string ItemKey = "ClientId";
-    public const string DeviceIdItemKey = "DeviceId";
+    public const string TableHeaderName = "X-Table-No";
     public const string OrganizationIdItemKey = "OrganizationId";
+    public const string TableIdItemKey = "TableId";
+    public const string TableNoItemKey = "TableNo";
 
     private static readonly PathString _apiPath = "/api";
-    private static readonly PathString _devicesPath = "/api/devices";
 
     public async Task InvokeAsync(HttpContext context, DataContext db)
     {
-        if (!context.Request.Path.StartsWithSegments(_apiPath) ||
-            context.Request.Path.StartsWithSegments(_devicesPath))
+        if (!context.Request.Path.StartsWithSegments(_apiPath))
         {
             await next(context);
             return;
         }
 
-        if (!context.Request.Headers.TryGetValue(HeaderName, out var values) || string.IsNullOrWhiteSpace(values.ToString()))
+        var clientId = context.Request.Headers[HeaderName].ToString().Trim();
+        if (clientId.Length == 0)
         {
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            await context.Response.WriteAsJsonAsync(new { error = $"'{HeaderName}' header is required." });
+            await RejectAsync(context, StatusCodes.Status400BadRequest, $"'{HeaderName}' header is required.");
             return;
         }
 
-        var clientId = values.ToString().Trim();
-        var device = await db.DeviceSet.FirstOrDefaultAsync(d => d.PairingCode == clientId && d.DeletedAt == null);
-        if (device is null)
+        var organization = await db.OrganizationSet
+            .Where(o => o.ClientId == clientId && o.DeletedAt == null && o.IsActive)
+            .Select(o => new { o.Id })
+            .FirstOrDefaultAsync();
+        if (organization is null)
         {
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsJsonAsync(new { error = "Unknown client id." });
+            await RejectAsync(context, StatusCodes.Status401Unauthorized, "Unknown client id.");
             return;
         }
 
-        device.LastSeenAt = DateTimeOffset.UtcNow;
-        device.IsOnline = true;
-        await db.SaveChangesAsync();
+        context.Items[OrganizationIdItemKey] = organization.Id;
 
-        context.Items[ItemKey] = clientId;
-        context.Items[DeviceIdItemKey] = device.Id;
-        context.Items[OrganizationIdItemKey] = device.OrganizationId;
+        var tableHeader = context.Request.Headers[TableHeaderName].ToString().Trim();
+        if (tableHeader.Length > 0)
+        {
+            if (!int.TryParse(tableHeader, out var tableNo))
+            {
+                await RejectAsync(context, StatusCodes.Status400BadRequest, $"'{TableHeaderName}' must be a table number.");
+                return;
+            }
+
+            var table = await db.BilliardTableSet
+                .Where(t => t.OrganizationId == organization.Id && t.ScoreboardNo == tableNo && t.DeletedAt == null)
+                .Select(t => new { t.Id })
+                .FirstOrDefaultAsync();
+            if (table is null)
+            {
+                await RejectAsync(context, StatusCodes.Status404NotFound, $"No scoreboard table with number {tableNo}.");
+                return;
+            }
+
+            context.Items[TableIdItemKey] = table.Id;
+            context.Items[TableNoItemKey] = tableNo;
+        }
 
         await next(context);
+    }
+
+    private static Task RejectAsync(HttpContext context, int status, string error)
+    {
+        context.Response.StatusCode = status;
+        return context.Response.WriteAsJsonAsync(new { error });
     }
 }
 
 public static class HttpContextClientIdExtensions
 {
-    public static string GetClientId(this HttpContext context) => (string)context.Items[ClientIdMiddleware.ItemKey]!;
-
-    public static int GetDeviceId(this HttpContext context) => (int)context.Items[ClientIdMiddleware.DeviceIdItemKey]!;
-
     public static int GetOrganizationId(this HttpContext context) => (int)context.Items[ClientIdMiddleware.OrganizationIdItemKey]!;
+
+    /// <summary>Table id resolved from X-Table-No, or null when the header was not sent.</summary>
+    public static int? GetTableId(this HttpContext context) => context.Items[ClientIdMiddleware.TableIdItemKey] as int?;
+
+    public static int? GetTableNo(this HttpContext context) => context.Items[ClientIdMiddleware.TableNoItemKey] as int?;
 }

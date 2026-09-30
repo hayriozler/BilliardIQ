@@ -1,5 +1,14 @@
 namespace Scoreboard.WebApp.Domain;
 
+/// <summary>Salonun tanımladığı dernek / federasyon. Oyuncular listeden seçer, serbest metin yazılmaz.</summary>
+public class Association : BaseEntity, ITenantScoped
+{
+    public int OrganizationId { get; set; }
+    public string Name { get; set; } = default!;
+
+    public Organization Organization { get; set; } = default!;
+}
+
 /// <summary>Oyuncu profili. Global — salonlar arası taşınır.</summary>
 public class Player : BaseEntity
 {
@@ -7,6 +16,7 @@ public class Player : BaseEntity
     public string FirstName { get; set; } = default!;
     public string LastName { get; set; } = default!;
     public string? Nickname { get; set; }
+    public int? ShortcutNumber { get; set; }     // scoreboard: hızlı seçim numarası, salon içinde benzersiz
     public string DisplayName { get; set; } = default!; // scoreboard: 'M. YILMAZ'
     public DateOnly? BirthDate { get; set; }
     public Gender? Gender { get; set; }
@@ -14,6 +24,10 @@ public class Player : BaseEntity
     public string? PhotoUrl { get; set; }
     public Handedness? Handedness { get; set; }
     public string? FederationLicenseNo { get; set; } // TBF lisans no
+    public DateOnly? LicenseValidUntil { get; set; } // lisans geçerlilik bitiş tarihi
+    public int? AssociationId { get; set; }          // bağlı dernek / federasyon (salonun tanımladığı listeden)
+    public bool IsSystem { get; set; }               // salon açılırken otomatik oluşan 'Oyuncu 1/2'; değiştirilemez, silinemez
+    public int? SystemSlot { get; set; }             // 1 veya 2 (yalnızca sistem oyuncularında)
     public string? UmbPlayerId { get; set; }
     public int? DefaultTargetPoints { get; set; }    // serbest maç handikapı
     public bool IsGuest { get; set; }
@@ -25,6 +39,7 @@ public class Player : BaseEntity
     public Level Level { get; set; } = Level.Intermidiate;
 
     public User? User { get; set; }
+    public Association? Association { get; set; }
     public ICollection<ClubMembership> ClubMemberships { get; set; } = [];
     public ICollection<TeamMember> TeamMemberships { get; set; } = [];
     public ICollection<CustomerMembership> CustomerMemberships { get; set; } = [];
@@ -72,6 +87,7 @@ public class Team : BaseEntity
     public int? SeasonId { get; set; }               // kadro sezona bağlı
     public int? HomeOrganizationId { get; set; }
     public string? LogoUrl { get; set; }
+    public int? AvatarId { get; set; }               // hazır avatar galerisinden seçilen avatar
 
     public Club Club { get; set; } = default!;
     public Season? Season { get; set; }

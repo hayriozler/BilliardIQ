@@ -18,7 +18,7 @@ public static class TeamsEndpoints
         {
             try
             {
-                var team = await teams.UpsertAsync(context.GetOrganizationId(), request.Id, request.Name, request.ClubId);
+                var team = await teams.UpsertAsync(context.GetOrganizationId(), request.Id, request.Name, request.ClubId, request.AvatarId);
                 return Results.Ok(ToDto(team));
             }
             catch (ArgumentException ex)
@@ -55,5 +55,6 @@ public static class TeamsEndpoints
     private static TeamDto ToDto(Team team) => new(
         team.Id, team.ClubId, team.Name, team.UpdatedAt,
         team.Members.Select(m => new TeamPlayerDto(
-            m.Player.Id, m.Player.Nickname ?? m.Player.DisplayName, $"{m.Player.FirstName} {m.Player.LastName}".Trim())).ToList());
+            m.Player.Id, m.Player.Nickname ?? m.Player.DisplayName, $"{m.Player.FirstName} {m.Player.LastName}".Trim())).ToList(),
+        team.AvatarId);
 }

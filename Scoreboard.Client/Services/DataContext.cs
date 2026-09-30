@@ -9,6 +9,7 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
     public DbSet<Player> PlayerSet { get; set; }
     public DbSet<MatchResult> MatchResultSet { get; set; }
     public DbSet<Team> TeamSet { get; set; }
+    public DbSet<Club> ClubSet { get; set; }
     public DbSet<ScoreEvent> ScoreEventSet { get; set; }
     public DbSet<Setting> SettingsSet { get; set; }
     public DbSet<MatchScoreStat> MatchScoreStatSet { get; set; }
@@ -26,6 +27,10 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
         modelBuilder.Entity<Team>().HasKey(t => t.Id);
         modelBuilder.Entity<Team>().Property(t => t.Id).UseAutoincrement();
         modelBuilder.Entity<Team>().ToTable("team");
+
+        modelBuilder.Entity<Club>().HasKey(c => c.Id);
+        modelBuilder.Entity<Club>().Property(c => c.Id).UseAutoincrement();
+        modelBuilder.Entity<Club>().ToTable("club");
 
         modelBuilder.Entity<MatchResult>().HasKey(m => m.Id);
         modelBuilder.Entity<MatchResult>().Property(m => m.Id).UseAutoincrement();

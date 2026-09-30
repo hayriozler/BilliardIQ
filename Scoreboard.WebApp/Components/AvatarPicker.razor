@@ -1,0 +1,44 @@
+<div class="avatar-picker">
+    <div class="avatar-current">
+        @if (Value is int current)
+        {
+            <img class="avatar-img" src="@AvatarGenerator.ToDataUri(current, 48)" alt="" />
+        }
+        else
+        {
+            <span class="avatar-img avatar-empty">—</span>
+        }
+        <button type="button" class="small ghost" @onclick="() => _open = !_open">@L["Avatar seç"]</button>
+        @if (Value is not null)
+        {
+            <button type="button" class="small ghost" @onclick="() => SelectAsync(null)">@L["Kaldır"]</button>
+        }
+    </div>
+    @if (_open)
+    {
+        <div class="avatar-grid">
+            @for (var i = 0; i < AvatarGenerator.Count; i++)
+            {
+                var id = i;
+                <button type="button" class="avatar-cell @(Value == id ? "active" : "")" @onclick="() => SelectAsync(id)">
+                    <img src="@AvatarGenerator.ToDataUri(id, 40)" alt="" />
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool _open;
+
+    [Parameter] public int? Value { get; set; }
+
+    [Parameter] public EventCallback<int?> ValueChanged { get; set; }
+
+    private async Task SelectAsync(int? id)
+    {
+        _open = false;
+        Value = id;
+        await ValueChanged.InvokeAsync(id);
+    }
+}

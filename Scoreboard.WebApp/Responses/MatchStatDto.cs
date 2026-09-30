@@ -2,7 +2,7 @@ namespace Scoreboard.WebApp.Responses;
 
 public record MatchStatDto(
     int Id,
-    string ClientId,
+    int? TableNo,
     int? Player1Id,
     string Player1Name,
     int Player1Score,
@@ -17,4 +17,10 @@ public record MatchStatDto(
     int MatchTarget,
     int Winner,
     DateTimeOffset PlayedAt,
-    DateTimeOffset RecordedAt);
+    DateTimeOffset? StartedAt,
+    DateTimeOffset? EndedAt,
+    DateTimeOffset RecordedAt,
+    int ScoreDistributionBucketMinutes,
+    List<ScoreBucketDto> ScoreDistribution);
+
+public record ScoreBucketDto(int PlayerSlot, int BucketIndex, int TotalPoints);

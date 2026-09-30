@@ -14,12 +14,17 @@ public class TeamService(DataContext db, ClubService clubs)
             .OrderBy(t => t.Club.Name).ThenBy(t => t.Name)
             .ToListAsync();
 
-    public async Task<Team> UpsertAsync(int organizationId, int id, string name, int? clubId = null)
+    public async Task<Team> UpsertAsync(int organizationId, int id, string name, int? clubId = null, int? avatarId = null)
     {
         name = name.Trim();
         if (name.Length == 0)
         {
             throw new ArgumentException("Takım adı gerekli.");
+        }
+
+        if (avatarId is < 0 || avatarId >= AvatarGenerator.Count)
+        {
+            throw new ArgumentException("Geçersiz avatar.");
         }
 
         var team = id != 0 ? await FindAsync(organizationId, id) : null;
@@ -40,6 +45,7 @@ public class TeamService(DataContext db, ClubService clubs)
         }
 
         team.Name = name;
+        team.AvatarId = avatarId;
         team.ShortName = DefaultShortName(name);
         await db.SaveChangesAsync();
 

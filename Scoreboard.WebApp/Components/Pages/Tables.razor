@@ -3,12 +3,12 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>Masa yönetimi • BillardIQ</PageTitle>
+<PageTitle>@L["Masa yönetimi"] • BillardIQ</PageTitle>
 
 <div class="page-head">
     <div>
-        <h1>Masa yönetimi</h1>
-        <div class="subtitle">Masaları ekleyin, düzenleyin, bakıma alın veya kaldırın.</div>
+        <h1>@L["Masa yönetimi"]</h1>
+        <div class="subtitle">@L["Masaları ekleyin, düzenleyin, bakıma alın veya kaldırın."]</div>
     </div>
 </div>
 
@@ -20,17 +20,17 @@
 @if (_tenant is { CanManage: true })
 {
     <div class="card">
-        <h2>@(_form.Id == 0 ? "Yeni masa" : $"Masa {_form.Number} düzenleniyor")</h2>
+        <h2>@(_form.Id == 0 ? L["Yeni masa"] : L["Masa {0} düzenleniyor", _form.Number])</h2>
         <EditForm Model="_form" OnValidSubmit="SaveAsync" FormName="table-form">
             <DataAnnotationsValidator />
             <div class="form-grid">
-                <label class="field">Masa no
+                <label class="field">@L["Masa no"]
                     <InputNumber @bind-Value="_form.Number" />
                 </label>
-                <label class="field">Etiket (isteğe bağlı)
+                <label class="field">@L["Etiket (isteğe bağlı)"]
                     <InputText @bind-Value="_form.Label" placeholder="VIP 1" />
                 </label>
-                <label class="field">Masa tipi
+                <label class="field">@L["Masa tipi"]
                     <InputSelect @bind-Value="_form.Type">
                         @foreach (var type in Enum.GetValues<TableType>())
                         {
@@ -38,22 +38,26 @@
                         }
                     </InputSelect>
                 </label>
-                <label class="field">Fiyat listesi
+                <label class="field">@L["Fiyat listesi"]
                     <InputSelect @bind-Value="_form.PricingRuleId">
-                        <option value="">Varsayılan fiyat listesi</option>
+                        <option value="">@L["Varsayılan fiyat listesi"]</option>
                         @foreach (var rule in _rules)
                         {
-                            <option value="@rule.Id">@rule.Name (@Format.Money(rule.DefaultHourlyRate, _currency)/saat)</option>
+                            <option value="@rule.Id">@rule.Name (@Format.Money(rule.DefaultHourlyRate, _currency)/@L["saat"])</option>
                         }
                     </InputSelect>
                 </label>
             </div>
-            <ValidationSummary />
+            <label class="player-toggle" style="margin-top:0.75rem;display:inline-flex">
+                <input type="checkbox" @bind="_form.HasScoreboard" /> @L["Bu masada scoreboard (monitör) kullanılacak"]
+            </label>
+            <p class="hint">@(_form.HasScoreboard ? L["Kaydedince masa için otomatik bir scoreboard numarası üretilir; Bağlantı sayfasında görünür."] : L["Scoreboard kullanmayan masalar için numara üretilmez."])</p>
+            <LocalizedValidationSummary />
             <div class="form-actions">
-                <button type="submit" class="primary" disabled="@_busy">@(_form.Id == 0 ? "Masa ekle" : "Kaydet")</button>
+                <button type="submit" class="primary" disabled="@_busy">@(_form.Id == 0 ? L["Masa ekle"] : L["Kaydet"])</button>
                 @if (_form.Id != 0)
                 {
-                    <button type="button" @onclick="ResetForm">Vazgeç</button>
+                    <button type="button" @onclick="ResetForm">@L["Vazgeç"]</button>
                 }
             </div>
         </EditForm>
@@ -61,17 +65,17 @@
 }
 
 <div class="card">
-    <h2>Masalar (@_views.Count)</h2>
+    <h2>@L["Masalar"] (@_views.Count)</h2>
     @if (_views.Count == 0)
     {
-        <div class="empty">Henüz masa yok.</div>
+        <div class="empty">@L["Henüz masa yok."]</div>
     }
     else
     {
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr><th>No</th><th>Etiket</th><th>Tip</th><th>Durum</th><th>Fiyat listesi</th><th></th></tr>
+                    <tr><th>@L["No"]</th><th>@L["Etiket"]</th><th>@L["Tip"]</th><th>@L["Durum"]</th><th>@L["Fiyat listesi"]</th><th>Scoreboard</th><th></th></tr>
                 </thead>
                 <tbody>
                     @foreach (var view in _views)
@@ -84,36 +88,37 @@
                             <td>@Format.TableType(table.Type)</td>
                             <td><span class="pill @css">@Format.TableStatus(table.Status)</span></td>
                             <td>@(RuleName(table.PricingRuleId))</td>
+                            <td>@(table.ScoreboardNo is int scoreboardNo ? $"#{scoreboardNo}" : "—")</td>
                             <td>
                                 @if (_tenant is { CanManage: true })
                                 {
                                     <div class="row-actions">
-                                        <button class="small" @onclick="() => Edit(table)">Düzenle</button>
+                                        <button class="small" @onclick="() => Edit(table)">@L["Düzenle"]</button>
                                         @if (table.CurrentSessionId is null)
                                         {
                                             @if (table.Status is TableStatus.Maintenance or TableStatus.OutOfService)
                                             {
-                                                <button class="small" disabled="@_busy" @onclick="() => SetStatusAsync(table.Id, TableStatus.Available)">Kullanıma al</button>
+                                                <button class="small" disabled="@_busy" @onclick="() => SetStatusAsync(table.Id, TableStatus.Available)">@L["Kullanıma al"]</button>
                                             }
                                             else
                                             {
-                                                <button class="small" disabled="@_busy" @onclick="() => SetStatusAsync(table.Id, TableStatus.Maintenance)">Bakıma al</button>
-                                                <button class="small" disabled="@_busy" @onclick="() => SetStatusAsync(table.Id, TableStatus.OutOfService)">Kapat</button>
+                                                <button class="small" disabled="@_busy" @onclick="() => SetStatusAsync(table.Id, TableStatus.Maintenance)">@L["Bakıma al"]</button>
+                                                <button class="small" disabled="@_busy" @onclick="() => SetStatusAsync(table.Id, TableStatus.OutOfService)">@L["Kapat"]</button>
                                             }
 
                                             @if (_confirmDelete == table.Id)
                                             {
-                                                <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(table.Id)">Silmeyi onayla</button>
-                                                <button class="small ghost" @onclick="() => _confirmDelete = null">Vazgeç</button>
+                                                <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(table.Id)">@L["Silmeyi onayla"]</button>
+                                                <button class="small ghost" @onclick="() => _confirmDelete = null">@L["Vazgeç"]</button>
                                             }
                                             else
                                             {
-                                                <button class="small ghost" @onclick="() => _confirmDelete = table.Id">Sil</button>
+                                                <button class="small ghost" @onclick="() => _confirmDelete = table.Id">@L["Sil"]</button>
                                             }
                                         }
                                         else
                                         {
-                                            <span class="hint">Açık oturum var</span>
+                                            <span class="hint">@L["Açık oturum var"]</span>
                                         }
                                     </div>
                                 }
@@ -152,7 +157,7 @@
     }
 
     private string RuleName(int? ruleId) =>
-        ruleId is null ? "Varsayılan" : _rules.FirstOrDefault(r => r.Id == ruleId)?.Name ?? "Varsayılan";
+        ruleId is null ? L["Varsayılan"] : _rules.FirstOrDefault(r => r.Id == ruleId)?.Name ?? L["Varsayılan"];
 
     private void ResetForm() =>
         _form = new TableFormModel { Number = (_views.Count == 0 ? 0 : _views.Max(v => v.Table.Number)) + 1 };
@@ -164,14 +169,15 @@
             Number = table.Number,
             Label = table.Label,
             Type = table.Type,
-            PricingRuleId = table.PricingRuleId?.ToString() ?? ""
+            PricingRuleId = table.PricingRuleId?.ToString() ?? "",
+            HasScoreboard = table.ScoreboardNo is not null
         };
 
     private Task SaveAsync() => RunAsync(async () =>
     {
         int? ruleId = int.TryParse(_form.PricingRuleId, out var parsed) ? parsed : null;
         await Db.RunAsync((TableService s) =>
-            s.UpsertTableAsync(_tenant!.OrganizationId, _form.Id, _form.Number, _form.Label, _form.Type, ruleId));
+            s.UpsertTableAsync(_tenant!.OrganizationId, _form.Id, _form.Number, _form.Label, _form.Type, ruleId, _form.HasScoreboard));
         ResetForm();
     });
 
@@ -194,7 +200,7 @@
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
-            _error = ex.Message;
+            _error = L.Error(ex);
         }
         finally
         {
@@ -220,5 +226,7 @@
         public TableType Type { get; set; } = TableType.Match284;
 
         public string PricingRuleId { get; set; } = "";
+
+        public bool HasScoreboard { get; set; }
     }
 }

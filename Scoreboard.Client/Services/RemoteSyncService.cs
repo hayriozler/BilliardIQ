@@ -1,39 +1,56 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Net.Http.Json;
 
 namespace Scoreboard.Client.Services;
 
+/// <summary>
+/// Sends finished match results (and their score distribution statistics) to the server API.
+/// Nothing else is pushed: clubs, players and teams are only pulled (<see cref="RemotePullService"/>).
+/// Requests carry no credentials, only the organization's client id and this table's number in the
+/// <c>X-Client-Id</c> and <c>X-Table-No</c> headers.
+/// </summary>
 public partial class RemoteSyncService(
     IDbContextFactory<DataContext> dbFactory,
     IHttpClientFactory httpClientFactory,
-    IWebHostEnvironment env,
     IOptions<RemoteSyncOptions> options,
     SystemPowerService systemPower,
     ILogger<RemoteSyncService> logger) : BackgroundService
 {
+    private const int ScoreDistributionBucketMinutes = 5;
+
+    /// <summary>Most unsent matches kept locally while the server cannot be reached (or sync is off).</summary>
+    private const int MaxUnsentMatches = 200;
+
     private readonly RemoteSyncOptions _options = options.Value;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
+            HttpClient? http = null;
             if (!_options.Enabled)
             {
                 LogSyncDisabled();
-                return;
             }
-
-            if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+            else if (string.IsNullOrWhiteSpace(_options.BaseUrl))
             {
                 LogSyncNoBaseUrl();
-                return;
+            }
+            else if (string.IsNullOrWhiteSpace(_options.ClientId) || _options.TableNo <= 0)
+            {
+                LogSyncNoIdentity();
+            }
+            else
+            {
+                http = httpClientFactory.CreateClient(nameof(RemoteSyncService));
+                http.BaseAddress = new Uri(_options.BaseUrl.EndsWith('/') ? _options.BaseUrl : _options.BaseUrl + "/");
+                http.DefaultRequestHeaders.Add("X-Client-Id", _options.ClientId);
+                http.DefaultRequestHeaders.Add("X-Table-No", _options.TableNo.ToString());
             }
 
-            var baseUrl = _options.BaseUrl.EndsWith('/') ? _options.BaseUrl : _options.BaseUrl + "/";
-            var http = httpClientFactory.CreateClient(nameof(RemoteSyncService));
-            http.BaseAddress = new Uri(baseUrl);
-            http.DefaultRequestHeaders.Add("X-Client-Id", _options.ClientId);
-
-            var interval = TimeSpan.FromSeconds(Math.Max(5, _options.PollSeconds));
+            // Without a working server connection the loop still runs, only to keep the local match backlog bounded.
+            var interval = TimeSpan.FromSeconds(Math.Max(5, http is null ? 300 : _options.PollSeconds));
             using var timer = new PeriodicTimer(interval);
             do
             {
@@ -56,7 +73,7 @@ public partial class RemoteSyncService(
         }
     }
 
-    private async Task SyncOnceAsync(HttpClient http, CancellationToken ct)
+    private async Task SyncOnceAsync(HttpClient? http, CancellationToken ct)
     {
         if (systemPower.IsShuttingDown)
         {
@@ -65,95 +82,39 @@ public partial class RemoteSyncService(
 
         await using var db = await dbFactory.CreateDbContextAsync(ct);
 
-        await PushPlayersAsync(db, http, ct);
-        await PushTeamsAsync(db, http, ct);
-        await PushStatsAsync(db, http, ct);
-        await CleanupSyncedMatchesAsync(db, ct);
-    }
-
-    private async Task PushTeamsAsync(DataContext db, HttpClient http, CancellationToken ct)
-    {
-        var pending = await db.TeamSet.Where(t => !t.SyncedAPI).ToListAsync(ct);
-        foreach (var team in pending)
+        if (http is not null)
         {
-            var payload = new
-            {
-                id = team.Id,
-                name = team.Name
-            };
-
-            LogSendTeam(team.Id, team.Name);
-            var response = await http.PostAsJsonAsync("teams", payload, ct);
-            var body = await response.Content.ReadAsStringAsync(ct);
-            LogReceivedTeamResponse(team.Id, response.StatusCode, body);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                LogPushTeamFailed(team.Id, response.StatusCode);
-                continue;
-            }
-
-            team.SyncedAPI = true;
-            await db.SaveChangesAsync(ct);
+            await PushMatchResultsAsync(db, http, ct);
         }
+
+        await CleanupMatchesAsync(db, ct);
     }
 
-    private async Task PushPlayersAsync(DataContext db, HttpClient http, CancellationToken ct)
+    private async Task PushMatchResultsAsync(DataContext db, HttpClient http, CancellationToken ct)
     {
-        var pending = await db.PlayerSet.Where(p => !p.SyncedAPI).ToListAsync(ct);
-        foreach (var player in pending)
-        {
-            string? photoBase64 = null;
-            string? photoExtension = null;
-            if (!string.IsNullOrEmpty(player.PhotoPath))
-            {
-                var fullPath = Path.Combine(env.WebRootPath, player.PhotoPath);
-                if (File.Exists(fullPath))
-                {
-                    photoBase64 = Convert.ToBase64String(await File.ReadAllBytesAsync(fullPath, ct));
-                    photoExtension = Path.GetExtension(fullPath).TrimStart('.');
-                }
-            }
-
-            var payload = new
-            {
-                id = player.Id,
-                nickname = player.Nickname,
-                name = player.Name,
-                avatarId = player.AvatarId,
-                photoBase64,
-                photoExtension
-            };
-
-            LogSendPlayer(player.Id, player.Nickname, player.Name, player.AvatarId, photoBase64?.Length ?? 0);
-            var response = await http.PostAsJsonAsync("players", payload, ct);
-            var body = await response.Content.ReadAsStringAsync(ct);
-            LogReceivedPlayerResponse(player.Id, response.StatusCode, body);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                LogPushPlayerFailed(player.Id, response.StatusCode);
-                continue;
-            }
-
-            player.SyncedAPI = true;
-            await db.SaveChangesAsync(ct);
-        }
-    }
-
-    private async Task PushStatsAsync(DataContext db, HttpClient http, CancellationToken ct)
-    {
-        var pending = await db.MatchResultSet.Where(m => !m.SyncedAPI).ToListAsync(ct);
+        var pending = await db.MatchResultSet.Where(m => !m.SyncedAPI).OrderBy(m => m.Id).ToListAsync(ct);
         foreach (var match in pending)
         {
+            // The server knows players by its own ids; local ids only mean something on this machine.
+            var playerIds = new[] { match.Player1Id, match.Player2Id };
+            var remoteIds = await db.PlayerSet
+                .Where(p => playerIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.RemoteId, ct);
+
+            var scoreDistribution = await db.MatchScoreStatSet
+                .Where(s => s.MatchResultId == match.Id)
+                .OrderBy(s => s.PlayerSlot).ThenBy(s => s.BucketIndex)
+                .Select(s => new { playerSlot = s.PlayerSlot, bucketIndex = s.BucketIndex, totalPoints = s.TotalPoints })
+                .ToListAsync(ct);
+
             var payload = new
             {
-                player1Id = match.Player1Id,
+                player1Id = remoteIds.GetValueOrDefault(match.Player1Id),
                 player1Name = match.Player1Name,
                 player1Score = match.Player1Score,
                 player1Avg = match.Player1Avg,
                 player1HighRun = match.Player1HighRun,
-                player2Id = match.Player2Id,
+                player2Id = remoteIds.GetValueOrDefault(match.Player2Id),
                 player2Name = match.Player2Name,
                 player2Score = match.Player2Score,
                 player2Avg = match.Player2Avg,
@@ -161,19 +122,21 @@ public partial class RemoteSyncService(
                 inning = match.Inning,
                 matchTarget = match.MatchTarget,
                 winner = match.Winner,
+                playedAt = match.PlayedAt,
                 startedAt = match.StartedAt,
                 endedAt = match.EndedAt,
-                playedAt = match.PlayedAt
+                scoreDistributionBucketMinutes = ScoreDistributionBucketMinutes,
+                scoreDistribution
             };
 
-            LogSendStats(match.Id, match.Player1Name, match.Player1Score, match.Player2Name, match.Player2Score, match.Winner);
+            LogSendMatchResult(match.Id, match.Player1Name, match.Player1Score, match.Player2Name, match.Player2Score, match.Winner);
             var response = await http.PostAsJsonAsync("stats", payload, ct);
             var body = await response.Content.ReadAsStringAsync(ct);
-            LogReceivedStatsResponse(match.Id, response.StatusCode, body);
+            LogReceivedMatchResultResponse(match.Id, response.StatusCode, body);
 
             if (!response.IsSuccessStatusCode)
             {
-                LogPushStatsFailed(match.Id, response.StatusCode);
+                LogPushMatchResultFailed(match.Id, response.StatusCode);
                 continue;
             }
 
@@ -182,57 +145,56 @@ public partial class RemoteSyncService(
         }
     }
 
-    private static async Task CleanupSyncedMatchesAsync(DataContext db, CancellationToken ct)
+    /// <summary>
+    /// A match is dropped locally as soon as the server has it. Unsent matches are capped at
+    /// <see cref="MaxUnsentMatches"/> (oldest dropped first) so the database cannot grow forever.
+    /// </summary>
+    private async Task CleanupMatchesAsync(DataContext db, CancellationToken ct)
     {
-        var finished = await db.MatchResultSet.Where(m => m.SyncedWS).ToListAsync(ct);
-        if (finished.Count == 0)
+        var doomedIds = await db.MatchResultSet.Where(m => m.SyncedAPI).Select(m => m.Id).ToListAsync(ct);
+
+        var unsentCount = await db.MatchResultSet.CountAsync(m => !m.SyncedAPI, ct);
+        if (unsentCount > MaxUnsentMatches)
+        {
+            var excess = await db.MatchResultSet.Where(m => !m.SyncedAPI)
+                .OrderBy(m => m.Id).Take(unsentCount - MaxUnsentMatches).Select(m => m.Id).ToListAsync(ct);
+            LogDroppedUnsentMatches(excess.Count);
+            doomedIds.AddRange(excess);
+        }
+
+        if (doomedIds.Count == 0)
         {
             return;
         }
 
-        var finishedIds = finished.Select(m => m.Id).ToList();
-        var finishedStats = await db.MatchScoreStatSet.Where(s => finishedIds.Contains(s.MatchResultId)).ToListAsync(ct);
-        db.MatchScoreStatSet.RemoveRange(finishedStats);
-        db.MatchResultSet.RemoveRange(finished);
-        await db.SaveChangesAsync(ct);
+        await db.MatchScoreStatSet.Where(s => doomedIds.Contains(s.MatchResultId)).ExecuteDeleteAsync(ct);
+        await db.MatchResultSet.Where(m => doomedIds.Contains(m.Id)).ExecuteDeleteAsync(ct);
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "RemoteSync is disabled (RemoteSync:Enabled=false) - skipping remote data push.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "RemoteSync is disabled (RemoteSync:Enabled=false) - match results are not sent; only the local backlog is kept bounded.")]
     private partial void LogSyncDisabled();
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "RemoteSync is enabled but RemoteSync:BaseUrl is empty - skipping remote data push.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "RemoteSync is enabled but RemoteSync:BaseUrl is empty - skipping match result push.")]
     private partial void LogSyncNoBaseUrl();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "RemoteSync is enabled but RemoteSync:ClientId or RemoteSync:TableNo is not set - skipping match result push.")]
+    private partial void LogSyncNoIdentity();
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Remote sync tick failed; will retry next interval.")]
     private partial void LogSyncTickFailed(Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "RemoteSync could not start; remote data push is disabled for this run.")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "RemoteSync could not start; match result push is disabled for this run.")]
     private partial void LogSyncStartFailed(Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "SEND team {TeamId} to teams: {Name}")]
-    private partial void LogSendTeam(int teamId, string name);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Dropped {Count} oldest unsent match result(s): more than the local limit are waiting.")]
+    private partial void LogDroppedUnsentMatches(int count);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "RECEIVED response for team {TeamId}: {Status} {Body}")]
-    private partial void LogReceivedTeamResponse(int teamId, System.Net.HttpStatusCode status, string body);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Push team {TeamId} failed: {Status}")]
-    private partial void LogPushTeamFailed(int teamId, System.Net.HttpStatusCode status);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "SEND player {PlayerId} to players: nickname={Nickname} name={Name} avatarId={AvatarId} photoBytes={PhotoBytes}")]
-    private partial void LogSendPlayer(int playerId, string nickname, string name, int? avatarId, int photoBytes);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "RECEIVED response for player {PlayerId}: {Status} {Body}")]
-    private partial void LogReceivedPlayerResponse(int playerId, System.Net.HttpStatusCode status, string body);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Push player {PlayerId} failed: {Status}")]
-    private partial void LogPushPlayerFailed(int playerId, System.Net.HttpStatusCode status);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "SEND stats for match {MatchId} to stats: {Player1Name}({Player1Score}) vs {Player2Name}({Player2Score}) winner={Winner}")]
-    private partial void LogSendStats(int matchId, string player1Name, int player1Score, string player2Name, int player2Score, int winner);
+    [LoggerMessage(Level = LogLevel.Information, Message = "SEND match result {MatchId} to stats: {Player1Name}({Player1Score}) vs {Player2Name}({Player2Score}) winner={Winner}")]
+    private partial void LogSendMatchResult(int matchId, string player1Name, int player1Score, string player2Name, int player2Score, int winner);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "RECEIVED response for match {MatchId}: {Status} {Body}")]
-    private partial void LogReceivedStatsResponse(int matchId, System.Net.HttpStatusCode status, string body);
+    private partial void LogReceivedMatchResultResponse(int matchId, System.Net.HttpStatusCode status, string body);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Push stats for match {MatchId} failed: {Status}")]
-    private partial void LogPushStatsFailed(int matchId, System.Net.HttpStatusCode status);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Push match result {MatchId} failed: {Status}")]
+    private partial void LogPushMatchResultFailed(int matchId, System.Net.HttpStatusCode status);
 }

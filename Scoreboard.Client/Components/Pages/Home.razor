@@ -5,8 +5,6 @@
 @inject IJSRuntime JS
 @inject HttpClient Http
 @inject DataContext DbContext
-@inject ScoreboardCommandHub Hub
-@inject IWebHostEnvironment Env
 @inject SystemPowerService SystemPower
 @inject BoardSessionGuard BoardSession
 @using Scoreboard.Client.Models
@@ -14,7 +12,6 @@
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.EntityFrameworkCore
 @using System.Text.Json
-@using System.Net.WebSockets
 
 @if (_boardOccupiedElsewhere)
 {
@@ -168,8 +165,6 @@ else
         <div class="shot-clock-bar" style="width:@(ShotClockPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div>
     </div>
 
-    <div class="sync-dot @(IsOnline ? "online" : "offline")" title="@(IsOnline ? "Control link connected" : "No control device connected")"></div>
-
     @if (_showControls)
     {
         <div class="controls-overlay" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
@@ -312,7 +307,6 @@ else
 }
 
 @code {
-    private bool IsOnline = false;
     private bool _showControls;
     private IJSObjectReference? _kiosk;
     private ElementReference board;
@@ -347,9 +341,6 @@ else
             return;
         }
         UpdateDefaultPlayers();
-        Hub.CommandReceived += OnRemoteCommand;
-        Hub.ConnectionChanged += OnHubConnectionChanged;
-        IsOnline = Hub.HasActiveConnection;
         _ = RunShotClockAsync(_shotClockCts.Token);
         var game = await DbContext.ScoreboardStateSet.Where(p => p.Id == 1).FirstOrDefaultAsync();
         if (game is null)
@@ -391,6 +382,19 @@ else
     {
         _resolvedPlayer1 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player1Id);
         _resolvedPlayer2 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player2Id);
+
+        // The roster is a mirror of the server: a selected player may have been removed there since.
+        if (_resolvedPlayer1 is null)
+        {
+            Current.Player1Id = 1;
+            _resolvedPlayer1 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == 1);
+        }
+
+        if (_resolvedPlayer2 is null)
+        {
+            Current.Player2Id = 2;
+            _resolvedPlayer2 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == 2);
+        }
         _resolvedTeam1 = _resolvedPlayer1?.TeamId is int teamId1 ? DbContext.TeamSet.FirstOrDefault(t => t.Id == teamId1) : null;
         _resolvedTeam2 = _resolvedPlayer2?.TeamId is int teamId2 ? DbContext.TeamSet.FirstOrDefault(t => t.Id == teamId2) : null;
     }
@@ -468,94 +472,6 @@ else
 
     private void StartWarmup(int minutes) => Nav.NavigateTo($"/warmup/{minutes}");
 
-    private void SetPlayerFromRemotePayload(int slot, JsonElement? payload)
-    {
-        if (payload is not { ValueKind: JsonValueKind.Object } element)
-        {
-            return;
-        }
-
-        SetPlayerPayload? data;
-        try
-        {
-            data = element.Deserialize<SetPlayerPayload>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        }
-        catch (JsonException)
-        {
-            return;
-        }
-
-        if (data is null)
-        {
-            return;
-        }
-
-        var player = DbContext.PlayerSet.FirstOrDefault(p => p.RemoteId == data.Id);
-        if (player is null && data.ShortcutNumber is not null)
-        {
-            player = DbContext.PlayerSet.FirstOrDefault(p => p.ShortcutNumber == data.ShortcutNumber);
-        }
-
-        if (player is null)
-        {
-            return;
-        }
-
-        SelectRosterPlayer(slot, player.Id);
-    }
-
-    private void DeletePlayerFromRemotePayload(JsonElement? payload)
-    {
-        if (GetIntPayload(payload) is not int remoteId)
-        {
-            return;
-        }
-
-        var player = DbContext.PlayerSet.FirstOrDefault(p => p.RemoteId == remoteId);
-        if (player is null || player.Id is 1 or 2)
-        {
-            return;
-        }
-
-        if (Current.Player1Id == player.Id) Current.Player1Id = 1;
-        if (Current.Player2Id == player.Id) Current.Player2Id = 2;
-
-        if (!string.IsNullOrEmpty(player.PhotoPath))
-        {
-            var fullPath = Path.Combine(Env.WebRootPath, player.PhotoPath);
-            if (File.Exists(fullPath))
-            {
-                File.Delete(fullPath);
-            }
-        }
-
-        DbContext.PlayerSet.Remove(player);
-        ResolvePlayers();
-    }
-
-    private void DeleteTeamFromRemotePayload(JsonElement? payload)
-    {
-        if (GetIntPayload(payload) is not int remoteId)
-        {
-            return;
-        }
-
-        var team = DbContext.TeamSet.FirstOrDefault(t => t.RemoteId == remoteId);
-        if (team is null)
-        {
-            return;
-        }
-
-        var members = DbContext.PlayerSet.Where(p => p.TeamId == team.Id).ToList();
-        foreach (var member in members)
-        {
-            member.TeamId = null;
-        }
-
-        DbContext.TeamSet.Remove(team);
-        ResolvePlayers();
-    }
-
     private void SelectRosterPlayer(int slot, int playerId)
     {
         if (slot == 1) Current.Player1Id = playerId; else Current.Player2Id = playerId;
@@ -571,29 +487,16 @@ else
     }
 
     private void Adjust() => StateHasChanged();
-    private async Task PersistAsync(WebSocket? excludeSocket = null)
+    private async Task PersistAsync()
     {
         await DbContext.SaveChangesAsync();
         StateHasChanged();
-        await BroadcastStateAsync(excludeSocket);
-    }
-
-    private async Task BroadcastStateAsync(WebSocket? excludeSocket = null)
-    {
-        try
-        {
-            var snapshot = ScoreboardStateSnapshotFactory.Create(Current, GetDisplayName(1), GetDisplayName(2));
-            await Hub.BroadcastStateAsync(snapshot, excludeSocket);
-        }
-        catch
-        {
-        }
     }
     private void SetPlayerName(int slot, string? name)
     {
         if (int.TryParse(name, out var maybeShortcutNumber))
         {
-            var player = DbContext.PlayerSet.FirstOrDefault(p => p.ShortcutNumber == maybeShortcutNumber);
+            var player = DbContext.PlayerSet.FirstOrDefault(p => p.Id > 2 && p.ShortcutNumber == maybeShortcutNumber);
             if (player is not null)
             {
                 SelectRosterPlayer(slot, player.Id);
@@ -631,7 +534,8 @@ else
 
     private void UpdateDefaultPlayers()
     {
-        var players = DbContext.PlayerSet.Where(p => p.Id == 1 || p.Id == 2).ToList();
+        // Once pulled, the placeholder rows belong to the server's system players; only the local seeds are relabelled.
+        var players = DbContext.PlayerSet.Where(p => (p.Id == 1 || p.Id == 2) && p.RemoteId == null).ToList();
         foreach (var p in players)
         {
             p.Name = L.T($"Player{p.Id}Label");
@@ -835,8 +739,6 @@ else
     {
         switch (command)
         {
-            case ScoreboardCommand.GetState:
-                break;
             case ScoreboardCommand.ToggleControls:
                 _showControls = !_showControls;
                 StateHasChanged();
@@ -859,12 +761,6 @@ else
             case ScoreboardCommand.DecrementPoints:
                 Current.CurrentPoints--;
                 break;
-            case ScoreboardCommand.AdjustPoints:
-                if (GetIntPayload(payload) is int currentPoints)
-                {
-                    Current.CurrentPoints = currentPoints;
-                }
-                break;
             case ScoreboardCommand.CommitPoints:
                 CommitCurrentPoints();
                 break;
@@ -874,9 +770,6 @@ else
                 break;
             case ScoreboardCommand.RenamePlayer2:
                 SetPlayerName(2, GetStringPayload(payload));
-                break;
-            case ScoreboardCommand.UpsertPlayer:
-                UpsertPlayerFromPayload(payload);
                 break;
             case ScoreboardCommand.EndGame:
                 EndGame();
@@ -908,27 +801,6 @@ else
             case ScoreboardCommand.ClearRosterPlayer2:
                 ClearRosterPlayer(2);
                 break;
-            case ScoreboardCommand.WarmUp:
-                if (GetIntPayload(payload) is int warmupMinutes)
-                {
-                    StartWarmup(warmupMinutes);
-                }
-                break;
-            case ScoreboardCommand.AddTeam:
-                AddOrUpdateTeamFromPayload(payload);
-                break;
-            case ScoreboardCommand.SetPlayer1:
-                SetPlayerFromRemotePayload(1, payload);
-                break;
-            case ScoreboardCommand.SetPlayer2:
-                SetPlayerFromRemotePayload(2, payload);
-                break;
-            case ScoreboardCommand.DeletePlayer:
-                DeletePlayerFromRemotePayload(payload);
-                break;
-            case ScoreboardCommand.DeleteTeam:
-                DeleteTeamFromRemotePayload(payload);
-                break;
         }
     }
 
@@ -938,124 +810,7 @@ else
     private static int? GetIntPayload(JsonElement? payload) =>
         payload?.ValueKind == JsonValueKind.Number && payload.Value.TryGetInt32(out var value) ? value : null;
 
-    private void UpsertPlayerFromPayload(JsonElement? payload)
-    {
-        if (payload is not { ValueKind: JsonValueKind.Object } element)
-        {
-            return;
-        }
-
-        PlayerUpsertPayload? data;
-        try
-        {
-            data = element.Deserialize<PlayerUpsertPayload>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        }
-        catch (JsonException)
-        {
-            return;
-        }
-
-        if (data is null)
-        {
-            return;
-        }
-
-        string? photoPath = null;
-        if (!string.IsNullOrEmpty(data.PhotoBase64))
-        {
-            byte[] bytes;
-            try
-            {
-                bytes = Convert.FromBase64String(data.PhotoBase64);
-            }
-            catch (FormatException)
-            {
-                return;
-            }
-
-            var extension = string.IsNullOrWhiteSpace(data.PhotoExtension) ? "jpg" : data.PhotoExtension.TrimStart('.');
-            var playersFolder = Path.Combine(Env.WebRootPath, "Players");
-            Directory.CreateDirectory(playersFolder);
-            var fileName = $"{data.Id}.{extension}";
-            File.WriteAllBytes(Path.Combine(playersFolder, fileName), bytes);
-            photoPath = $"Players/{fileName}";
-        }
-
-        var localTeamId = data.TeamId is int remoteTeamId
-            ? DbContext.TeamSet.FirstOrDefault(t => t.RemoteId == remoteTeamId)?.Id
-            : null;
-
-        var existing = DbContext.PlayerSet.FirstOrDefault(p => p.RemoteId == data.Id);
-        if (existing is null)
-        {
-            DbContext.PlayerSet.Add(new Player
-            {
-                RemoteId = data.Id,
-                Nickname = data.Nickname ?? "",
-                Name = data.Name ?? "",
-                PhotoPath = photoPath,
-                AvatarId = data.Avatar is not null ? AvatarGenerator.SeedFromName(data.Avatar) : Random.Shared.Next(0, AvatarGenerator.Count),
-                AvatarName = data.Avatar,
-                TeamId = localTeamId,
-                ShortcutNumber = data.ShortcutNumber
-            });
-        }
-        else
-        {
-            if (data.Nickname is not null) existing.Nickname = data.Nickname;
-            if (data.Name is not null) existing.Name = data.Name;
-            if (photoPath is not null) existing.PhotoPath = photoPath;
-            if (data.Avatar is not null)
-            {
-                existing.AvatarId = AvatarGenerator.SeedFromName(data.Avatar);
-                existing.AvatarName = data.Avatar;
-            }
-            if (localTeamId is not null) existing.TeamId = localTeamId;
-            if (data.ShortcutNumber is not null) existing.ShortcutNumber = data.ShortcutNumber;
-        }
-
-        ResolvePlayers();
-    }
-
-    private void AddOrUpdateTeamFromPayload(JsonElement? payload)
-    {
-        if (payload is not { ValueKind: JsonValueKind.Object } element)
-        {
-            return;
-        }
-
-        TeamAddPayload? data;
-        try
-        {
-            data = element.Deserialize<TeamAddPayload>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        }
-        catch (JsonException)
-        {
-            return;
-        }
-
-        if (data is null)
-        {
-            return;
-        }
-
-        var existing = DbContext.TeamSet.FirstOrDefault(t => t.RemoteId == data.Id);
-        if (existing is null)
-        {
-            DbContext.TeamSet.Add(new Team { RemoteId = data.Id, Name = data.Name });
-        }
-        else
-        {
-            existing.Name = data.Name;
-        }
-    }
-
-    private void OnRemoteCommand(WebSocket sender, IReadOnlyList<ScoreboardCommandMessage> messages)
-    {
-        InvokeAsync(() => ApplyCommandsAsync(messages, sender));
-    }
-
-    private async Task ApplyCommandsAsync(IReadOnlyList<ScoreboardCommandMessage> messages, WebSocket? sender = null)
+    private async Task ApplyCommandsAsync(IReadOnlyList<ScoreboardCommandMessage> messages)
     {
         if (messages.Count == 0 || SystemPower.IsShuttingDown)
         {
@@ -1067,8 +822,7 @@ else
             ApplyCommand(message.Command, message.Payload);
         }
 
-        var excludeSender = sender is not null && messages.Any(m => ScoreboardCommandReplyPolicy.ExcludesSender(m.Command));
-        await PersistAsync(excludeSender ? sender : null);
+        await PersistAsync();
     }
 
     private Task DispatchAsync(ScoreboardCommand command, object? payload = null) =>
@@ -1076,15 +830,6 @@ else
 
     private Task SetMatchTargetFromInputAsync(string? value) =>
         int.TryParse(value, out var target) ? DispatchAsync(ScoreboardCommand.SetMatchTarget, target) : Task.CompletedTask;
-
-    private void OnHubConnectionChanged()
-    {
-        InvokeAsync(() =>
-        {
-            IsOnline = Hub.HasActiveConnection;
-            StateHasChanged();
-        });
-    }
 
     private void ChangeActivePlayer(int player) => Current.ActivePlayer = player;
 
@@ -1110,7 +855,6 @@ else
                     Current.ShotClockActive = false;
                     Current.ShotClockRemaining = Current.ShotClockSeconds;
                     DbContext.SaveChanges();
-                    await BroadcastStateAsync();
                 }
                 await InvokeAsync(StateHasChanged);
             }
@@ -1129,8 +873,6 @@ else
         }
 
         L.LanguageChanged -= Adjust;
-        Hub.CommandReceived -= OnRemoteCommand;
-        Hub.ConnectionChanged -= OnHubConnectionChanged;
         if (_shotClockCts is not null)
         {
             _shotClockCts.Cancel();

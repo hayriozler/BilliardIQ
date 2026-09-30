@@ -14,4 +14,10 @@ public record SubmitMatchStatRequest(
     int Inning,
     int MatchTarget,
     int Winner,
-    DateTimeOffset PlayedAt);
+    DateTimeOffset PlayedAt,
+    DateTimeOffset? StartedAt = null,
+    DateTimeOffset? EndedAt = null,
+    int ScoreDistributionBucketMinutes = 0,
+    List<ScoreBucketRequest>? ScoreDistribution = null);
+
+public record ScoreBucketRequest(int PlayerSlot, int BucketIndex, int TotalPoints);

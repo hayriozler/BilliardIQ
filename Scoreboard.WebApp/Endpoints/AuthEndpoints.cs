@@ -25,23 +25,23 @@ public static class AuthEndpoints
         }).DisableAntiforgery();
 
         app.MapPost("/register", async (
-            HttpContext context, AuthService auth,
+            HttpContext context, AuthService auth, Loc loc,
             [FromForm] string organization, [FromForm] string name, [FromForm] string email,
-            [FromForm] string password, [FromForm] int? tables, [FromForm] decimal? rate) =>
+            [FromForm] string password, [FromForm] string? language) =>
         {
             try
             {
-                var result = await auth.RegisterOrganizationAsync(organization, name, email, password, tables ?? 6, rate ?? 150);
+                var result = await auth.RegisterOrganizationAsync(organization, name, email, password, language);
                 await SignInAsync(context, result);
                 return Results.LocalRedirect("/");
             }
             catch (ArgumentException ex)
             {
-                var query = $"error={Uri.EscapeDataString(ex.Message)}" +
+                var query = $"error={Uri.EscapeDataString(loc.Error(ex))}" +
                             $"&organization={Uri.EscapeDataString(organization ?? "")}" +
                             $"&name={Uri.EscapeDataString(name ?? "")}" +
                             $"&email={Uri.EscapeDataString(email ?? "")}" +
-                            $"&tables={tables ?? 6}&rate={(rate ?? 150).ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+                            $"&language={Uri.EscapeDataString(language ?? "")}";
                 return Results.Redirect($"/register?{query}");
             }
         }).DisableAntiforgery();

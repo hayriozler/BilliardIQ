@@ -1,6 +1,30 @@
 services:
+  postgres:
+    image: postgres:17
+    container_name: billardiq-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: billardIQ
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d billardIQ"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   zeymera.billardiq.webapp:
     image: ${DOCKER_REGISTRY-}zeymerabillardiqwebapp
     build:
       context: Scoreboard.WebApp
       dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

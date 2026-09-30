@@ -27,6 +27,7 @@ public class Organization : BaseEntity
     public string Name { get; set; } = default!;
     public string Slug { get; set; } = default!;       // /o/kadikoy-bilardo
     public string Code { get; set; } = default!;       // yönetim paneli giriş / eşleştirme kodu
+    public string? ClientId { get; set; }              // scoreboard istemcilerinin X-Client-Id başlığında gönderdiği salon kimliği
     public string? LegalName { get; set; }
     public string? TaxNumber { get; set; }  // VKN
     public string? TaxOffice { get; set; }
@@ -37,6 +38,7 @@ public class Organization : BaseEntity
     public Address Address { get; set; } = new();       // owned
     public string TimeZone { get; set; } = "Europe/Istanbul";
     public List<OpeningHours> OpeningHours { get; set; } = []; // owned / JSON
+    public string Language { get; set; } = "tr";       // salon dili; sistem oyuncularının adlarını belirler
     public string Currency { get; set; } = "TRY";
     public int BillingRoundingMinutes { get; set; } = 5;
     public int MinimumBillableMinutes { get; set; } = 30;
@@ -73,6 +75,7 @@ public class BilliardTable : BaseEntity, ITenantScoped
 {
     public int OrganizationId { get; set; }
     public int Number { get; set; }
+    public int? ScoreboardNo { get; set; }      // scoreboard (monitör) kullanan masalarda otomatik üretilir; istemci X-Table-No olarak bunu gönderir. null → bu masada scoreboard yok
     public string? Label { get; set; }          // 'VIP 1'
     public TableType Type { get; set; }
     public string? Brand { get; set; }          // Verhoeven, Chevillotte

@@ -1,15 +1,14 @@
 @page "/devices"
 @attribute [Authorize]
-@implements IDisposable
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>Cihazlar • BillardIQ</PageTitle>
+<PageTitle>@L["Scoreboard bağlantısı"] • BillardIQ</PageTitle>
 
 <div class="page-head">
     <div>
-        <h1>Cihazlar</h1>
-        <div class="subtitle">Scoreboard cihazlarını eşleştirin. Cihazın ayarlarına aşağıdaki eşleştirme kodunu girin.</div>
+        <h1>@L["Scoreboard bağlantısı"]</h1>
+        <div class="subtitle">@L["Her masanın scoreboard'una salonun Client ID'sini ve masa numarasını girin. Scoreboard yalnızca maç sonuçlarını gönderir; oyuncu ve takımları bu salondan çeker."]</div>
     </div>
 </div>
 
@@ -18,67 +17,57 @@
     <div class="alert error">@_error</div>
 }
 
-@if (_created is not null)
-{
-    <div class="alert success">
-        <strong>@_created.Name</strong> eklendi. Eşleştirme kodu: <span class="code-box">@_created.PairingCode</span>
-        — cihazdaki <em>ClientId</em> ayarına bu kodu girin.
-    </div>
-}
-
 <div class="card">
-    <h2>Yeni cihaz</h2>
-    <div class="form-row">
-        <label class="field">Ad
-            <input type="text" @bind="_name" placeholder="Masa 3 scoreboard" />
-        </label>
-        <label class="field">Bağlı masa
-            <select @bind="_tableId">
-                <option value="">Masa seçilmedi</option>
-                @foreach (var table in _tables.Where(t => !_devices.Any(d => d.TableId == t.Id)))
+    <h2>Client ID</h2>
+    @if (_clientId is null)
+    {
+        <p class="muted">@L["Yükleniyor..."]</p>
+    }
+    else
+    {
+        <p><span class="code-box">@_clientId</span></p>
+        <p class="hint">
+            @L["Scoreboard her istekte bu değeri X-Client-Id, masa numarasını X-Table-No başlığında gönderir. Başka bir doğrulama yoktur; Client ID'yi yalnızca kendi scoreboard'larınızla paylaşın."]
+        </p>
+
+        @if (_tenant is { CanManage: true })
+        {
+            <div class="form-actions">
+                @if (_confirmRegenerate)
                 {
-                    <option value="@table.Id">Masa @table.Number@(string.IsNullOrWhiteSpace(table.Label) ? "" : $" ({table.Label})")</option>
+                    <span class="hint">@L["Yenilenirse tüm scoreboard'ların yeni değerle güncellenmesi gerekir."]</span>
+                    <button class="small danger" disabled="@_busy" @onclick="RegenerateAsync">@L["Yenilemeyi onayla"]</button>
+                    <button class="small ghost" @onclick="() => _confirmRegenerate = false">@L["Vazgeç"]</button>
                 }
-            </select>
-        </label>
-        <button class="primary" disabled="@_busy" @onclick="AddAsync">Cihaz ekle</button>
-    </div>
+                else
+                {
+                    <button class="small ghost" @onclick="() => _confirmRegenerate = true">@L["Client ID'yi yenile"]</button>
+                }
+            </div>
+        }
+    }
 </div>
 
 <div class="card">
-    <h2>Eşleşmiş cihazlar (@_devices.Count)</h2>
-    @if (_devices.Count == 0)
+    <h2>@L["Scoreboard kullanan masalar"] (@_scoreboardTables.Count)</h2>
+    @if (_scoreboardTables.Count == 0)
     {
-        <div class="empty">Henüz cihaz yok.</div>
+        <div class="empty">@L["Scoreboard kullanan masa yok. Masa eklerken veya düzenlerken scoreboard seçeneğini işaretleyin."] <a href="/tables">@L["Masa yönetimi"]</a></div>
     }
     else
     {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Ad</th><th>Kod</th><th>Masa</th><th>Son görülme</th><th></th></tr></thead>
+                <thead><tr><th>X-Table-No</th><th>@L["Masa"]</th><th>@L["Etiket"]</th><th>@L["Tip"]</th><th>@L["Durum"]</th></tr></thead>
                 <tbody>
-                    @foreach (var device in _devices)
+                    @foreach (var view in _scoreboardTables)
                     {
-                        var online = device.LastSeenAt is { } seen && (DateTimeOffset.UtcNow - seen).TotalMinutes < 5;
                         <tr>
-                            <td>@device.Name</td>
-                            <td><span class="code-box">@device.PairingCode</span></td>
-                            <td>@(device.Table is null ? "—" : $"Masa {device.Table.Number}")</td>
-                            <td>
-                                <span class="pill @(online ? "available" : "off")">@(online ? "Çevrimiçi" : "Çevrimdışı")</span>
-                                <span class="muted">@(device.LastSeenAt is { } last && _zone is not null ? Format.DateTime(last, _zone) : "hiç bağlanmadı")</span>
-                            </td>
-                            <td>
-                                @if (_confirmDelete == device.Id)
-                                {
-                                    <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(device.Id)">Silmeyi onayla</button>
-                                    <button class="small ghost" @onclick="() => _confirmDelete = null">Vazgeç</button>
-                                }
-                                else
-                                {
-                                    <button class="small ghost" @onclick="() => _confirmDelete = device.Id">Kaldır</button>
-                                }
-                            </td>
+                            <td><span class="code-box">@view.Table.ScoreboardNo</span></td>
+                            <td>@view.Table.Number</td>
+                            <td>@view.Table.Label</td>
+                            <td>@Format.TableType(view.Table.Type)</td>
+                            <td>@Format.TableStatus(view.Table.Status)</td>
                         </tr>
                     }
                 </tbody>
@@ -89,82 +78,40 @@
 
 @code {
     private Tenant? _tenant;
-    private List<Device> _devices = [];
-    private List<BilliardTable> _tables = [];
-    private TimeZoneInfo? _zone;
-    private Device? _created;
-    private string _name = "";
-    private string _tableId = "";
+    private string? _clientId;
+    private List<TableView> _scoreboardTables = [];
     private string? _error;
     private bool _busy;
-    private int? _confirmDelete;
-    private Timer? _timer;
+    private bool _confirmRegenerate;
 
     protected override async Task OnInitializedAsync()
     {
         _tenant = await TenantContext.GetAsync();
-        await LoadAsync();
-        _timer = new Timer(_ => _ = InvokeAsync(async () =>
-        {
-            try
-            {
-                await LoadAsync();
-                StateHasChanged();
-            }
-            catch (Exception)
-            {
-                // transient read failure; the next tick retries
-            }
-        }), null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
-    }
-
-    private async Task LoadAsync()
-    {
         var orgId = _tenant!.OrganizationId;
-        _devices = await Db.RunAsync((DeviceService s) => s.ListAsync(orgId));
-        _tables = (await Db.RunAsync((TableService s) => s.ListAsync(orgId))).Select(v => v.Table).ToList();
-        _zone = PricingCalculator.ResolveTimeZone((await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId))).TimeZone);
+        _clientId = await Db.RunAsync((ClientIdService s) => s.GetAsync(orgId));
+        _scoreboardTables = (await Db.RunAsync((TableService s) => s.ListAsync(orgId)))
+            .Where(v => v.Table.ScoreboardNo is not null)
+            .OrderBy(v => v.Table.ScoreboardNo)
+            .ToList();
     }
 
-    private async Task AddAsync()
+    private async Task RegenerateAsync()
     {
         _error = null;
-        _created = null;
         _busy = true;
         try
         {
-            int? tableId = int.TryParse(_tableId, out var parsed) ? parsed : null;
-            _created = await Db.RunAsync((DeviceService s) => s.RegisterAsync(_tenant!.OrganizationId, _name, tableId));
-            _name = "";
-            _tableId = "";
+            var orgId = _tenant!.OrganizationId;
+            _clientId = await Db.RunAsync((ClientIdService s) => s.RegenerateAsync(orgId));
+            _confirmRegenerate = false;
         }
-        catch (ArgumentException ex)
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
-            _error = ex.Message;
+            _error = L.Error(ex);
         }
         finally
         {
             _busy = false;
         }
-
-        await LoadAsync();
     }
-
-    private async Task DeleteAsync(int id)
-    {
-        _busy = true;
-        try
-        {
-            await Db.RunAsync((DeviceService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
-            _confirmDelete = null;
-        }
-        finally
-        {
-            _busy = false;
-        }
-
-        await LoadAsync();
-    }
-
-    public void Dispose() => _timer?.Dispose();
 }

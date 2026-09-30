@@ -213,7 +213,7 @@ public class TableService(DataContext db)
     // ---------------------------------------------------------------- table management
 
     public async Task<BilliardTable> UpsertTableAsync(
-        int organizationId, int id, int number, string? label, TableType type, int? pricingRuleId)
+        int organizationId, int id, int number, string? label, TableType type, int? pricingRuleId, bool hasScoreboard = false)
     {
         if (number <= 0)
         {
@@ -223,7 +223,7 @@ public class TableService(DataContext db)
         if (await db.BilliardTableSet.AnyAsync(t =>
                 t.OrganizationId == organizationId && t.Number == number && t.Id != id && t.DeletedAt == null))
         {
-            throw new ArgumentException($"{number} numaralı masa zaten var.");
+            throw new LocalizedArgumentException("{0} numaralı masa zaten var.", number);
         }
 
         if (pricingRuleId is not null &&
@@ -247,8 +247,28 @@ public class TableService(DataContext db)
         table.Label = string.IsNullOrWhiteSpace(label) ? null : label.Trim();
         table.Type = type;
         table.PricingRuleId = pricingRuleId;
+
+        if (!hasScoreboard)
+        {
+            table.ScoreboardNo = null;
+        }
+        else if (table.ScoreboardNo is null)
+        {
+            table.ScoreboardNo = await NextScoreboardNoAsync(organizationId, number);
+        }
+
         await db.SaveChangesAsync();
         return table;
+    }
+
+    /// <summary>The table's own number when it is free as a scoreboard number, otherwise the next unused one.</summary>
+    private async Task<int> NextScoreboardNoAsync(int organizationId, int preferred)
+    {
+        var used = await db.BilliardTableSet
+            .Where(t => t.OrganizationId == organizationId && t.DeletedAt == null && t.ScoreboardNo != null)
+            .Select(t => t.ScoreboardNo!.Value)
+            .ToListAsync();
+        return used.Contains(preferred) ? used.Max() + 1 : preferred;
     }
 
     public async Task SetTableStatusAsync(int organizationId, int tableId, TableStatus status)

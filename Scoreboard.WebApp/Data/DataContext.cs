@@ -15,6 +15,7 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
     // People
     public DbSet<Player> PlayerSet => Set<Player>();
     public DbSet<Club> ClubSet => Set<Club>();
+    public DbSet<Association> AssociationSet => Set<Association>();
     public DbSet<ClubMembership> ClubMembershipSet => Set<ClubMembership>();
     public DbSet<Team> TeamSet => Set<Team>();
     public DbSet<TeamMember> TeamMemberSet => Set<TeamMember>();
@@ -58,6 +59,7 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
 
     // Legacy kiosk sync (Pi pushes flat match summaries here until it speaks MatchEvent)
     public DbSet<MatchStat> MatchStatSet => Set<MatchStat>();
+    public DbSet<MatchStatBucket> MatchStatBucketSet => Set<MatchStatBucket>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -68,6 +70,9 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
             e.OwnsMany(o => o.OpeningHours, h => h.ToJson());
             e.HasIndex(o => o.Slug).IsUnique();
             e.HasIndex(o => o.Code).IsUnique();
+            e.HasIndex(o => o.ClientId).IsUnique().HasFilter("\"ClientId\" IS NOT NULL");
+            e.Property(o => o.ClientId).HasMaxLength(20);
+            e.Property(o => o.Language).HasMaxLength(5);
             e.Property(o => o.Name).HasMaxLength(200);
             e.Property(o => o.Slug).HasMaxLength(100);
             e.Property(o => o.Code).HasMaxLength(10);
@@ -115,6 +120,8 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
         modelBuilder.Entity<BilliardTable>(e =>
         {
             e.HasIndex(t => new { t.OrganizationId, t.Number }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+            e.HasIndex(t => new { t.OrganizationId, t.ScoreboardNo }).IsUnique()
+                .HasFilter("\"ScoreboardNo\" IS NOT NULL AND \"DeletedAt\" IS NULL");
             e.HasOne(t => t.CurrentSession).WithMany().HasForeignKey(t => t.CurrentSessionId);
             e.HasOne(t => t.PricingRule).WithMany().HasForeignKey(t => t.PricingRuleId);
             e.HasOne(t => t.Device).WithOne(d => d.Table).HasForeignKey<Device>(d => d.TableId);
@@ -128,16 +135,30 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
         });
 
         // ---------- people ----------
+        modelBuilder.Entity<Association>(e =>
+        {
+            e.Property(a => a.Name).HasMaxLength(150);
+            e.HasIndex(a => new { a.OrganizationId, a.Name }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        });
+
         modelBuilder.Entity<Player>(e =>
         {
             e.Property(p => p.FirstName).HasMaxLength(100);
             e.Property(p => p.LastName).HasMaxLength(100);
             e.Property(p => p.Nickname).HasMaxLength(100);
+            e.Property(p => p.FederationLicenseNo).HasMaxLength(50);
+            e.HasIndex(p => new { p.CreatedInOrganizationId, p.SystemSlot })
+                .IsUnique()
+                .HasFilter("\"SystemSlot\" IS NOT NULL");
+            e.HasOne(p => p.Association).WithMany().HasForeignKey(p => p.AssociationId);
             e.Property(p => p.DisplayName).HasMaxLength(100);
             e.Property(p => p.Email).HasMaxLength(200);
             e.Property(p => p.City).HasMaxLength(100);
             e.Property(p => p.Nationality).HasMaxLength(100);
             e.HasIndex(p => p.CreatedInOrganizationId);
+            e.HasIndex(p => new { p.CreatedInOrganizationId, p.ShortcutNumber })
+                .IsUnique()
+                .HasFilter("\"ShortcutNumber\" IS NOT NULL");
         });
 
         modelBuilder.Entity<Club>(e =>
@@ -201,6 +222,15 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
             e.Property(s => s.Player1Name).HasMaxLength(100);
             e.Property(s => s.Player2Name).HasMaxLength(100);
             e.HasOne(s => s.Device).WithMany().HasForeignKey(s => s.DeviceId);
+            e.HasOne(s => s.Organization).WithMany().HasForeignKey(s => s.OrganizationId);
+            e.HasOne(s => s.Table).WithMany().HasForeignKey(s => s.TableId);
+            e.HasIndex(s => new { s.OrganizationId, s.PlayedAt });
+        });
+
+        modelBuilder.Entity<MatchStatBucket>(e =>
+        {
+            e.HasOne(b => b.MatchStat).WithMany(s => s.Buckets).HasForeignKey(b => b.MatchStatId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(b => new { b.MatchStatId, b.PlayerSlot, b.BucketIndex }).IsUnique();
         });
 
         // ---------- conventions ----------

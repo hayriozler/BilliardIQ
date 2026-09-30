@@ -390,24 +390,8 @@
 
 /* ---------- Status + controls ---------- */
 
-.sync-dot {
-    position: fixed;
-    right: 1.2vw;
-    bottom: 1.2vh;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    opacity: 0.55;
-    background: #666;
-}
 
-.sync-dot.online {
-    background: #2ecc71;
-}
 
-.sync-dot.offline {
-    background: #666;
-}
 
 .controls-overlay {
     position: fixed;

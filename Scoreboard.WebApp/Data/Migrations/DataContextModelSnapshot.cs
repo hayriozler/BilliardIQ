@@ -23,6 +23,40 @@ namespace Scoreboard.WebApp.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Scoreboard.WebApp.Domain.Association", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "Name")
+                        .IsUnique()
+                        .HasFilter("\"DeletedAt\" IS NULL");
+
+                    b.ToTable("AssociationSet");
+                });
+
             modelBuilder.Entity("Scoreboard.WebApp.Domain.AuditLog", b =>
                 {
                     b.Property<int>("Id")
@@ -115,6 +149,9 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.Property<int?>("PricingRuleId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ScoreboardNo")
+                        .HasColumnType("integer");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
@@ -136,6 +173,10 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.HasIndex("OrganizationId", "Number")
                         .IsUnique()
                         .HasFilter("\"DeletedAt\" IS NULL");
+
+                    b.HasIndex("OrganizationId", "ScoreboardNo")
+                        .IsUnique()
+                        .HasFilter("\"ScoreboardNo\" IS NOT NULL AND \"DeletedAt\" IS NULL");
 
                     b.ToTable("BilliardTableSet");
                 });
@@ -890,6 +931,10 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.Property<int>("BillingRoundingMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ClientId")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -916,6 +961,11 @@ namespace Scoreboard.WebApp.Data.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
 
                     b.Property<string>("LegalName")
                         .HasColumnType("text");
@@ -959,6 +1009,10 @@ namespace Scoreboard.WebApp.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClientId")
+                        .IsUnique()
+                        .HasFilter("\"ClientId\" IS NOT NULL");
 
                     b.HasIndex("Code")
                         .IsUnique();
@@ -1044,6 +1098,9 @@ namespace Scoreboard.WebApp.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AssociationId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("AvatarId")
                         .HasColumnType("integer");
 
@@ -1076,7 +1133,8 @@ namespace Scoreboard.WebApp.Data.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<string>("FederationLicenseNo")
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -1095,6 +1153,9 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.Property<bool>("IsPublicProfile")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1102,6 +1163,9 @@ namespace Scoreboard.WebApp.Data.Migrations
 
                     b.Property<int>("Level")
                         .HasColumnType("integer");
+
+                    b.Property<DateOnly?>("LicenseValidUntil")
+                        .HasColumnType("date");
 
                     b.Property<string>("Nationality")
                         .HasMaxLength(100)
@@ -1114,6 +1178,12 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.Property<string>("PhotoUrl")
                         .HasColumnType("text");
 
+                    b.Property<int?>("ShortcutNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SystemSlot")
+                        .HasColumnType("integer");
+
                     b.Property<string>("UmbPlayerId")
                         .HasColumnType("text");
 
@@ -1125,10 +1195,20 @@ namespace Scoreboard.WebApp.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AssociationId");
+
                     b.HasIndex("CreatedInOrganizationId");
 
                     b.HasIndex("UserId")
                         .IsUnique();
+
+                    b.HasIndex("CreatedInOrganizationId", "ShortcutNumber")
+                        .IsUnique()
+                        .HasFilter("\"ShortcutNumber\" IS NOT NULL");
+
+                    b.HasIndex("CreatedInOrganizationId", "SystemSlot")
+                        .IsUnique()
+                        .HasFilter("\"SystemSlot\" IS NOT NULL");
 
                     b.ToTable("PlayerSet");
                 });
@@ -1995,6 +2075,9 @@ namespace Scoreboard.WebApp.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AvatarId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("ClubId")
                         .HasColumnType("integer");
 
@@ -2419,13 +2502,22 @@ namespace Scoreboard.WebApp.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("DeviceId")
+                    b.Property<int>("BucketMinutes")
                         .HasColumnType("integer");
+
+                    b.Property<int?>("DeviceId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Inning")
                         .HasColumnType("integer");
 
                     b.Property<int>("MatchTarget")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("OrganizationId")
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("PlayedAt")
@@ -2468,6 +2560,15 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.Property<DateTimeOffset>("RecordedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("TableId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TableNo")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Winner")
                         .HasColumnType("integer");
 
@@ -2475,7 +2576,50 @@ namespace Scoreboard.WebApp.Data.Migrations
 
                     b.HasIndex("DeviceId");
 
+                    b.HasIndex("TableId");
+
+                    b.HasIndex("OrganizationId", "PlayedAt");
+
                     b.ToTable("MatchStatSet");
+                });
+
+            modelBuilder.Entity("Scoreboard.WebApp.Models.MatchStatBucket", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BucketIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MatchStatId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PlayerSlot")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalPoints")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchStatId", "PlayerSlot", "BucketIndex")
+                        .IsUnique();
+
+                    b.ToTable("MatchStatBucketSet");
+                });
+
+            modelBuilder.Entity("Scoreboard.WebApp.Domain.Association", b =>
+                {
+                    b.HasOne("Scoreboard.WebApp.Domain.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("Scoreboard.WebApp.Domain.BilliardTable", b =>
@@ -2872,10 +3016,17 @@ namespace Scoreboard.WebApp.Data.Migrations
 
             modelBuilder.Entity("Scoreboard.WebApp.Domain.Player", b =>
                 {
+                    b.HasOne("Scoreboard.WebApp.Domain.Association", "Association")
+                        .WithMany()
+                        .HasForeignKey("AssociationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Scoreboard.WebApp.Domain.User", "User")
                         .WithOne("Player")
                         .HasForeignKey("Scoreboard.WebApp.Domain.Player", "UserId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Association");
 
                     b.Navigation("User");
                 });
@@ -3409,10 +3560,34 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.HasOne("Scoreboard.WebApp.Domain.Device", "Device")
                         .WithMany()
                         .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Scoreboard.WebApp.Domain.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Scoreboard.WebApp.Domain.BilliardTable", "Table")
+                        .WithMany()
+                        .HasForeignKey("TableId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Device");
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Table");
+                });
+
+            modelBuilder.Entity("Scoreboard.WebApp.Models.MatchStatBucket", b =>
+                {
+                    b.HasOne("Scoreboard.WebApp.Models.MatchStat", "MatchStat")
+                        .WithMany("Buckets")
+                        .HasForeignKey("MatchStatId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Device");
+                    b.Navigation("MatchStat");
                 });
 
             modelBuilder.Entity("Scoreboard.WebApp.Domain.BilliardTable", b =>
@@ -3543,6 +3718,11 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.Navigation("Player");
 
                     b.Navigation("StaffAssignments");
+                });
+
+            modelBuilder.Entity("Scoreboard.WebApp.Models.MatchStat", b =>
+                {
+                    b.Navigation("Buckets");
                 });
 #pragma warning restore 612, 618
         }

@@ -46,23 +46,29 @@ public static class DbInitializerExtension
         db.Database.ExecuteSqlRaw("""
         CREATE TABLE IF NOT EXISTS player (
             Id INTEGER PRIMARY KEY,
+            RemoteId INTEGER NULL,
             Nickname TEXT NOT NULL,
             Name TEXT NOT NULL,
-            RemoteId INTEGER NULL,
+            ShortcutNumber INTEGER NULL,
             PhotoPath TEXT NULL,
             AvatarId INTEGER NULL,
-            AvatarName TEXT NULL,
             TeamId INTEGER NULL,
-            ShortcutNumber INTEGER NULL,
-            SyncedAPI INTEGER NOT NULL DEFAULT 0,
-            SyncedWS INTEGER NOT NULL DEFAULT 0
+            Level INTEGER NULL,
+            Country TEXT NULL,
+            City TEXT NULL,
+            LicenseNo TEXT NULL,
+            LicenseValidUntil TEXT NULL,
+            AssociationName TEXT NULL,
+            UpdatedAt TEXT NULL,
+            IsSystem INTEGER NOT NULL DEFAULT 0,
+            SystemSlot INTEGER NULL
         );
         """);
 
         db.Database.ExecuteSqlRaw("""         
-         INSERT INTO player (Id, Nickname, Name, ShortcutNumber, SyncedAPI, SyncedWS)
-         VALUES (1, 'P1', 'Player 1', 1, 0, 0),
-                (2, 'P2', 'Player 2', 2, 0, 0)
+         INSERT INTO player (Id, Nickname, Name)
+         VALUES (1, 'P1', 'Player 1'),
+                (2, 'P2', 'Player 2')
                 ON CONFLICT(Id) DO NOTHING;
         """);
 
@@ -85,18 +91,28 @@ public static class DbInitializerExtension
             Inning INTEGER NOT NULL,
             MatchTarget INTEGER NOT NULL,
             Winner INTEGER NOT NULL,
-            SyncedAPI INTEGER NOT NULL DEFAULT 0,
-            SyncedWS INTEGER NOT NULL DEFAULT 0
+            SyncedAPI INTEGER NOT NULL DEFAULT 0
+        );
+        """);
+
+        db.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS club (
+            Id INTEGER PRIMARY KEY,
+            RemoteId INTEGER NULL,
+            Name TEXT NOT NULL,
+            ShortName TEXT NOT NULL DEFAULT '',
+            City TEXT NULL,
+            PrimaryColor TEXT NULL
         );
         """);
 
         db.Database.ExecuteSqlRaw("""
         CREATE TABLE IF NOT EXISTS team (
             Id INTEGER PRIMARY KEY,
-            Name TEXT NOT NULL,
             RemoteId INTEGER NULL,
-            SyncedAPI INTEGER NOT NULL DEFAULT 0,
-            SyncedWS INTEGER NOT NULL DEFAULT 0
+            ClubId INTEGER NULL,
+            Name TEXT NOT NULL,
+            UpdatedAt TEXT NULL
         );
         """);
 
@@ -121,6 +137,71 @@ public static class DbInitializerExtension
         );
         """);
 
+        UpgradeMirrorTables(db);
+
         return sp;
+    }
+
+    /// <summary>
+    /// Brings player/team/club tables created by older builds up to the current mirror schema in place.
+    /// Old columns (SyncedAPI, SyncedWS, AvatarName) are left alone - SQLite keeps them harmlessly.
+    /// </summary>
+    private static void UpgradeMirrorTables(DataContext db)
+    {
+        AddColumnIfMissing(db, "player", "RemoteId", "INTEGER NULL");
+        AddColumnIfMissing(db, "player", "ShortcutNumber", "INTEGER NULL");
+        AddColumnIfMissing(db, "player", "PhotoPath", "TEXT NULL");
+        AddColumnIfMissing(db, "player", "AvatarId", "INTEGER NULL");
+        AddColumnIfMissing(db, "player", "TeamId", "INTEGER NULL");
+        AddColumnIfMissing(db, "player", "Level", "INTEGER NULL");
+        AddColumnIfMissing(db, "player", "Country", "TEXT NULL");
+        AddColumnIfMissing(db, "player", "City", "TEXT NULL");
+        AddColumnIfMissing(db, "player", "LicenseNo", "TEXT NULL");
+        AddColumnIfMissing(db, "player", "LicenseValidUntil", "TEXT NULL");
+        AddColumnIfMissing(db, "player", "AssociationName", "TEXT NULL");
+        AddColumnIfMissing(db, "player", "UpdatedAt", "TEXT NULL");
+        AddColumnIfMissing(db, "player", "IsSystem", "INTEGER NOT NULL DEFAULT 0");
+        AddColumnIfMissing(db, "player", "SystemSlot", "INTEGER NULL");
+
+        AddColumnIfMissing(db, "team", "RemoteId", "INTEGER NULL");
+        AddColumnIfMissing(db, "team", "ClubId", "INTEGER NULL");
+        AddColumnIfMissing(db, "team", "UpdatedAt", "TEXT NULL");
+
+        // Older kiosks let the placeholder players answer to shortcut numbers 1 and 2, which would now collide
+        // with real players' shortcuts.
+        db.Database.ExecuteSqlRaw("UPDATE player SET ShortcutNumber = NULL WHERE Id IN (1, 2)");
+
+        db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_player_RemoteId ON player (RemoteId) WHERE RemoteId IS NOT NULL");
+        db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_team_RemoteId ON team (RemoteId) WHERE RemoteId IS NOT NULL");
+        db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_club_RemoteId ON club (RemoteId) WHERE RemoteId IS NOT NULL");
+    }
+
+    private static void AddColumnIfMissing(DataContext db, string table, string column, string definition)
+    {
+        var connection = db.Database.GetDbConnection();
+        var wasOpen = connection.State == System.Data.ConnectionState.Open;
+        if (!wasOpen)
+        {
+            connection.Open();
+        }
+
+        try
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name = '{column}'";
+            if (Convert.ToInt32(command.ExecuteScalar()) == 0)
+            {
+                using var alter = connection.CreateCommand();
+                alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition}";
+                alter.ExecuteNonQuery();
+            }
+        }
+        finally
+        {
+            if (!wasOpen)
+            {
+                connection.Close();
+            }
+        }
     }
 }
