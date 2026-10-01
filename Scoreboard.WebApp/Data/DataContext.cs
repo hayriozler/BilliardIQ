@@ -206,9 +206,11 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
             e.Property(p => p.LastName).HasMaxLength(100);
             e.Property(p => p.Nickname).HasMaxLength(100);
             e.Property(p => p.FederationLicenseNo).HasMaxLength(50);
-            e.HasIndex(p => new { p.CreatedInOrganizationId, p.SystemSlot })
+            // the two default players are global: one row per slot, and no real player may take Id 1 or 2
+            e.HasIndex(p => p.SystemSlot)
                 .IsUnique()
                 .HasFilter("\"SystemSlot\" IS NOT NULL");
+            e.ToTable(t => t.HasCheckConstraint("CK_PlayerSet_ReservedIds", "\"IsSystem\" OR \"Id\" > 2"));
             e.HasOne(p => p.Association).WithMany().HasForeignKey(p => p.AssociationId);
             e.HasOne(p => p.Region).WithMany().HasForeignKey(p => p.RegionId);
             e.HasOne(p => p.CountryRef).WithMany().HasForeignKey(p => p.CountryId);

@@ -245,7 +245,7 @@ public partial class RemotePullService(
         await db.SaveChangesAsync(ct);
 
         // Re-point the board's selection and unsent results (one statement, so ids that swap places do not chain).
-        var moves = replacedSeeds.ToDictionary(s => s.Id, s => serverSlots[s.SystemSlot!.Value]);
+        var moves = replacedSeeds.Where(s => s.Id != serverSlots[s.SystemSlot!.Value]).ToDictionary(s => s.Id, s => serverSlots[s.SystemSlot!.Value]);
         if (moves.Count > 0)
         {
             var cases = string.Join(" ", moves.Select(m => $"WHEN {m.Key} THEN {m.Value}"));

@@ -59,7 +59,7 @@ public class Player : BaseEntity
     public int? RegionId { get; set; }               // bağlı bölge (salonun tanımladığı listeden)
     public int? CountryId { get; set; }              // ülke (listeden); Nationality adını taşır
     public int? CityId { get; set; }                 // şehir (listeden); City adını taşır
-    public bool IsSystem { get; set; }               // salon açılırken otomatik oluşan 'Oyuncu 1/2'; değiştirilemez, silinemez
+    public bool IsSystem { get; set; }               // 'Oyuncu 1/2': tüm salonlar için ortak, Id 1 ve 2, değiştirilemez, silinemez
     public int? SystemSlot { get; set; }             // 1 veya 2 (yalnızca sistem oyuncularında)
     public string? UmbPlayerId { get; set; }
     public int? DefaultTargetPoints { get; set; }    // serbest maç handikapı

@@ -139,8 +139,8 @@
                                 }
                             </td>
                             <td>@(player.ShortcutNumber?.ToString() ?? "—")</td>
-                            <td><strong>@player.Nickname</strong>@if (player.IsSystem) {<span class="pill off" title="@L["Sistem oyuncusu değiştirilemez ve silinemez."]">🔒 @L["Sistem"]</span>}</td>
-                            <td>@($"{player.FirstName} {player.LastName}".Trim())</td>
+                            <td><strong>@(player.IsSystem ? L["Oyuncu {0}", player.SystemSlot] : player.Nickname)</strong>@if (player.IsSystem) {<span class="pill off" title="@L["Sistem oyuncusu değiştirilemez ve silinemez."]">🔒 @L["Sistem"]</span>}</td>
+                            <td>@(player.IsSystem ? L["Oyuncu {0}", player.SystemSlot] : $"{player.FirstName} {player.LastName}".Trim())</td>
                             <td>@LevelName(player.Level)</td>
                             <td>@player.Email</td>
                             <td>@string.Join(", ", new[] { player.City, player.Nationality }.Where(s => !string.IsNullOrWhiteSpace(s)))</td>

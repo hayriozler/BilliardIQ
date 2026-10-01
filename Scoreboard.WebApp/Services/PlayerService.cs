@@ -11,13 +11,13 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             .Include(p => p.Region)
             .Include(p => p.CountryRef)
             .Include(p => p.CityRef)
-            .Where(p => p.CreatedInOrganizationId == organizationId && p.DeletedAt == null)
+            .Where(p => (p.CreatedInOrganizationId == organizationId || p.IsSystem) && p.DeletedAt == null)
             .OrderBy(p => p.DisplayName)
             .ToListAsync();
 
     public Task<Player?> GetAsync(int organizationId, int id) =>
         db.PlayerSet.FirstOrDefaultAsync(p =>
-            p.Id == id && p.CreatedInOrganizationId == organizationId && p.DeletedAt == null);
+            p.Id == id && (p.CreatedInOrganizationId == organizationId || p.IsSystem) && p.DeletedAt == null);
 
     public async Task<Player> UpsertAsync(
         int organizationId,

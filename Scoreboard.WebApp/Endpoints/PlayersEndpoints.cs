@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using Scoreboard.WebApp.Data;
 using Scoreboard.WebApp.Middlewares;
 using Scoreboard.WebApp.Requests;
 using Scoreboard.WebApp.Responses;
@@ -11,10 +13,14 @@ public static class PlayersEndpoints
     {
         var group = app.MapGroup("/api/players").WithTags("Players");
 
-        group.MapGet("/", async (PlayerService players, HttpContext context) =>
-            (await players.ListForOrganizationAsync(context.GetOrganizationId())).Select(ToDto).ToList());
+        group.MapGet("/", async (PlayerService players, DataContext db, HttpContext context) =>
+        {
+            var organizationId = context.GetOrganizationId();
+            var language = await db.OrganizationSet.Where(o => o.Id == organizationId).Select(o => o.Language).FirstAsync();
+            return (await players.ListForOrganizationAsync(organizationId)).Select(p => ToDto(p, language)).ToList();
+        });
 
-        group.MapPost("/", async (UpsertPlayerRequest request, PlayerService players, HttpContext context) =>
+        group.MapPost("/", async (UpsertPlayerRequest request, PlayerService players, DataContext db, HttpContext context) =>
         {
             try
             {
@@ -23,7 +29,8 @@ public static class PlayersEndpoints
                     request.Email, request.Level, request.BaseCountry, request.BaseCity,
                     request.PhotoBase64, request.PhotoExtension, request.ShortcutNumber,
                     request.LicenseNo, request.LicenseValidUntil, request.AssociationId, request.RegionId, request.CountryId, request.CityId);
-                return Results.Ok(ToDto(player));
+                var language = await db.OrganizationSet.Where(o => o.Id == player.CreatedInOrganizationId).Select(o => o.Language).FirstOrDefaultAsync() ?? Loc.DefaultLanguage;
+                return Results.Ok(ToDto(player, language));
             }
             catch (ArgumentException ex)
             {
@@ -46,8 +53,15 @@ public static class PlayersEndpoints
         return group;
     }
 
-    private static PlayerDto ToDto(Player p) => new(
-        p.Id, null, p.Nickname ?? p.DisplayName, $"{p.FirstName} {p.LastName}".Trim(), p.PhotoUrl, p.AvatarId,
+    private static PlayerDto ToDto(Player p, string language)
+    {
+        // Player 1 / Player 2 (Id 1 and 2) carry the venue's language, whatever the stored source-language name is.
+        var shown = p.IsSystem && p.SystemSlot is int slot ? SystemPlayerService.NameFor(slot, language) : null;
+        return BuildDto(p, shown);
+    }
+
+    private static PlayerDto BuildDto(Player p, string? systemName) => new(
+        p.Id, null, systemName ?? p.Nickname ?? p.DisplayName, systemName ?? $"{p.FirstName} {p.LastName}".Trim(), p.PhotoUrl, p.AvatarId,
         p.Email ?? string.Empty, p.Level, p.Nationality ?? string.Empty, p.City ?? string.Empty, p.UpdatedAt, p.ShortcutNumber,
         p.FederationLicenseNo, p.LicenseValidUntil, p.Association?.Name, p.IsSystem, p.SystemSlot, p.AssociationId, p.RegionId, p.Region?.Name, p.CountryId, p.CityId);
 }

@@ -7,7 +7,7 @@ namespace Scoreboard.WebApp.Services;
 
 public record LoginResult(User User, StaffMember Staff, Organization Organization);
 
-public class AuthService(DataContext db, ClientIdService clientIds, SystemPlayerService systemPlayers, GeoSeedService geoSeed)
+public class AuthService(DataContext db, ClientIdService clientIds, GeoSeedService geoSeed)
 {
     private static readonly PasswordHasher<User> _hasher = new();
 
@@ -101,7 +101,6 @@ public class AuthService(DataContext db, ClientIdService clientIds, SystemPlayer
 
         db.StaffMemberSet.Add(staff);
         await db.SaveChangesAsync();
-        await systemPlayers.EnsureAsync(organization);
         await geoSeed.EnsureAsync(organization);
         return new LoginResult(user, staff, organization);
     }

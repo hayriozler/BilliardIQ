@@ -607,7 +607,7 @@ else
         var players = DbContext.PlayerSet.Where(p => p.IsSystem && p.UpdatedAt == null && p.SystemSlot != null).ToList();
         foreach (var p in players)
         {
-            p.Name = L.T($"Player{p.SystemSlot}Label");
+            p.Name = p.Nickname = L.T($"Player{p.SystemSlot}Label");
         }
     }
     private const int PointsToGoThreshold = 3;
