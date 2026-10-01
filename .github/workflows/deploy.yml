@@ -80,7 +80,10 @@ jobs:
           DB_USER: ${{ vars.DB_USER }}
           DB_NETWORK: ${{ vars.DB_NETWORK }}
           APP_PORT: ${{ vars.APP_PORT || '8080' }}
-          BIND_ADDRESS: ${{ vars.BIND_ADDRESS || '127.0.0.1' }}
+          BIND_ADDRESS: ${{ vars.BIND_ADDRESS || '0.0.0.0' }}
+          HTTPS_PORT: ${{ vars.HTTPS_PORT || '443' }}
+          CERT_NAME: ${{ vars.CERT_NAME }}
+          CERT_DIR: ${{ vars.CERT_DIR || '/etc/ssl/cloudflare' }}
         run: |
           {
             printf 'GITHUB_REPOSITORY=%s\n' "${{ needs.build.outputs.repo_lower }}"
@@ -93,6 +96,9 @@ jobs:
             printf 'DB_NETWORK=%s\n'        "${DB_NETWORK}"
             printf 'APP_PORT=%s\n'          "${APP_PORT}"
             printf 'BIND_ADDRESS=%s\n'      "${BIND_ADDRESS}"
+            printf 'HTTPS_PORT=%s\n'        "${HTTPS_PORT}"
+            printf 'CERT_NAME=%s\n'         "${CERT_NAME}"
+            printf 'CERT_DIR=%s\n'          "${CERT_DIR}"
             printf 'DEPLOY_COMMIT_SHA=%s\n'  "${{ needs.build.outputs.commit_sha_short }}"
             printf 'DEPLOY_COMMIT_DATE=%s\n' "${{ needs.build.outputs.commit_date }}"
           } > .env
