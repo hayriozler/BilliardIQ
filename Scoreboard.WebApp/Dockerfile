@@ -31,7 +31,7 @@ COPY --from=publish /app/publish .
 # Uploaded player photos are written to wwwroot/Players; the folder is a volume (docker-compose.yml), so it must
 # exist and belong to the unprivileged app user.
 USER root
-RUN mkdir -p wwwroot/Players && chown -R $APP_UID:$APP_UID wwwroot/Players
+RUN mkdir -p wwwroot/Players /app/keys && chown -R $APP_UID:$APP_UID wwwroot/Players /app/keys
 USER $APP_UID
 
 ENTRYPOINT ["dotnet", "Scoreboard.WebApp.dll"]

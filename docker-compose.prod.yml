@@ -1,0 +1,28 @@
+services:
+  webapp:
+    image: ghcr.io/${GITHUB_REPOSITORY}/webapp:${IMAGE_TAG}
+    container_name: billardiq-webapp
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      Database__MigrateOnStartup: "true"
+      DataProtection__KeysPath: /app/keys
+      ConnectionStrings__Default: Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${POSTGRES_PASSWORD}
+    ports:
+      - "${BIND_ADDRESS}:${APP_PORT}:8080"
+    volumes:
+      - webapp-players:/app/wwwroot/Players
+      - webapp-keys:/app/keys
+    networks:
+      - database
+
+networks:
+  database:
+    external: true
+    name: ${DB_NETWORK}
+
+volumes:
+  webapp-players:
+  webapp-keys:
