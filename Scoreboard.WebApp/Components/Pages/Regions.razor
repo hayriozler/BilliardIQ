@@ -8,7 +8,7 @@
 <div class="page-head">
     <div>
         <h1>@L["Bölgeler"]</h1>
-        <div class="subtitle">@L["Oyuncuların bağlı olduğu bölgeleri bir kez tanımlayın; oyuncu formunda listeden seçilir."]</div>
+        <div class="subtitle">@L["Organizasyonunuzun kullandığı bölgeleri katalogdan seçin; oyuncu formunda listeden seçilir."]</div>
     </div>
 </div>
 
@@ -20,16 +20,18 @@
 @if (_tenant is { CanManage: true })
 {
     <div class="card">
-        <h2>@(_form.Id == 0 ? L["Yeni bölge"] : L["Bölgeyi düzenle"])</h2>
+        <h2>@L["Katalogdan bölge ekle"]</h2>
         <div class="form-row">
-            <label class="field">@L["Ad"]
-                <input type="text" @bind="_form.Name" maxlength="150" />
+            <label class="field">@L["Bölge"]
+                <select @bind="_selectedId">
+                    <option value="0">@L["Bölge seçin"]</option>
+                    @foreach (var region in _available)
+                    {
+                        <option value="@region.Id">@region.Country.Name · @region.Name</option>
+                    }
+                </select>
             </label>
-            <button class="primary" disabled="@_busy" @onclick="SaveAsync">@(_form.Id == 0 ? L["Ekle"] : L["Kaydet"])</button>
-            @if (_form.Id != 0)
-            {
-                <button @onclick="() => _form = new()">@L["Vazgeç"]</button>
-            }
+            <button class="primary" disabled="@(_busy || _selectedId == 0)" @onclick="AddAsync">@L["Ekle"]</button>
         </div>
     </div>
 }
@@ -55,7 +57,6 @@
                                 @if (_tenant is { CanManage: true })
                                 {
                                     <div class="row-actions">
-                                        <button class="small" @onclick="() => _form = new FormModel { Id = region.Id, Name = region.Name }">@L["Düzenle"]</button>
                                         @if (_confirmDelete == region.Id)
                                         {
                                             <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(region.Id)">@L["Silmeyi onayla"]</button>
@@ -79,8 +80,9 @@
 @code {
     private Tenant? _tenant;
     private List<Region> _regions = [];
+    private List<Region> _available = [];
     private Dictionary<int, int> _playerCounts = [];
-    private FormModel _form = new();
+    private int _selectedId;
     private string? _error;
     private bool _busy;
     private int? _confirmDelete;
@@ -95,16 +97,17 @@
     {
         var orgId = _tenant!.OrganizationId;
         _regions = await Db.RunAsync((RegionService s) => s.ListAsync(orgId));
+        _available = await Db.RunAsync((RegionService s) => s.AvailableAsync(orgId));
         var players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId));
         _playerCounts = players.Where(p => p.RegionId != null)
             .GroupBy(p => p.RegionId!.Value)
             .ToDictionary(g => g.Key, g => g.Count());
     }
 
-    private Task SaveAsync() => RunAsync(async () =>
+    private Task AddAsync() => RunAsync(async () =>
     {
-        await Db.RunAsync((RegionService s) => s.UpsertAsync(_tenant!.OrganizationId, _form.Id, _form.Name));
-        _form = new FormModel();
+        await Db.RunAsync((RegionService s) => s.AddAsync(_tenant!.OrganizationId, _selectedId));
+        _selectedId = 0;
     });
 
     private Task DeleteAsync(int id) => RunAsync(async () =>
@@ -131,11 +134,5 @@
         }
 
         await LoadAsync();
-    }
-
-    private class FormModel
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = "";
     }
 }

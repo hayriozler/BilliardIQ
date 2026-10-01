@@ -5,65 +5,71 @@ namespace Scoreboard.WebApp.Services;
 
 public class CountryService(DataContext db)
 {
-    public Task<List<Country>> ListAsync(int organizationId) =>
-        db.CountrySet
-            .AsNoTracking()
-            .Where(c => c.OrganizationId == organizationId && c.DeletedAt == null)
-            .OrderBy(c => c.Name)
-            .ToListAsync();
-
-    public async Task<Country> UpsertAsync(int organizationId, int id, string name)
+    public static Country Localized(Country country)
     {
-        name = name.Trim();
-        if (name.Length == 0) throw new ArgumentException("Ülke adı gerekli.");
-        if (name.Length > 100) throw new ArgumentException("Ülke adı en fazla 100 karakter olabilir.");
-
-        var country = id != 0
-            ? await db.CountrySet.FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == organizationId && c.DeletedAt == null)
-            : null;
-        if (id != 0 && country is null) throw new ArgumentException("Ülke bulunamadı.");
-
-        if (await db.CountrySet.AnyAsync(c =>
-                c.OrganizationId == organizationId && c.DeletedAt == null && c.Id != id && c.Name.ToLower() == name.ToLower()))
+        if (CountryCatalog.Find(country.Code) is { } entry)
         {
-            throw new ArgumentException("Bu isimde bir ülke zaten var.");
+            country.Name = entry.NameIn(Loc.Current);
         }
 
-        if (country is null)
-        {
-            country = new Country { OrganizationId = organizationId };
-            db.CountrySet.Add(country);
-        }
-
-        var renamed = country.Id != 0 && country.Name != name;
-        country.Name = name;
-        if (renamed)
-        {
-            foreach (var player in await db.PlayerSet.Where(p => p.CountryId == country.Id).ToListAsync())
-            {
-                player.Nationality = name;
-            }
-        }
-
-        await db.SaveChangesAsync();
         return country;
     }
 
-    public async Task DeleteAsync(int organizationId, int id)
+    public async Task<List<Country>> ListAsync(int organizationId) =>
+        (await db.OrganizationCountrySet
+            .AsNoTracking()
+            .Where(x => x.OrganizationId == organizationId && x.DeletedAt == null)
+            .Select(x => x.Country)
+            .ToListAsync())
+        .Select(Localized)
+        .OrderBy(c => c.Name)
+        .ToList();
+
+    public async Task<List<Country>> AvailableAsync(int organizationId)
     {
-        var country = await db.CountrySet.FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == organizationId && c.DeletedAt == null)
+        var selected = db.OrganizationCountrySet.Where(x => x.OrganizationId == organizationId && x.DeletedAt == null).Select(x => x.CountryId);
+        return (await db.CountrySet.AsNoTracking().Where(c => !selected.Contains(c.Id)).ToListAsync())
+            .Select(Localized)
+            .OrderBy(c => c.Name)
+            .ToList();
+    }
+
+    public async Task AddAsync(int organizationId, int countryId)
+    {
+        if (!await db.CountrySet.AnyAsync(c => c.Id == countryId))
+        {
+            throw new ArgumentException("Katalogda ülke bulunamadı.");
+        }
+
+        if (await db.OrganizationCountrySet.AnyAsync(x => x.OrganizationId == organizationId && x.CountryId == countryId && x.DeletedAt == null))
+        {
+            throw new ArgumentException("Bu ülke zaten ekli.");
+        }
+
+        db.OrganizationCountrySet.Add(new OrganizationCountry { OrganizationId = organizationId, CountryId = countryId });
+        await db.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(int organizationId, int countryId)
+    {
+        var link = await db.OrganizationCountrySet.FirstOrDefaultAsync(x => x.CountryId == countryId && x.OrganizationId == organizationId && x.DeletedAt == null)
             ?? throw new InvalidOperationException("Ülke bulunamadı.");
-        if (await db.CitySet.AnyAsync(c => c.CountryId == id && c.DeletedAt == null))
+        if (await db.OrganizationCitySet.AnyAsync(x => x.City.CountryId == countryId && x.DeletedAt == null))
         {
             throw new InvalidOperationException("Şehri olan ülke silinemez. Önce şehirleri silin.");
         }
 
-        if (await db.PlayerSet.AnyAsync(p => p.CountryId == id && p.DeletedAt == null))
+        if (await db.OrganizationRegionSet.AnyAsync(x => x.Region.CountryId == countryId && x.DeletedAt == null))
+        {
+            throw new InvalidOperationException("Bölgesi olan ülke silinemez. Önce bölgeleri silin.");
+        }
+
+        if (await db.PlayerSet.AnyAsync(p => p.CountryId == countryId && p.DeletedAt == null))
         {
             throw new InvalidOperationException("Oyuncusu olan ülke silinemez. Önce oyuncuların ülkesini değiştirin.");
         }
 
-        country.DeletedAt = DateTimeOffset.UtcNow;
+        link.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
     }
 }

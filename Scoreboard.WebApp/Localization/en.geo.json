@@ -28,5 +28,22 @@
   "Oyuncusu olan şehrin ülkesi değiştirilemez.": "The country of a city with players cannot be changed.",
   "Oyuncusu olan şehir silinemez. Önce oyuncuların şehrini değiştirin.": "A city with players cannot be deleted. Change the players' city first.",
   "Şehir seçilen ülkeye ait değil.": "The city does not belong to the selected country.",
-  "Ülke seçin.": "Select a country."
+  "Ülke seçin.": "Select a country.",
+  "Katalogdan ülke ekle": "Add a country from the catalogue",
+  "Katalogdan şehir ekle": "Add a city from the catalogue",
+  "Katalogdan bölge ekle": "Add a region from the catalogue",
+  "Şehir seçin": "Choose a city",
+  "Bölge seçin": "Choose a region",
+  "Organizasyonunuzun kullandığı ülkeleri katalogdan seçin; oyuncu formunda ve şehir seçiminde bu liste kullanılır.": "Choose the countries your organisation uses from the catalogue; this list is used in the player form and when choosing cities.",
+  "Organizasyonunuzun kullandığı şehirleri katalogdan seçin; oyuncu formunda ülke seçilince o ülkenin şehirleri listelenir.": "Choose the cities your organisation uses from the catalogue; the player form lists the cities of the chosen country.",
+  "Organizasyonunuzun kullandığı bölgeleri katalogdan seçin; oyuncu formunda listeden seçilir.": "Choose the regions your organisation uses from the catalogue; they are picked from the list in the player form.",
+  "Katalogda ülke bulunamadı.": "Country not found in the catalogue.",
+  "Bu ülke zaten ekli.": "This country is already added.",
+  "Katalogda şehir bulunamadı.": "City not found in the catalogue.",
+  "Önce şehrin ülkesini ekleyin.": "Add the city's country first.",
+  "Bu şehir zaten ekli.": "This city is already added.",
+  "Katalogda bölge bulunamadı.": "Region not found in the catalogue.",
+  "Önce bölgenin ülkesini ekleyin.": "Add the region's country first.",
+  "Bu bölge zaten ekli.": "This region is already added.",
+  "Bölgesi olan ülke silinemez. Önce bölgeleri silin.": "A country with regions cannot be deleted. Delete the regions first."
 }

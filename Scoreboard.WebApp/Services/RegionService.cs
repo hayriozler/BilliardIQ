@@ -5,51 +5,57 @@ namespace Scoreboard.WebApp.Services;
 
 public class RegionService(DataContext db)
 {
-    public Task<List<Region>> ListAsync(int organizationId) =>
-        db.RegionSet
+    public async Task<List<Region>> ListAsync(int organizationId) =>
+        (await db.OrganizationRegionSet
             .AsNoTracking()
-            .Where(a => a.OrganizationId == organizationId && a.DeletedAt == null)
-            .OrderBy(a => a.Name)
-            .ToListAsync();
+            .Include(x => x.Region).ThenInclude(r => r.Country)
+            .Where(x => x.OrganizationId == organizationId && x.DeletedAt == null)
+            .Select(x => x.Region)
+            .ToListAsync())
+        .Select(r => { CountryService.Localized(r.Country); return r; })
+        .OrderBy(r => r.Country.Name).ThenBy(r => r.Name)
+        .ToList();
 
-    public async Task<Region> UpsertAsync(int organizationId, int id, string name)
+    public async Task<List<Region>> AvailableAsync(int organizationId)
     {
-        name = name.Trim();
-        if (name.Length == 0) throw new ArgumentException("Bölge adı gerekli.");
-        if (name.Length > 150) throw new ArgumentException("Bölge adı en fazla 150 karakter olabilir.");
-
-        var region = id != 0
-            ? await db.RegionSet.FirstOrDefaultAsync(a => a.Id == id && a.OrganizationId == organizationId && a.DeletedAt == null)
-            : null;
-        if (id != 0 && region is null) throw new ArgumentException("Bölge bulunamadı.");
-
-        if (await db.RegionSet.AnyAsync(a =>
-                a.OrganizationId == organizationId && a.DeletedAt == null && a.Id != id && a.Name.ToLower() == name.ToLower()))
-        {
-            throw new ArgumentException("Bu isimde bir bölge zaten var.");
-        }
-
-        if (region is null)
-        {
-            region = new Region { OrganizationId = organizationId };
-            db.RegionSet.Add(region);
-        }
-
-        region.Name = name;
-        await db.SaveChangesAsync();
-        return region;
+        var selected = db.OrganizationRegionSet.Where(x => x.OrganizationId == organizationId && x.DeletedAt == null).Select(x => x.RegionId);
+        var linkedCountries = db.OrganizationCountrySet.Where(x => x.OrganizationId == organizationId && x.DeletedAt == null).Select(x => x.CountryId);
+        return (await db.RegionSet.AsNoTracking().Include(r => r.Country)
+                .Where(r => linkedCountries.Contains(r.CountryId) && !selected.Contains(r.Id))
+                .ToListAsync())
+            .Select(r => { CountryService.Localized(r.Country); return r; })
+            .OrderBy(r => r.Country.Name).ThenBy(r => r.Name)
+            .ToList();
     }
 
-    public async Task DeleteAsync(int organizationId, int id)
+    public async Task AddAsync(int organizationId, int regionId)
     {
-        var region = await db.RegionSet.FirstOrDefaultAsync(a => a.Id == id && a.OrganizationId == organizationId && a.DeletedAt == null)
+        var region = await db.RegionSet.AsNoTracking().FirstOrDefaultAsync(r => r.Id == regionId)
+            ?? throw new ArgumentException("Katalogda bölge bulunamadı.");
+        if (!await db.OrganizationCountrySet.AnyAsync(x => x.OrganizationId == organizationId && x.CountryId == region.CountryId && x.DeletedAt == null))
+        {
+            throw new ArgumentException("Önce bölgenin ülkesini ekleyin.");
+        }
+
+        if (await db.OrganizationRegionSet.AnyAsync(x => x.OrganizationId == organizationId && x.RegionId == regionId && x.DeletedAt == null))
+        {
+            throw new ArgumentException("Bu bölge zaten ekli.");
+        }
+
+        db.OrganizationRegionSet.Add(new OrganizationRegion { OrganizationId = organizationId, RegionId = regionId });
+        await db.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(int organizationId, int regionId)
+    {
+        var link = await db.OrganizationRegionSet.FirstOrDefaultAsync(x => x.RegionId == regionId && x.OrganizationId == organizationId && x.DeletedAt == null)
             ?? throw new InvalidOperationException("Bölge bulunamadı.");
-        if (await db.PlayerSet.AnyAsync(p => p.RegionId == id && p.DeletedAt == null))
+        if (await db.PlayerSet.AnyAsync(p => p.RegionId == regionId && p.DeletedAt == null))
         {
             throw new InvalidOperationException("Oyuncusu olan bölge silinemez. Önce oyuncuların bölgesini değiştirin.");
         }
 
-        region.DeletedAt = DateTimeOffset.UtcNow;
+        link.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
     }
 }

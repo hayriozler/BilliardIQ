@@ -48,12 +48,23 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         return user;
     }
 
-    public Task<List<StaffMember>> MembershipsAsync(int userId) =>
-        db.StaffMemberSet
+    public async Task<List<StaffMember>> MembershipsAsync(int userId)
+    {
+        var belongsToOrganization = await db.UserSet.Where(u => u.Id == userId).Select(u => u.OrganizationId != null).FirstOrDefaultAsync();
+        if (!belongsToOrganization)
+        {
+            var organizations = await db.OrganizationSet.Where(o => o.IsActive && o.DeletedAt == null).OrderBy(o => o.Name).ToListAsync();
+            return organizations
+                .Select(o => new StaffMember { OrganizationId = o.Id, Organization = o, UserId = userId, Roles = [StaffRole.Owner] })
+                .ToList();
+        }
+
+        return await db.StaffMemberSet
             .Include(s => s.Organization)
             .Where(s => s.UserId == userId && s.IsActive && s.Organization.IsActive && s.DeletedAt == null)
             .OrderBy(s => s.Organization.Name)
             .ToListAsync();
+    }
 
     public async Task<LoginResult?> LoginToAsync(int userId, int? organizationId)
     {
@@ -105,7 +116,6 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
             Code = await UniqueCodeAsync(),
             ClientId = await clientIds.GenerateUniqueAsync(),
             Address = new Address { Line1 = "", City = "", CountryCode = country.Code },
-            Email = email,
             Language = language,
             CountryCode = country.Code,
             Currency = currency,
@@ -113,7 +123,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
             Plan = SubscriptionPlan.Free
         };
 
-        var user = new User { Email = email, DisplayName = ownerName, Status = UserStatus.Active };
+        var user = new User { Email = email, DisplayName = ownerName, Status = UserStatus.Active, Organization = organization };
         user.PasswordHash = _hasher.HashPassword(user, password);
 
         var staff = new StaffMember { Organization = organization, User = user, Roles = [StaffRole.Owner] };
@@ -143,7 +153,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
             throw new ArgumentException("Bu e-posta zaten kullanılıyor.");
         }
 
-        var user = new User { Email = email, DisplayName = displayName.Trim(), Status = UserStatus.Active };
+        var user = new User { Email = email, DisplayName = displayName.Trim(), Status = UserStatus.Active, OrganizationId = organizationId };
         user.PasswordHash = _hasher.HashPassword(user, password);
 
         var staff = new StaffMember { OrganizationId = organizationId, User = user, Roles = [role] };

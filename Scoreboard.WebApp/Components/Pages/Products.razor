@@ -54,7 +54,7 @@
                                 {
                                     <tr>
                                         <td><strong>@product.Name</strong></td>
-                                        <td class="num">@Format.Money(product.Price, _currency)</td>
+                                        <td class="num">@Format.Price(product.Price, _currency)</td>
                                         <td class="num">@product.VatRate.ToString("0.##")</td>
                                         <td><span class="pill @(product.IsActive ? "available" : "off")">@(product.IsActive ? L["Aktif"] : L["Pasif"])</span></td>
                                         <td>
@@ -170,7 +170,7 @@
                         </select>
                     </label>
                     <label class="field">@L["Fiyat"] (@_currency)
-                        <input type="number" step="0.01" min="0" @bind="_productForm.Price" />
+                        <input type="number" step="0.001" min="0" @bind="_productForm.Price" />
                     </label>
                     <label class="field">@L["KDV %"]
                         <input type="number" step="0.01" min="0" max="100" @bind="_productForm.VatRate" />

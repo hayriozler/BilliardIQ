@@ -14,6 +14,13 @@ public static class Format
         return $"{amount.ToString("N2", Culture)} {symbol}";
     }
 
+    public static string Price(decimal amount, string currency = "TRY")
+    {
+        var symbol = currency switch { "TRY" => "₺", "EUR" => "€", "USD" => "$", "GBP" => "£", _ => currency };
+        var format = decimal.Round(amount, 2) == amount ? "N2" : "N3";
+        return $"{amount.ToString(format, Culture)} {symbol}";
+    }
+
     public static string Date(DateOnly value) => value.ToString("d MMM yyyy", CultureInfo.CurrentCulture);
 
     public static string Clock(double totalSeconds)

@@ -1,0 +1,136 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Scoreboard.WebApp/**
+      - docker-compose.prod.yml
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      repo_lower: ${{ steps.repo.outputs.name }}
+      commit_sha_short: ${{ steps.commit_info.outputs.sha_short }}
+      commit_date: ${{ steps.commit_info.outputs.date }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lowercase repo name
+        id: repo
+        run: echo "name=${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute commit datetime
+        id: commit_info
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "date=$(git log -1 --format='%cI')" >> $GITHUB_OUTPUT
+
+      - name: Build & push webapp
+        uses: docker/build-push-action@v5
+        with:
+          context: Scoreboard.WebApp
+          file: Scoreboard.WebApp/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.repo.outputs.name }}/webapp:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.repo.outputs.name }}/webapp:latest
+
+  deploy:
+    name: Deploy to Production
+    needs: build
+    runs-on: ubuntu-latest
+    environment: Prd
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Write .env
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_PORT: ${{ vars.DB_PORT || '5432' }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          DB_USER: ${{ vars.DB_USER }}
+          DB_NETWORK: ${{ vars.DB_NETWORK }}
+          APP_PORT: ${{ vars.APP_PORT || '8080' }}
+          BIND_ADDRESS: ${{ vars.BIND_ADDRESS || '127.0.0.1' }}
+        run: |
+          {
+            printf 'GITHUB_REPOSITORY=%s\n' "${{ needs.build.outputs.repo_lower }}"
+            printf 'IMAGE_TAG=%s\n'         "${{ github.sha }}"
+            printf 'DB_HOST=%s\n'           "${DB_HOST}"
+            printf 'DB_PORT=%s\n'           "${DB_PORT}"
+            printf 'DB_NAME=%s\n'           "${DB_NAME}"
+            printf 'DB_USER=%s\n'           "${DB_USER}"
+            printf 'POSTGRES_PASSWORD=%s\n' "${POSTGRES_PASSWORD}"
+            printf 'DB_NETWORK=%s\n'        "${DB_NETWORK}"
+            printf 'APP_PORT=%s\n'          "${APP_PORT}"
+            printf 'BIND_ADDRESS=%s\n'      "${BIND_ADDRESS}"
+            printf 'DEPLOY_COMMIT_SHA=%s\n'  "${{ needs.build.outputs.commit_sha_short }}"
+            printf 'DEPLOY_COMMIT_DATE=%s\n' "${{ needs.build.outputs.commit_date }}"
+          } > .env
+
+      - name: Sync files
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "mkdir -p /opt/billardiq"
+          scp -o StrictHostKeyChecking=no docker-compose.prod.yml ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/opt/billardiq/docker-compose.yml
+          scp -o StrictHostKeyChecking=no .env ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/opt/billardiq/.env
+
+      - name: Deploy container
+        run: |
+            ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} << 'SSH'
+              set -e
+              cd /opt/billardiq
+
+              DOCKER_CONFIG=$(mktemp -d)
+              export DOCKER_CONFIG
+              echo "${{ secrets.GITHUB_TOKEN }}" | \
+                docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+              docker compose pull webapp
+              docker compose up -d --no-deps webapp
+
+              docker logout ghcr.io
+              rm -rf "$DOCKER_CONFIG"
+
+              echo "Waiting for the webapp to start..."
+              sleep 15
+              state=$(docker inspect --format='{{.State.Status}}' billardiq-webapp)
+              echo "billardiq-webapp: $state"
+              if [ "$state" != "running" ]; then
+                docker logs --tail 80 billardiq-webapp
+                exit 1
+              fi
+
+              echo "Pruning Docker artifacts older than 48h..."
+              docker image prune -af --filter "until=48h" || true
+              df -h | head -5
+              echo "Deploy complete."
+            SSH

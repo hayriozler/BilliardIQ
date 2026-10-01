@@ -263,7 +263,7 @@ else
                         <div class="line">
                             <span>@product.Name</span>
                             <span>
-                                @Format.Money(product.Price, _org.Currency)
+                                @Format.Price(product.Price, _org.Currency)
                                 <button class="small primary" disabled="@_busy" @onclick="() => AddItemAsync(product.Id)">+</button>
                             </span>
                         </div>

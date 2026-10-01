@@ -36,6 +36,23 @@ namespace Scoreboard.WebApp.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Country",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Code = table.Column<string>(type: "character varying(2)", maxLength: 2, nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Country", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "League",
                 columns: table => new
                 {
@@ -86,27 +103,49 @@ namespace Scoreboard.WebApp.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "User",
+                name: "City",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Email = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    Phone = table.Column<string>(type: "text", nullable: true),
-                    PasswordHash = table.Column<string>(type: "text", nullable: true),
-                    DisplayName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    AvatarUrl = table.Column<string>(type: "text", nullable: true),
-                    Locale = table.Column<string>(type: "text", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    LastLoginAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    IsPlatformAdmin = table.Column<bool>(type: "boolean", nullable: false),
+                    CountryId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_User", x => x.Id);
+                    table.PrimaryKey("PK_City", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_City_Country_CountryId",
+                        column: x => x.CountryId,
+                        principalTable: "Country",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Region",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CountryId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Region", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Region_Country_CountryId",
+                        column: x => x.CountryId,
+                        principalTable: "Country",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -122,7 +161,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                     LegalName = table.Column<string>(type: "text", nullable: true),
                     TaxNumber = table.Column<string>(type: "text", nullable: true),
                     TaxOffice = table.Column<string>(type: "text", nullable: true),
-                    Email = table.Column<string>(type: "text", nullable: true),
                     Phone = table.Column<string>(type: "text", nullable: true),
                     LogoUrl = table.Column<string>(type: "text", nullable: true),
                     CoverImageUrl = table.Column<string>(type: "text", nullable: true),
@@ -275,29 +313,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Country",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Country", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Country_Organization_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organization",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Cup",
                 columns: table => new
                 {
@@ -323,6 +338,93 @@ namespace Scoreboard.WebApp.Data.Migrations
                         name: "FK_Cup_Organization_OrganizationId",
                         column: x => x.OrganizationId,
                         principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrganizationCity",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    CityId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrganizationCity", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrganizationCity_City_CityId",
+                        column: x => x.CityId,
+                        principalTable: "City",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrganizationCity_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrganizationCountry",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    CountryId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrganizationCountry", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrganizationCountry_Country_CountryId",
+                        column: x => x.CountryId,
+                        principalTable: "Country",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrganizationCountry_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrganizationRegion",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    RegionId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrganizationRegion", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrganizationRegion_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrganizationRegion_Region_RegionId",
+                        column: x => x.RegionId,
+                        principalTable: "Region",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -382,62 +484,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Region",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Region", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Region_Organization_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organization",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "StaffMember",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
-                    UserId = table.Column<int>(type: "integer", nullable: false),
-                    Roles = table.Column<int[]>(type: "integer[]", nullable: false),
-                    PinCodeHash = table.Column<string>(type: "text", nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    HiredAt = table.Column<DateOnly>(type: "date", nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_StaffMember", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_StaffMember_Organization_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organization",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_StaffMember_User_UserId",
-                        column: x => x.UserId,
-                        principalTable: "User",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Tournament",
                 columns: table => new
                 {
@@ -482,6 +528,37 @@ namespace Scoreboard.WebApp.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "User",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Email = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Phone = table.Column<string>(type: "text", nullable: true),
+                    PasswordHash = table.Column<string>(type: "text", nullable: true),
+                    DisplayName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    AvatarUrl = table.Column<string>(type: "text", nullable: true),
+                    Locale = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    LastLoginAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    IsPlatformAdmin = table.Column<bool>(type: "boolean", nullable: false),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_User", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_User_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Team",
                 columns: table => new
                 {
@@ -517,36 +594,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                         name: "FK_Team_Season_SeasonId",
                         column: x => x.SeasonId,
                         principalTable: "Season",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "City",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
-                    CountryId = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_City", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_City_Country_CountryId",
-                        column: x => x.CountryId,
-                        principalTable: "Country",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_City_Organization_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -650,6 +697,113 @@ namespace Scoreboard.WebApp.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Player",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<int>(type: "integer", nullable: true),
+                    FirstName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    LastName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Nickname = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    ShortcutNumber = table.Column<int>(type: "integer", nullable: true),
+                    DisplayName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    BirthDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    Gender = table.Column<int>(type: "integer", nullable: true),
+                    Nationality = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    PhotoUrl = table.Column<string>(type: "text", nullable: true),
+                    Handedness = table.Column<int>(type: "integer", nullable: true),
+                    FederationLicenseNo = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    LicenseValidUntil = table.Column<DateOnly>(type: "date", nullable: true),
+                    AssociationId = table.Column<int>(type: "integer", nullable: true),
+                    RegionId = table.Column<int>(type: "integer", nullable: true),
+                    CountryId = table.Column<int>(type: "integer", nullable: true),
+                    CityId = table.Column<int>(type: "integer", nullable: true),
+                    IsSystem = table.Column<bool>(type: "boolean", nullable: false),
+                    SystemSlot = table.Column<int>(type: "integer", nullable: true),
+                    UmbPlayerId = table.Column<string>(type: "text", nullable: true),
+                    DefaultTargetPoints = table.Column<int>(type: "integer", nullable: true),
+                    IsGuest = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedInOrganizationId = table.Column<int>(type: "integer", nullable: true),
+                    IsPublicProfile = table.Column<bool>(type: "boolean", nullable: false),
+                    Email = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    City = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    AvatarId = table.Column<int>(type: "integer", nullable: true),
+                    Level = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Player", x => x.Id);
+                    table.CheckConstraint("CK_PlayerSet_ReservedIds", "\"IsSystem\" OR \"Id\" > 2");
+                    table.ForeignKey(
+                        name: "FK_Player_Association_AssociationId",
+                        column: x => x.AssociationId,
+                        principalTable: "Association",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Player_City_CityId",
+                        column: x => x.CityId,
+                        principalTable: "City",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Player_Country_CountryId",
+                        column: x => x.CountryId,
+                        principalTable: "Country",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Player_Region_RegionId",
+                        column: x => x.RegionId,
+                        principalTable: "Region",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Player_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StaffMember",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    Roles = table.Column<int[]>(type: "integer[]", nullable: false),
+                    PinCodeHash = table.Column<string>(type: "text", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    HiredAt = table.Column<DateOnly>(type: "date", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffMember", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StaffMember_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StaffMember_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SeasonTeam",
                 columns: table => new
                 {
@@ -741,80 +895,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                     table.ForeignKey(
                         name: "FK_TeamFixture_User_RefereeId",
                         column: x => x.RefereeId,
-                        principalTable: "User",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Player",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserId = table.Column<int>(type: "integer", nullable: true),
-                    FirstName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    LastName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Nickname = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    ShortcutNumber = table.Column<int>(type: "integer", nullable: true),
-                    DisplayName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    BirthDate = table.Column<DateOnly>(type: "date", nullable: true),
-                    Gender = table.Column<int>(type: "integer", nullable: true),
-                    Nationality = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    PhotoUrl = table.Column<string>(type: "text", nullable: true),
-                    Handedness = table.Column<int>(type: "integer", nullable: true),
-                    FederationLicenseNo = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    LicenseValidUntil = table.Column<DateOnly>(type: "date", nullable: true),
-                    AssociationId = table.Column<int>(type: "integer", nullable: true),
-                    RegionId = table.Column<int>(type: "integer", nullable: true),
-                    CountryId = table.Column<int>(type: "integer", nullable: true),
-                    CityId = table.Column<int>(type: "integer", nullable: true),
-                    IsSystem = table.Column<bool>(type: "boolean", nullable: false),
-                    SystemSlot = table.Column<int>(type: "integer", nullable: true),
-                    UmbPlayerId = table.Column<string>(type: "text", nullable: true),
-                    DefaultTargetPoints = table.Column<int>(type: "integer", nullable: true),
-                    IsGuest = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedInOrganizationId = table.Column<int>(type: "integer", nullable: true),
-                    IsPublicProfile = table.Column<bool>(type: "boolean", nullable: false),
-                    Email = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    City = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    AvatarId = table.Column<int>(type: "integer", nullable: true),
-                    Level = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Player", x => x.Id);
-                    table.CheckConstraint("CK_PlayerSet_ReservedIds", "\"IsSystem\" OR \"Id\" > 2");
-                    table.ForeignKey(
-                        name: "FK_Player_Association_AssociationId",
-                        column: x => x.AssociationId,
-                        principalTable: "Association",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Player_City_CityId",
-                        column: x => x.CityId,
-                        principalTable: "City",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Player_Country_CountryId",
-                        column: x => x.CountryId,
-                        principalTable: "Country",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Player_Region_RegionId",
-                        column: x => x.RegionId,
-                        principalTable: "Region",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Player_User_UserId",
-                        column: x => x.UserId,
                         principalTable: "User",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -1849,16 +1929,10 @@ namespace Scoreboard.WebApp.Data.Migrations
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_City_CountryId",
+                name: "IX_City_CountryId_Name",
                 table: "City",
-                column: "CountryId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_City_OrganizationId_CountryId_Name",
-                table: "City",
-                columns: new[] { "OrganizationId", "CountryId", "Name" },
-                unique: true,
-                filter: "\"DeletedAt\" IS NULL");
+                columns: new[] { "CountryId", "Name" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Club_OrganizationId",
@@ -1876,11 +1950,10 @@ namespace Scoreboard.WebApp.Data.Migrations
                 column: "PlayerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Country_OrganizationId_Name",
+                name: "IX_Country_Code",
                 table: "Country",
-                columns: new[] { "OrganizationId", "Name" },
-                unique: true,
-                filter: "\"DeletedAt\" IS NULL");
+                column: "Code",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Cup_OrganizationId",
@@ -2082,6 +2155,42 @@ namespace Scoreboard.WebApp.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_OrganizationCity_CityId",
+                table: "OrganizationCity",
+                column: "CityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrganizationCity_OrganizationId_CityId",
+                table: "OrganizationCity",
+                columns: new[] { "OrganizationId", "CityId" },
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrganizationCountry_CountryId",
+                table: "OrganizationCountry",
+                column: "CountryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrganizationCountry_OrganizationId_CountryId",
+                table: "OrganizationCountry",
+                columns: new[] { "OrganizationId", "CountryId" },
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrganizationRegion_OrganizationId_RegionId",
+                table: "OrganizationRegion",
+                columns: new[] { "OrganizationId", "RegionId" },
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrganizationRegion_RegionId",
+                table: "OrganizationRegion",
+                column: "RegionId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Payment_CashRegisterShiftId",
                 table: "Payment",
                 column: "CashRegisterShiftId");
@@ -2182,11 +2291,10 @@ namespace Scoreboard.WebApp.Data.Migrations
                 column: "PlayerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Region_OrganizationId_Name",
+                name: "IX_Region_CountryId_Name",
                 table: "Region",
-                columns: new[] { "OrganizationId", "Name" },
-                unique: true,
-                filter: "\"DeletedAt\" IS NULL");
+                columns: new[] { "CountryId", "Name" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reservation_OrganizationId_StartAt",
@@ -2393,6 +2501,11 @@ namespace Scoreboard.WebApp.Data.Migrations
                 filter: "\"Email\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_User_OrganizationId",
+                table: "User",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_User_Phone",
                 table: "User",
                 column: "Phone",
@@ -2476,20 +2589,8 @@ namespace Scoreboard.WebApp.Data.Migrations
                 table: "BilliardTable");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_City_Organization_OrganizationId",
-                table: "City");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Country_Organization_OrganizationId",
-                table: "Country");
-
-            migrationBuilder.DropForeignKey(
                 name: "FK_PricingRule_Organization_OrganizationId",
                 table: "PricingRule");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Region_Organization_OrganizationId",
-                table: "Region");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_Reservation_Organization_OrganizationId",
@@ -2502,6 +2603,10 @@ namespace Scoreboard.WebApp.Data.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_TableSession_Organization_OrganizationId",
                 table: "TableSession");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_User_Organization_OrganizationId",
+                table: "User");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_BilliardTable_PricingRule_PricingRuleId",
@@ -2544,6 +2649,15 @@ namespace Scoreboard.WebApp.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "OrderItem");
+
+            migrationBuilder.DropTable(
+                name: "OrganizationCity");
+
+            migrationBuilder.DropTable(
+                name: "OrganizationCountry");
+
+            migrationBuilder.DropTable(
+                name: "OrganizationRegion");
 
             migrationBuilder.DropTable(
                 name: "Payment");

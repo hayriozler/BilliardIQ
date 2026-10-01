@@ -11,6 +11,9 @@ public class User : BaseEntity
     public UserStatus Status { get; set; }
     public DateTimeOffset? LastLoginAt { get; set; }
     public bool IsPlatformAdmin { get; set; }
+    public int? OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 
     public Player? Player { get; set; }
     public ICollection<StaffMember> StaffAssignments { get; set; } = [];
@@ -25,7 +28,6 @@ public class Organization : BaseEntity
     public string? LegalName { get; set; }
     public string? TaxNumber { get; set; }
     public string? TaxOffice { get; set; }
-    public string? Email { get; set; }
     public string? Phone { get; set; }
     public string? LogoUrl { get; set; }
     public string? CoverImageUrl { get; set; }

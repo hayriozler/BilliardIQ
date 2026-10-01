@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
@@ -83,6 +84,14 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+var keysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(keysPath))
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+        .SetApplicationName("BillardIQ");
+}
+
 var app = builder.Build();
 
 if (app.Configuration.GetValue("Database:MigrateOnStartup", app.Environment.IsDevelopment()))
@@ -106,10 +115,26 @@ foreach (var account in app.Configuration.GetSection("Seed:Accounts").GetChildre
 
     using var scope = app.Services.CreateScope();
     var normalized = email.Trim().ToLowerInvariant();
-    if (await scope.ServiceProvider.GetRequiredService<DataContext>().UserSet.AnyAsync(u => u.Email == normalized)) continue;
+    var platformAdmin = account.GetValue<bool>("PlatformAdmin");
+    var seedDb = scope.ServiceProvider.GetRequiredService<DataContext>();
+    if (await seedDb.UserSet.AnyAsync(u => u.Email == normalized))
+    {
+        if (platformAdmin)
+        {
+            await seedDb.UserSet.Where(u => u.Email == normalized)
+                .ExecuteUpdateAsync(u => u.SetProperty(x => x.OrganizationId, (int?)null).SetProperty(x => x.IsPlatformAdmin, true));
+        }
 
-    await scope.ServiceProvider.GetRequiredService<AuthService>().RegisterOrganizationAsync(
+        continue;
+    }
+
+    var registered = await scope.ServiceProvider.GetRequiredService<AuthService>().RegisterOrganizationAsync(
         account["OrganizationName"] ?? "Demo Salon", account["Name"] ?? "Admin", email, password, account["Country"], account["Currency"], account["Language"]);
+    if (platformAdmin)
+    {
+        await seedDb.UserSet.Where(u => u.Id == registered.User.Id)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.OrganizationId, (int?)null).SetProperty(x => x.IsPlatformAdmin, true));
+    }
 }
 
 if (app.Environment.IsDevelopment())

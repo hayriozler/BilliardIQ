@@ -25,6 +25,9 @@ public class DataContext : DbContext
     public DbSet<Region> RegionSet => Set<Region>();
     public DbSet<Country> CountrySet => Set<Country>();
     public DbSet<City> CitySet => Set<City>();
+    public DbSet<OrganizationCountry> OrganizationCountrySet => Set<OrganizationCountry>();
+    public DbSet<OrganizationCity> OrganizationCitySet => Set<OrganizationCity>();
+    public DbSet<OrganizationRegion> OrganizationRegionSet => Set<OrganizationRegion>();
     public DbSet<ClubMembership> ClubMembershipSet => Set<ClubMembership>();
     public DbSet<Team> TeamSet => Set<Team>();
     public DbSet<TeamMember> TeamMemberSet => Set<TeamMember>();
@@ -115,6 +118,7 @@ public class DataContext : DbContext
             e.HasIndex(u => u.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
             e.HasIndex(u => u.Phone).IsUnique().HasFilter("\"Phone\" IS NOT NULL");
             e.Property(u => u.Email).HasMaxLength(200);
+            e.HasOne(u => u.Organization).WithMany().HasForeignKey(u => u.OrganizationId);
             e.Property(u => u.DisplayName).HasMaxLength(200);
             e.HasOne(u => u.Player).WithOne(p => p.User).HasForeignKey<Player>(p => p.UserId);
         });
@@ -172,21 +176,41 @@ public class DataContext : DbContext
 
         modelBuilder.Entity<Country>(e =>
         {
+            e.Property(c => c.Code).HasMaxLength(2);
             e.Property(c => c.Name).HasMaxLength(100);
-            e.HasIndex(c => new { c.OrganizationId, c.Name }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+            e.HasIndex(c => c.Code).IsUnique();
         });
 
         modelBuilder.Entity<City>(e =>
         {
             e.Property(c => c.Name).HasMaxLength(100);
             e.HasOne(c => c.Country).WithMany(c => c.Cities).HasForeignKey(c => c.CountryId);
-            e.HasIndex(c => new { c.OrganizationId, c.CountryId, c.Name }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+            e.HasIndex(c => new { c.CountryId, c.Name }).IsUnique();
         });
 
         modelBuilder.Entity<Region>(e =>
         {
             e.Property(r => r.Name).HasMaxLength(150);
-            e.HasIndex(r => new { r.OrganizationId, r.Name }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+            e.HasOne(r => r.Country).WithMany().HasForeignKey(r => r.CountryId);
+            e.HasIndex(r => new { r.CountryId, r.Name }).IsUnique();
+        });
+
+        modelBuilder.Entity<OrganizationCountry>(e =>
+        {
+            e.HasOne(x => x.Country).WithMany().HasForeignKey(x => x.CountryId);
+            e.HasIndex(x => new { x.OrganizationId, x.CountryId }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        });
+
+        modelBuilder.Entity<OrganizationCity>(e =>
+        {
+            e.HasOne(x => x.City).WithMany().HasForeignKey(x => x.CityId);
+            e.HasIndex(x => new { x.OrganizationId, x.CityId }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        });
+
+        modelBuilder.Entity<OrganizationRegion>(e =>
+        {
+            e.HasOne(x => x.Region).WithMany().HasForeignKey(x => x.RegionId);
+            e.HasIndex(x => new { x.OrganizationId, x.RegionId }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
         });
 
         modelBuilder.Entity<Association>(e =>
@@ -302,9 +326,9 @@ public class DataContext : DbContext
         modelBuilder.Entity<BilliardTable>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<Device>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<Association>().HasQueryFilter(e => e.OrganizationId == _organizationId);
-        modelBuilder.Entity<Country>().HasQueryFilter(e => e.OrganizationId == _organizationId);
-        modelBuilder.Entity<City>().HasQueryFilter(e => e.OrganizationId == _organizationId);
-        modelBuilder.Entity<Region>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<OrganizationCountry>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<OrganizationCity>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<OrganizationRegion>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<Player>().HasQueryFilter(e => e.CreatedInOrganizationId == _organizationId || e.IsSystem);
         modelBuilder.Entity<Club>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<Team>().HasQueryFilter(e => e.HomeOrganizationId == _organizationId);
@@ -330,7 +354,7 @@ public class DataContext : DbContext
             foreach (var property in entityType.GetProperties().Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?)))
             {
                 var name = property.Name;
-                var threeDecimals = name.Contains("Average") || name.Contains("Rating") || name.Contains("Delta") || name.Contains("Quantity");
+                var threeDecimals = name.Contains("Average") || name.Contains("Rating") || name.Contains("Delta") || name.Contains("Quantity") || name == "Price" || name == "UnitPriceSnapshot";
                 property.SetPrecision(18);
                 property.SetScale(threeDecimals ? 3 : 2);
             }

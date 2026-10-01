@@ -14,25 +14,44 @@ public class GeoSeedService(DataContext db, OrganizationRunner runner)
 
     private static readonly string[] NetherlandsRegions = ["Groningen", "Friesland", "Drenthe", "Overijssel", "Flevoland", "Gelderland", "Utrecht", "Noord-Holland", "Zuid-Holland", "Zeeland", "Noord-Brabant", "Limburg"];
 
-    public async Task EnsureAsync(int organizationId)
+    public async Task EnsureDefinitionsAsync()
     {
-        var organization = await db.OrganizationSet.FirstAsync(o => o.Id == organizationId);
-        var home = CountryCatalog.Find(organization.CountryCode) ?? CountryCatalog.Find("TR")!;
-        var homeName = home.NameIn(organization.Language);
-
-        if (!await db.CountrySet.AnyAsync(c => c.OrganizationId == organization.Id))
+        foreach (var entry in CountryCatalog.All)
         {
-            var country = new Country { OrganizationId = organization.Id, Name = homeName };
-            db.CountrySet.Add(country);
-            var cities = home.Code switch { "TR" => TurkeyCities, "NL" => NetherlandsCities, _ => [] };
-            db.CitySet.AddRange(cities.Select(n => new City { OrganizationId = organization.Id, Country = country, Name = n }));
+            var country = await db.CountrySet.FirstOrDefaultAsync(c => c.Code == entry.Code);
+            if (country is null)
+            {
+                country = new Country { Code = entry.Code, Name = entry.En };
+                db.CountrySet.Add(country);
+                await db.SaveChangesAsync();
+            }
+
+            var cityNames = entry.Code switch { "TR" => TurkeyCities, "NL" => NetherlandsCities, _ => [] };
+            var existingCities = (await db.CitySet.Where(c => c.CountryId == country.Id).Select(c => c.Name).ToListAsync()).ToHashSet();
+            db.CitySet.AddRange(cityNames.Where(n => !existingCities.Contains(n)).Select(n => new City { CountryId = country.Id, Name = n }));
+
+            var regionNames = entry.Code switch { "TR" => TurkeyRegions, "NL" => NetherlandsRegions, _ => [] };
+            var existingRegions = (await db.RegionSet.Where(r => r.CountryId == country.Id).Select(r => r.Name).ToListAsync()).ToHashSet();
+            db.RegionSet.AddRange(regionNames.Where(n => !existingRegions.Contains(n)).Select(n => new Region { CountryId = country.Id, Name = n }));
+
             await db.SaveChangesAsync();
         }
+    }
 
-        if (!await db.RegionSet.AnyAsync(r => r.OrganizationId == organization.Id))
+    public async Task EnsureAsync(int organizationId)
+    {
+        await EnsureDefinitionsAsync();
+        var organization = await db.OrganizationSet.FirstAsync(o => o.Id == organizationId);
+        var home = CountryCatalog.Find(organization.CountryCode) ?? CountryCatalog.Find("TR")!;
+
+        if (!await db.OrganizationCountrySet.AnyAsync(x => x.OrganizationId == organization.Id))
         {
-            var regions = home.Code switch { "TR" => TurkeyRegions, "NL" => NetherlandsRegions, _ => [] };
-            db.RegionSet.AddRange(regions.Select(n => new Region { OrganizationId = organization.Id, Name = n }));
+            var country = await db.CountrySet.FirstAsync(c => c.Code == home.Code);
+            db.OrganizationCountrySet.Add(new OrganizationCountry { OrganizationId = organization.Id, CountryId = country.Id });
+            db.OrganizationCitySet.AddRange(await db.CitySet.Where(c => c.CountryId == country.Id)
+                .Select(c => new OrganizationCity { OrganizationId = organization.Id, CityId = c.Id }).ToListAsync());
+            db.OrganizationRegionSet.AddRange(await db.RegionSet.Where(r => r.CountryId == country.Id)
+                .Select(r => new OrganizationRegion { OrganizationId = organization.Id, RegionId = r.Id }).ToListAsync());
             await db.SaveChangesAsync();
         }
 
@@ -41,6 +60,7 @@ public class GeoSeedService(DataContext db, OrganizationRunner runner)
 
     public async Task EnsureAllAsync()
     {
+        await EnsureDefinitionsAsync();
         foreach (var organizationId in await db.OrganizationSet.Where(o => o.DeletedAt == null).Select(o => o.Id).ToListAsync())
         {
             await runner.RunAsync<GeoSeedService>(organizationId, seed => seed.EnsureAsync(organizationId));
@@ -57,28 +77,23 @@ public class GeoSeedService(DataContext db, OrganizationRunner runner)
             return;
         }
 
-        var countries = await db.CountrySet.Where(c => c.OrganizationId == organization.Id && c.DeletedAt == null).ToListAsync();
-        var cities = await db.CitySet.Where(c => c.OrganizationId == organization.Id && c.DeletedAt == null).ToListAsync();
+        var countries = await db.OrganizationCountrySet.Where(x => x.DeletedAt == null).Select(x => x.Country).ToListAsync();
+        var cities = await db.OrganizationCitySet.Where(x => x.DeletedAt == null).Select(x => x.City).ToListAsync();
         var compare = CultureInfo.InvariantCulture.CompareInfo;
         bool Same(string? a, string? b) => a is not null && b is not null &&
             compare.Compare(a.Trim(), b.Trim(), CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) == 0;
 
         foreach (var player in players)
         {
-            var country = countries.FirstOrDefault(c => Same(c.Name, player.Nationality));
-            if (country is null && CountryCatalog.All.FirstOrDefault(e => e.HasName(player.Nationality)) is { } entry)
-            {
-                var wanted = entry.NameIn(organization.Language);
-                country = countries.FirstOrDefault(c => Same(c.Name, wanted));
-            }
-
+            var code = CountryCatalog.All.FirstOrDefault(e => e.HasName(player.Nationality))?.Code;
+            var country = code is null ? null : countries.FirstOrDefault(c => c.Code == code);
             if (country is null)
             {
                 continue;
             }
 
             player.CountryId = country.Id;
-            player.Nationality = country.Name;
+            player.Nationality = CountryCatalog.Find(country.Code)!.NameIn(organization.Language);
             var city = cities.FirstOrDefault(c => c.CountryId == country.Id && Same(c.Name, player.City));
             if (city is not null)
             {
