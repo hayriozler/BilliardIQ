@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <UserSecretsId>59547513-7313-40f3-88ab-3e7c82edc87e</UserSecretsId>
   </PropertyGroup>
 
   <!-- publish-pi/ is git-ignored publish output (it can hold stray source copies); never compile it -->
