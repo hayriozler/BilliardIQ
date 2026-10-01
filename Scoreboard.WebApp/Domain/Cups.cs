@@ -16,6 +16,7 @@ public enum CupMatchStatus { Scheduled, Finished, Bye }
 
 public class Cup : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;
     public string? Description { get; set; }

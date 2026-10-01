@@ -1,11 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using Scoreboard.WebApp.Middlewares;
 using Scoreboard.WebApp.Models;
+using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Scoreboard.WebApp.Data;
 
-public class DataContext(DbContextOptions<DataContext> options) : DbContext(options)
+public class DataContext(DbContextOptions<DataContext> options, OrganizationScope? organizationScope = null) : DbContext(options)
 {
-    // Identity / organization
+    private int? ClientOrganizationId => organizationScope?.OrganizationId;
+
     public DbSet<User> UserSet => Set<User>();
     public DbSet<Organization> OrganizationSet => Set<Organization>();
     public DbSet<StaffMember> StaffMemberSet => Set<StaffMember>();
@@ -276,11 +280,9 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
             e.HasIndex(p => new { p.MatchId, p.Side }).IsUnique();
         });
 
-        // ---------- stats ----------
         modelBuilder.Entity<PlayerStats>(e => e.HasKey(s => new { s.PlayerId, s.Discipline, s.Scope }));
         modelBuilder.Entity<PlayerOrganizationStats>(e => e.HasKey(s => new { s.PlayerId, s.OrganizationId, s.Discipline }));
 
-        // ---------- legacy kiosk sync ----------
         modelBuilder.Entity<MatchStat>(e =>
         {
             e.Property(s => s.Player1Name).HasMaxLength(100);
@@ -300,7 +302,11 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
         // ---------- conventions ----------
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            // History matters more than cascades: deletes are explicit (or soft, via DeletedAt).
+            if (entityType.BaseType is null && !entityType.IsOwned())
+            {
+                entityType.SetTableName(entityType.ClrType.Name);
+            }
+
             foreach (var fk in entityType.GetForeignKeys().Where(f => !f.IsOwnership))
             {
                 fk.DeleteBehavior = DeleteBehavior.Restrict;
@@ -313,6 +319,43 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
                 property.SetPrecision(18);
                 property.SetScale(threeDecimals ? 3 : 2);
             }
+        }
+
+        ApplyGlobalFilters(modelBuilder);
+    }
+
+    private void ApplyGlobalFilters(ModelBuilder modelBuilder)
+    {
+        var scope = Expression.Property(Expression.Constant(this), nameof(ClientOrganizationId));
+        var noScope = Expression.Equal(scope, Expression.Constant(null, typeof(int?)));
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes().Where(t => t.BaseType is null && !t.IsOwned()))
+        {
+            var clr = entityType.ClrType;
+            var classFilter = clr.GetCustomAttribute<GlobalFilterAttribute>();
+            var column = classFilter?.Property is { } name
+                ? clr.GetProperty(name)
+                : clr.GetProperties().FirstOrDefault(p => p.IsDefined(typeof(GlobalFilterAttribute)));
+            if (column is null)
+            {
+                continue;
+            }
+
+            var filter = classFilter ?? column.GetCustomAttribute<GlobalFilterAttribute>()!;
+            var e = Expression.Parameter(clr, "e");
+            var value = Expression.Convert(Expression.Property(e, column), typeof(int?));
+            Expression visible = Expression.Equal(value, scope);
+            if (filter.IncludeNull)
+            {
+                visible = Expression.OrElse(visible, Expression.Equal(value, Expression.Constant(null, typeof(int?))));
+            }
+
+            if (filter.IncludeWhen is { } flag)
+            {
+                visible = Expression.OrElse(visible, Expression.Property(e, flag));
+            }
+
+            modelBuilder.Entity(clr).HasQueryFilter(Expression.Lambda(Expression.OrElse(noScope, visible), e));
         }
     }
 

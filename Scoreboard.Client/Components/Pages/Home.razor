@@ -8,6 +8,7 @@
 @inject BoardSessionGuard BoardSession
 @inject BoardSessionTracker BoardTracker
 @inject LanguageSync LanguageSync
+@inject Microsoft.Extensions.Options.IOptions<RemoteSyncOptions> SyncOptions
 @using Scoreboard.Client.Models
 @using Scoreboard.Client.Services
 @using Microsoft.AspNetCore.Components.Web
@@ -32,6 +33,10 @@ else
         </div>
 
         <div class="header-title-group">
+            @if (!string.IsNullOrEmpty(_organizationName))
+            {
+                <div class="header-org">@_organizationName</div>
+            }
             <h1 class="title">@L.T("Title")</h1>
             <div class="balls" aria-hidden="true">
                 <span class="ball yellow"></span>
@@ -346,11 +351,26 @@ else
     private bool _boardOccupiedElsewhere;
 
     private void OnServerLanguageChanged() =>
-        _ = InvokeAsync(() =>
+        _ = InvokeAsync(async () =>
         {
+            await LoadOrganizationNameAsync();
             UpdateDefaultPlayers();
             StateHasChanged();
         });
+
+    private string? _organizationName;
+
+    private async Task LoadOrganizationNameAsync()
+    {
+        if (!SyncOptions.Value.IsConfigured)
+        {
+            _organizationName = null;
+            return;
+        }
+
+        _organizationName = await DbContext.SettingsSet.AsNoTracking()
+            .Where(s => s.Id == "OrgName").Select(s => s.Value).FirstOrDefaultAsync();
+    }
 
     private void TakeOverBoard() => Nav.NavigateTo("/?takeover=1", forceLoad: true);
     private Guid _sessionId;
@@ -371,6 +391,7 @@ else
 
         BoardTracker.SessionId = _sessionId;
         LanguageSync.Changed += OnServerLanguageChanged;
+        await LoadOrganizationNameAsync();
         UpdateDefaultPlayers();
         _ = RunShotClockAsync(_shotClockCts.Token);
         var game = await DbContext.ScoreboardStateSet.Where(p => p.Id == 1).FirstOrDefaultAsync();

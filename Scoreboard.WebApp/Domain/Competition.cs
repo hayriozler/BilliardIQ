@@ -4,6 +4,7 @@ namespace Scoreboard.WebApp.Domain;
 
 public class Tournament : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;
     public string Slug { get; set; } = default!;
@@ -104,6 +105,7 @@ public class StageStanding : BaseEntity
 
 public class League : BaseEntity
 {
+    [GlobalFilter(IncludeNull = true)]
     public int? OrganizationId { get; set; }    // federasyon ligi → null
     public string Name { get; set; } = default!; // 'İstanbul 3 Bant Takım Ligi'
     public Discipline Discipline { get; set; }
@@ -158,6 +160,7 @@ public class TeamFixture : BaseEntity
     public int Round { get; set; }               // hafta
     public int HomeTeamId { get; set; }
     public int AwayTeamId { get; set; }
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public DateTimeOffset ScheduledAt { get; set; }
     public FixtureStatus Status { get; set; }

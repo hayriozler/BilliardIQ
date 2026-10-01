@@ -11,14 +11,10 @@ public static class PlayersEndpoints
 {
     public static RouteGroupBuilder MapPlayersEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/players").WithTags("Players");
+        var group = app.MapGroup("/api/players").WithTags("Players").RequireAuthorization();
 
-        group.MapGet("/", async (PlayerService players, DataContext db, HttpContext context) =>
-        {
-            var organizationId = context.GetOrganizationId();
-            var language = await db.OrganizationSet.Where(o => o.Id == organizationId).Select(o => o.Language).FirstAsync();
-            return (await players.ListForOrganizationAsync(organizationId)).Select(p => ToDto(p, language)).ToList();
-        });
+        group.MapGet("/", (ScoreboardDataService data) =>
+            data.ListPlayersAsync());
 
         group.MapPost("/", async (UpsertPlayerRequest request, PlayerService players, DataContext db, HttpContext context) =>
         {

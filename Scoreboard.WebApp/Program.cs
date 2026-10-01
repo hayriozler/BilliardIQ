@@ -36,8 +36,10 @@ builder.Services.AddScoped<StatsService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ClientIdService>();
 builder.Services.AddScoped<SystemPlayerService>();
+builder.Services.AddScoped<ScoreboardDataService>();
+builder.Services.AddScoped<OrganizationScope>();
 builder.Services.AddScoped<TenantContext>();
-builder.Services.AddSingleton<ScopedRunner>();
+builder.Services.AddScoped<ScopedRunner>();
 
 builder.Services.AddCors(options =>
     options.AddPolicy(clientCorsPolicy, policy => policy
@@ -143,6 +145,16 @@ app.MapStaticAssets();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true && context.User.FindFirst(AuthClaims.OrganizationId) is { } claim)
+    {
+        context.RequestServices.GetRequiredService<OrganizationScope>().OrganizationId = int.Parse(claim.Value);
+    }
+
+    await next();
+});
+
 app.UseMiddleware<ClientIdMiddleware>();
 
 app.MapClubsEndpoints();
@@ -151,11 +163,18 @@ app.MapMatchStatsEndpoints();
 app.MapTeamsEndpoints();
 app.MapAuthEndpoints();
 app.MapOrganizationEndpoints();
+app.MapScoreboardEndpoints();
 
-app.MapPost("/culture", (HttpContext context, [FromForm] string lang, [FromForm] string? returnUrl) =>
+app.MapPost("/culture", async (HttpContext context, DataContext db, [FromForm] string lang, [FromForm] string? returnUrl) =>
 {
     if (Loc.Languages.Any(l => l.Code == lang))
     {
+        if (context.User.Identity?.IsAuthenticated == true && context.User.FindFirst(AuthClaims.OrganizationId) is not null)
+        {
+            var organizationId = context.User.GetOrganizationId();
+            await db.OrganizationSet.Where(o => o.Id == organizationId).ExecuteUpdateAsync(o => o.SetProperty(x => x.Language, lang));
+        }
+
         context.Response.Cookies.Append(
             CookieRequestCultureProvider.DefaultCookieName,
             CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(lang)),

@@ -3,6 +3,7 @@ namespace Scoreboard.WebApp.Domain;
 /// <summary>Salonun tanımladığı dernek / federasyon. Oyuncular listeden seçer, serbest metin yazılmaz.</summary>
 public class Association : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;
 
@@ -12,6 +13,7 @@ public class Association : BaseEntity, ITenantScoped
 /// <summary>Salonun tanımladığı ülke. Oyuncular listeden seçer.</summary>
 public class Country : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;
 
@@ -22,6 +24,7 @@ public class Country : BaseEntity, ITenantScoped
 /// <summary>Salonun tanımladığı şehir; bir ülkeye bağlıdır.</summary>
 public class City : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int CountryId { get; set; }
     public string Name { get; set; } = default!;
@@ -33,6 +36,7 @@ public class City : BaseEntity, ITenantScoped
 /// <summary>Salonun tanımladığı bölge (ör. federasyon bölgesi). Oyuncular listeden seçer.</summary>
 public class Region : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;
 
@@ -64,6 +68,7 @@ public class Player : BaseEntity
     public string? UmbPlayerId { get; set; }
     public int? DefaultTargetPoints { get; set; }    // serbest maç handikapı
     public bool IsGuest { get; set; }
+    [GlobalFilter(IncludeWhen = nameof(IsSystem))]
     public int? CreatedInOrganizationId { get; set; }
     public bool IsPublicProfile { get; set; }
     public string? Email { get; set; }
@@ -87,6 +92,7 @@ public class Player : BaseEntity
 
 public class Club : BaseEntity
 {
+    [GlobalFilter]
     public int? OrganizationId { get; set; }    // bağımsız kulüp olabilir
     public string Name { get; set; } = default!;
     public string ShortName { get; set; } = default!; // scoreboard: 'KBSK'
@@ -121,6 +127,7 @@ public class Team : BaseEntity
     public string Name { get; set; } = default!;      // 'Kadıköy BSK A'
     public string ShortName { get; set; } = default!;
     public int? SeasonId { get; set; }               // kadro sezona bağlı
+    [GlobalFilter]
     public int? HomeOrganizationId { get; set; }
     public string? LogoUrl { get; set; }
     public int? AvatarId { get; set; }               // hazır avatar galerisinden seçilen avatar
@@ -147,6 +154,7 @@ public class TeamMember : BaseEntity
 /// <summary>Salon müşteri üyeliği (kulüp üyeliğinden bağımsız)</summary>
 public class CustomerMembership : BaseEntity
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int PlayerId { get; set; }
     public string MemberNo { get; set; } = default!;

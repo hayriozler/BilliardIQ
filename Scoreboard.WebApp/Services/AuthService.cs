@@ -15,6 +15,12 @@ public class AuthService(DataContext db, ClientIdService clientIds, GeoSeedServi
 
     public async Task<LoginResult?> LoginAsync(string email, string password)
     {
+        var user = await VerifyAsync(email, password);
+        return user is null ? null : await LoginToAsync(user.Id, null);
+    }
+
+    public async Task<User?> VerifyAsync(string email, string password)
+    {
         email = NormalizeEmail(email);
         if (email.Length == 0 || string.IsNullOrEmpty(password))
         {
@@ -36,13 +42,28 @@ public class AuthService(DataContext db, ClientIdService clientIds, GeoSeedServi
         if (verification == PasswordVerificationResult.SuccessRehashNeeded)
         {
             user.PasswordHash = _hasher.HashPassword(user, password);
+            await db.SaveChangesAsync();
         }
 
-        var staff = await db.StaffMemberSet
+        return user;
+    }
+
+    public Task<List<StaffMember>> MembershipsAsync(int userId) =>
+        db.StaffMemberSet
             .Include(s => s.Organization)
-            .Where(s => s.UserId == user.Id && s.IsActive && s.Organization.IsActive && s.DeletedAt == null)
-            .OrderBy(s => s.Id)
-            .FirstOrDefaultAsync();
+            .Where(s => s.UserId == userId && s.IsActive && s.Organization.IsActive && s.DeletedAt == null)
+            .OrderBy(s => s.Organization.Name)
+            .ToListAsync();
+
+    public async Task<LoginResult?> LoginToAsync(int userId, int? organizationId)
+    {
+        var user = await db.UserSet.FirstOrDefaultAsync(u => u.Id == userId && u.Status == UserStatus.Active);
+        if (user is null)
+        {
+            return null;
+        }
+
+        var staff = (await MembershipsAsync(userId)).FirstOrDefault(s => organizationId is null || s.OrganizationId == organizationId);
         if (staff is null)
         {
             return null;

@@ -1,3 +1,4 @@
+using Scoreboard.WebApp.Domain;
 namespace Scoreboard.WebApp.Models;
 
 /// <summary>
@@ -7,6 +8,7 @@ namespace Scoreboard.WebApp.Models;
 public class MatchStat
 {
     public int Id { get; set; }
+    [GlobalFilter]
     public int? OrganizationId { get; set; }
     public Organization? Organization { get; set; }
     public int? TableId { get; set; }

@@ -106,6 +106,15 @@
     flex: 0 0 auto;
 }
 
+.header-org {
+    font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--label-gray);
+    white-space: nowrap;
+}
+
 .title {
     margin: 0;
     font-size: clamp(1.6rem, 3.8vw, 3rem);

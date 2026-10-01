@@ -14,7 +14,7 @@ namespace Scoreboard.WebApp.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "AuditLogSet",
+                name: "AuditLog",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -32,11 +32,11 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AuditLogSet", x => x.Id);
+                    table.PrimaryKey("PK_AuditLog", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "LeagueSet",
+                name: "League",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -52,11 +52,11 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LeagueSet", x => x.Id);
+                    table.PrimaryKey("PK_League", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "RuleSetSet",
+                name: "RuleSet",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -82,11 +82,11 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RuleSetSet", x => x.Id);
+                    table.PrimaryKey("PK_RuleSet", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "UserSet",
+                name: "User",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -106,11 +106,11 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserSet", x => x.Id);
+                    table.PrimaryKey("PK_User", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "OrganizationSet",
+                name: "Organization",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -118,6 +118,7 @@ namespace Scoreboard.WebApp.Data.Migrations
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Slug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    ClientId = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     LegalName = table.Column<string>(type: "text", nullable: true),
                     TaxNumber = table.Column<string>(type: "text", nullable: true),
                     TaxOffice = table.Column<string>(type: "text", nullable: true),
@@ -126,6 +127,8 @@ namespace Scoreboard.WebApp.Data.Migrations
                     LogoUrl = table.Column<string>(type: "text", nullable: true),
                     CoverImageUrl = table.Column<string>(type: "text", nullable: true),
                     TimeZone = table.Column<string>(type: "text", nullable: false),
+                    Language = table.Column<string>(type: "character varying(5)", maxLength: 5, nullable: false),
+                    CountryCode = table.Column<string>(type: "character varying(2)", maxLength: 2, nullable: true),
                     Currency = table.Column<string>(type: "text", nullable: false),
                     BillingRoundingMinutes = table.Column<int>(type: "integer", nullable: false),
                     MinimumBillableMinutes = table.Column<int>(type: "integer", nullable: false),
@@ -141,17 +144,17 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_OrganizationSet", x => x.Id);
+                    table.PrimaryKey("PK_Organization", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_OrganizationSet_RuleSetSet_DefaultRuleSetId",
+                        name: "FK_Organization_RuleSet_DefaultRuleSetId",
                         column: x => x.DefaultRuleSetId,
-                        principalTable: "RuleSetSet",
+                        principalTable: "RuleSet",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "SeasonSet",
+                name: "Season",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -172,64 +175,46 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SeasonSet", x => x.Id);
+                    table.PrimaryKey("PK_Season", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_SeasonSet_LeagueSet_LeagueId",
+                        name: "FK_Season_League_LeagueId",
                         column: x => x.LeagueId,
-                        principalTable: "LeagueSet",
+                        principalTable: "League",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_SeasonSet_RuleSetSet_RuleSetId",
+                        name: "FK_Season_RuleSet_RuleSetId",
                         column: x => x.RuleSetId,
-                        principalTable: "RuleSetSet",
+                        principalTable: "RuleSet",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "PlayerSet",
+                name: "Association",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserId = table.Column<int>(type: "integer", nullable: true),
-                    FirstName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    LastName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Nickname = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    DisplayName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    BirthDate = table.Column<DateOnly>(type: "date", nullable: true),
-                    Gender = table.Column<int>(type: "integer", nullable: true),
-                    Nationality = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    PhotoUrl = table.Column<string>(type: "text", nullable: true),
-                    Handedness = table.Column<int>(type: "integer", nullable: true),
-                    FederationLicenseNo = table.Column<string>(type: "text", nullable: true),
-                    UmbPlayerId = table.Column<string>(type: "text", nullable: true),
-                    DefaultTargetPoints = table.Column<int>(type: "integer", nullable: true),
-                    IsGuest = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedInOrganizationId = table.Column<int>(type: "integer", nullable: true),
-                    IsPublicProfile = table.Column<bool>(type: "boolean", nullable: false),
-                    Email = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    City = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    AvatarId = table.Column<int>(type: "integer", nullable: true),
-                    Level = table.Column<int>(type: "integer", nullable: false),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PlayerSet", x => x.Id);
+                    table.PrimaryKey("PK_Association", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_PlayerSet_UserSet_UserId",
-                        column: x => x.UserId,
-                        principalTable: "UserSet",
+                        name: "FK_Association_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "CashRegisterShiftSet",
+                name: "CashRegisterShift",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -250,17 +235,17 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CashRegisterShiftSet", x => x.Id);
+                    table.PrimaryKey("PK_CashRegisterShift", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CashRegisterShiftSet_OrganizationSet_OrganizationId",
+                        name: "FK_CashRegisterShift_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "ClubSet",
+                name: "Club",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -280,17 +265,70 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ClubSet", x => x.Id);
+                    table.PrimaryKey("PK_Club", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ClubSet_OrganizationSet_OrganizationId",
+                        name: "FK_Club_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "PricingRuleSet",
+                name: "Country",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Country", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Country_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Cup",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    StartDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    EndDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    Format = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    MaxInnings = table.Column<int>(type: "integer", nullable: true),
+                    TotalRounds = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Cup", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Cup_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PricingRule",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -310,17 +348,17 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PricingRuleSet", x => x.Id);
+                    table.PrimaryKey("PK_PricingRule", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_PricingRuleSet_OrganizationSet_OrganizationId",
+                        name: "FK_PricingRule_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProductCategorySet",
+                name: "ProductCategory",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -334,17 +372,40 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProductCategorySet", x => x.Id);
+                    table.PrimaryKey("PK_ProductCategory", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ProductCategorySet_OrganizationSet_OrganizationId",
+                        name: "FK_ProductCategory_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "StaffMemberSet",
+                name: "Region",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Region", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Region_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StaffMember",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -361,23 +422,23 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_StaffMemberSet", x => x.Id);
+                    table.PrimaryKey("PK_StaffMember", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_StaffMemberSet_OrganizationSet_OrganizationId",
+                        name: "FK_StaffMember_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_StaffMemberSet_UserSet_UserId",
+                        name: "FK_StaffMember_User_UserId",
                         column: x => x.UserId,
-                        principalTable: "UserSet",
+                        principalTable: "User",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "TournamentSet",
+                name: "Tournament",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -405,163 +466,23 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TournamentSet", x => x.Id);
+                    table.PrimaryKey("PK_Tournament", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TournamentSet_OrganizationSet_OrganizationId",
+                        name: "FK_Tournament_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TournamentSet_RuleSetSet_DefaultRuleSetId",
+                        name: "FK_Tournament_RuleSet_DefaultRuleSetId",
                         column: x => x.DefaultRuleSetId,
-                        principalTable: "RuleSetSet",
+                        principalTable: "RuleSet",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "CustomerMembershipSet",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
-                    PlayerId = table.Column<int>(type: "integer", nullable: false),
-                    MemberNo = table.Column<string>(type: "text", nullable: false),
-                    Tier = table.Column<int>(type: "integer", nullable: false),
-                    DiscountPercent = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    PrepaidBalance = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    PrepaidMinutes = table.Column<int>(type: "integer", nullable: true),
-                    ValidFrom = table.Column<DateOnly>(type: "date", nullable: false),
-                    ValidUntil = table.Column<DateOnly>(type: "date", nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    Notes = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CustomerMembershipSet", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_CustomerMembershipSet_OrganizationSet_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_CustomerMembershipSet_PlayerSet_PlayerId",
-                        column: x => x.PlayerId,
-                        principalTable: "PlayerSet",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PlayerOrganizationStatsSet",
-                columns: table => new
-                {
-                    PlayerId = table.Column<int>(type: "integer", nullable: false),
-                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
-                    Discipline = table.Column<int>(type: "integer", nullable: false),
-                    MatchesPlayed = table.Column<int>(type: "integer", nullable: false),
-                    Wins = table.Column<int>(type: "integer", nullable: false),
-                    Draws = table.Column<int>(type: "integer", nullable: false),
-                    Losses = table.Column<int>(type: "integer", nullable: false),
-                    TotalScore = table.Column<int>(type: "integer", nullable: false),
-                    TotalInnings = table.Column<int>(type: "integer", nullable: false),
-                    GeneralAverage = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
-                    BestGameAverage = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
-                    HighRun = table.Column<int>(type: "integer", nullable: false),
-                    TotalPlayMinutes = table.Column<int>(type: "integer", nullable: false),
-                    LastPlayedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PlayerOrganizationStatsSet", x => new { x.PlayerId, x.OrganizationId, x.Discipline });
-                    table.ForeignKey(
-                        name: "FK_PlayerOrganizationStatsSet_OrganizationSet_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PlayerOrganizationStatsSet_PlayerSet_PlayerId",
-                        column: x => x.PlayerId,
-                        principalTable: "PlayerSet",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PlayerStatsSet",
-                columns: table => new
-                {
-                    PlayerId = table.Column<int>(type: "integer", nullable: false),
-                    Discipline = table.Column<int>(type: "integer", nullable: false),
-                    Scope = table.Column<int>(type: "integer", nullable: false),
-                    MatchesPlayed = table.Column<int>(type: "integer", nullable: false),
-                    Wins = table.Column<int>(type: "integer", nullable: false),
-                    Draws = table.Column<int>(type: "integer", nullable: false),
-                    Losses = table.Column<int>(type: "integer", nullable: false),
-                    TotalScore = table.Column<int>(type: "integer", nullable: false),
-                    TotalInnings = table.Column<int>(type: "integer", nullable: false),
-                    GeneralAverage = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
-                    BestGameAverage = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
-                    BestGameAverageMatchId = table.Column<int>(type: "integer", nullable: true),
-                    HighRun = table.Column<int>(type: "integer", nullable: false),
-                    HighRunMatchId = table.Column<int>(type: "integer", nullable: true),
-                    Last10Average = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PlayerStatsSet", x => new { x.PlayerId, x.Discipline, x.Scope });
-                    table.ForeignKey(
-                        name: "FK_PlayerStatsSet_PlayerSet_PlayerId",
-                        column: x => x.PlayerId,
-                        principalTable: "PlayerSet",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ClubMembershipSet",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ClubId = table.Column<int>(type: "integer", nullable: false),
-                    PlayerId = table.Column<int>(type: "integer", nullable: false),
-                    Role = table.Column<int>(type: "integer", nullable: false),
-                    LicenseSeason = table.Column<string>(type: "text", nullable: true),
-                    JoinedAt = table.Column<DateOnly>(type: "date", nullable: false),
-                    LeftAt = table.Column<DateOnly>(type: "date", nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ClubMembershipSet", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ClubMembershipSet_ClubSet_ClubId",
-                        column: x => x.ClubId,
-                        principalTable: "ClubSet",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ClubMembershipSet_PlayerSet_PlayerId",
-                        column: x => x.PlayerId,
-                        principalTable: "PlayerSet",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "TeamSet",
+                name: "Team",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -572,35 +493,92 @@ namespace Scoreboard.WebApp.Data.Migrations
                     SeasonId = table.Column<int>(type: "integer", nullable: true),
                     HomeOrganizationId = table.Column<int>(type: "integer", nullable: true),
                     LogoUrl = table.Column<string>(type: "text", nullable: true),
+                    AvatarId = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TeamSet", x => x.Id);
+                    table.PrimaryKey("PK_Team", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TeamSet_ClubSet_ClubId",
+                        name: "FK_Team_Club_ClubId",
                         column: x => x.ClubId,
-                        principalTable: "ClubSet",
+                        principalTable: "Club",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TeamSet_OrganizationSet_HomeOrganizationId",
+                        name: "FK_Team_Organization_HomeOrganizationId",
                         column: x => x.HomeOrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TeamSet_SeasonSet_SeasonId",
+                        name: "FK_Team_Season_SeasonId",
                         column: x => x.SeasonId,
-                        principalTable: "SeasonSet",
+                        principalTable: "Season",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProductSet",
+                name: "City",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    CountryId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_City", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_City_Country_CountryId",
+                        column: x => x.CountryId,
+                        principalTable: "Country",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_City_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CupRuleBlock",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CupId = table.Column<int>(type: "integer", nullable: false),
+                    FromRound = table.Column<int>(type: "integer", nullable: false),
+                    ToRound = table.Column<int>(type: "integer", nullable: false),
+                    Mode = table.Column<int>(type: "integer", nullable: false),
+                    FixedTarget = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CupRuleBlock", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CupRuleBlock_Cup_CupId",
+                        column: x => x.CupId,
+                        principalTable: "Cup",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Product",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -621,66 +599,23 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProductSet", x => x.Id);
+                    table.PrimaryKey("PK_Product", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ProductSet_OrganizationSet_OrganizationId",
+                        name: "FK_Product_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ProductSet_ProductCategorySet_CategoryId",
+                        name: "FK_Product_ProductCategory_CategoryId",
                         column: x => x.CategoryId,
-                        principalTable: "ProductCategorySet",
+                        principalTable: "ProductCategory",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "TournamentEntrySet",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    TournamentId = table.Column<int>(type: "integer", nullable: false),
-                    PlayerId = table.Column<int>(type: "integer", nullable: false),
-                    ClubId = table.Column<int>(type: "integer", nullable: true),
-                    Seed = table.Column<int>(type: "integer", nullable: true),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    HandicapTargetPoints = table.Column<int>(type: "integer", nullable: true),
-                    EntryAverage = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: true),
-                    FeePaid = table.Column<bool>(type: "boolean", nullable: false),
-                    FinalRank = table.Column<int>(type: "integer", nullable: true),
-                    PrizeAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TournamentEntrySet", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_TournamentEntrySet_ClubSet_ClubId",
-                        column: x => x.ClubId,
-                        principalTable: "ClubSet",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_TournamentEntrySet_PlayerSet_PlayerId",
-                        column: x => x.PlayerId,
-                        principalTable: "PlayerSet",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_TournamentEntrySet_TournamentSet_TournamentId",
-                        column: x => x.TournamentId,
-                        principalTable: "TournamentSet",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "TournamentStageSet",
+                name: "TournamentStage",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -699,23 +634,23 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TournamentStageSet", x => x.Id);
+                    table.PrimaryKey("PK_TournamentStage", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TournamentStageSet_RuleSetSet_RuleSetId",
+                        name: "FK_TournamentStage_RuleSet_RuleSetId",
                         column: x => x.RuleSetId,
-                        principalTable: "RuleSetSet",
+                        principalTable: "RuleSet",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TournamentStageSet_TournamentSet_TournamentId",
+                        name: "FK_TournamentStage_Tournament_TournamentId",
                         column: x => x.TournamentId,
-                        principalTable: "TournamentSet",
+                        principalTable: "Tournament",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "SeasonTeamSet",
+                name: "SeasonTeam",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -737,23 +672,23 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SeasonTeamSet", x => x.Id);
+                    table.PrimaryKey("PK_SeasonTeam", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_SeasonTeamSet_SeasonSet_SeasonId",
+                        name: "FK_SeasonTeam_Season_SeasonId",
                         column: x => x.SeasonId,
-                        principalTable: "SeasonSet",
+                        principalTable: "Season",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_SeasonTeamSet_TeamSet_TeamId",
+                        name: "FK_SeasonTeam_Team_TeamId",
                         column: x => x.TeamId,
-                        principalTable: "TeamSet",
+                        principalTable: "Team",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "TeamFixtureSet",
+                name: "TeamFixture",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -778,41 +713,311 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TeamFixtureSet", x => x.Id);
+                    table.PrimaryKey("PK_TeamFixture", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TeamFixtureSet_OrganizationSet_OrganizationId",
+                        name: "FK_TeamFixture_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TeamFixtureSet_SeasonSet_SeasonId",
+                        name: "FK_TeamFixture_Season_SeasonId",
                         column: x => x.SeasonId,
-                        principalTable: "SeasonSet",
+                        principalTable: "Season",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TeamFixtureSet_TeamSet_AwayTeamId",
+                        name: "FK_TeamFixture_Team_AwayTeamId",
                         column: x => x.AwayTeamId,
-                        principalTable: "TeamSet",
+                        principalTable: "Team",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TeamFixtureSet_TeamSet_HomeTeamId",
+                        name: "FK_TeamFixture_Team_HomeTeamId",
                         column: x => x.HomeTeamId,
-                        principalTable: "TeamSet",
+                        principalTable: "Team",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TeamFixtureSet_UserSet_RefereeId",
+                        name: "FK_TeamFixture_User_RefereeId",
                         column: x => x.RefereeId,
-                        principalTable: "UserSet",
+                        principalTable: "User",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "TeamMemberSet",
+                name: "Player",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<int>(type: "integer", nullable: true),
+                    FirstName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    LastName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Nickname = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    ShortcutNumber = table.Column<int>(type: "integer", nullable: true),
+                    DisplayName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    BirthDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    Gender = table.Column<int>(type: "integer", nullable: true),
+                    Nationality = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    PhotoUrl = table.Column<string>(type: "text", nullable: true),
+                    Handedness = table.Column<int>(type: "integer", nullable: true),
+                    FederationLicenseNo = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    LicenseValidUntil = table.Column<DateOnly>(type: "date", nullable: true),
+                    AssociationId = table.Column<int>(type: "integer", nullable: true),
+                    RegionId = table.Column<int>(type: "integer", nullable: true),
+                    CountryId = table.Column<int>(type: "integer", nullable: true),
+                    CityId = table.Column<int>(type: "integer", nullable: true),
+                    IsSystem = table.Column<bool>(type: "boolean", nullable: false),
+                    SystemSlot = table.Column<int>(type: "integer", nullable: true),
+                    UmbPlayerId = table.Column<string>(type: "text", nullable: true),
+                    DefaultTargetPoints = table.Column<int>(type: "integer", nullable: true),
+                    IsGuest = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedInOrganizationId = table.Column<int>(type: "integer", nullable: true),
+                    IsPublicProfile = table.Column<bool>(type: "boolean", nullable: false),
+                    Email = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    City = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    AvatarId = table.Column<int>(type: "integer", nullable: true),
+                    Level = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Player", x => x.Id);
+                    table.CheckConstraint("CK_PlayerSet_ReservedIds", "\"IsSystem\" OR \"Id\" > 2");
+                    table.ForeignKey(
+                        name: "FK_Player_Association_AssociationId",
+                        column: x => x.AssociationId,
+                        principalTable: "Association",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Player_City_CityId",
+                        column: x => x.CityId,
+                        principalTable: "City",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Player_Country_CountryId",
+                        column: x => x.CountryId,
+                        principalTable: "Country",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Player_Region_RegionId",
+                        column: x => x.RegionId,
+                        principalTable: "Region",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Player_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StageGroup",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    StageId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Order = table.Column<int>(type: "integer", nullable: false),
+                    TableIds = table.Column<List<int>>(type: "integer[]", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StageGroup", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StageGroup_TournamentStage_StageId",
+                        column: x => x.StageId,
+                        principalTable: "TournamentStage",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ClubMembership",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ClubId = table.Column<int>(type: "integer", nullable: false),
+                    PlayerId = table.Column<int>(type: "integer", nullable: false),
+                    Role = table.Column<int>(type: "integer", nullable: false),
+                    LicenseSeason = table.Column<string>(type: "text", nullable: true),
+                    JoinedAt = table.Column<DateOnly>(type: "date", nullable: false),
+                    LeftAt = table.Column<DateOnly>(type: "date", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClubMembership", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ClubMembership_Club_ClubId",
+                        column: x => x.ClubId,
+                        principalTable: "Club",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ClubMembership_Player_PlayerId",
+                        column: x => x.PlayerId,
+                        principalTable: "Player",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CupParticipant",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CupId = table.Column<int>(type: "integer", nullable: false),
+                    PlayerId = table.Column<int>(type: "integer", nullable: false),
+                    HandicapTarget = table.Column<int>(type: "integer", nullable: true),
+                    Seed = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CupParticipant", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CupParticipant_Cup_CupId",
+                        column: x => x.CupId,
+                        principalTable: "Cup",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CupParticipant_Player_PlayerId",
+                        column: x => x.PlayerId,
+                        principalTable: "Player",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CustomerMembership",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    PlayerId = table.Column<int>(type: "integer", nullable: false),
+                    MemberNo = table.Column<string>(type: "text", nullable: false),
+                    Tier = table.Column<int>(type: "integer", nullable: false),
+                    DiscountPercent = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    PrepaidBalance = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    PrepaidMinutes = table.Column<int>(type: "integer", nullable: true),
+                    ValidFrom = table.Column<DateOnly>(type: "date", nullable: false),
+                    ValidUntil = table.Column<DateOnly>(type: "date", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    Notes = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CustomerMembership", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CustomerMembership_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CustomerMembership_Player_PlayerId",
+                        column: x => x.PlayerId,
+                        principalTable: "Player",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PlayerOrganizationStats",
+                columns: table => new
+                {
+                    PlayerId = table.Column<int>(type: "integer", nullable: false),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    Discipline = table.Column<int>(type: "integer", nullable: false),
+                    MatchesPlayed = table.Column<int>(type: "integer", nullable: false),
+                    Wins = table.Column<int>(type: "integer", nullable: false),
+                    Draws = table.Column<int>(type: "integer", nullable: false),
+                    Losses = table.Column<int>(type: "integer", nullable: false),
+                    TotalScore = table.Column<int>(type: "integer", nullable: false),
+                    TotalInnings = table.Column<int>(type: "integer", nullable: false),
+                    GeneralAverage = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
+                    BestGameAverage = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
+                    HighRun = table.Column<int>(type: "integer", nullable: false),
+                    TotalPlayMinutes = table.Column<int>(type: "integer", nullable: false),
+                    LastPlayedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PlayerOrganizationStats", x => new { x.PlayerId, x.OrganizationId, x.Discipline });
+                    table.ForeignKey(
+                        name: "FK_PlayerOrganizationStats_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PlayerOrganizationStats_Player_PlayerId",
+                        column: x => x.PlayerId,
+                        principalTable: "Player",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PlayerStats",
+                columns: table => new
+                {
+                    PlayerId = table.Column<int>(type: "integer", nullable: false),
+                    Discipline = table.Column<int>(type: "integer", nullable: false),
+                    Scope = table.Column<int>(type: "integer", nullable: false),
+                    MatchesPlayed = table.Column<int>(type: "integer", nullable: false),
+                    Wins = table.Column<int>(type: "integer", nullable: false),
+                    Draws = table.Column<int>(type: "integer", nullable: false),
+                    Losses = table.Column<int>(type: "integer", nullable: false),
+                    TotalScore = table.Column<int>(type: "integer", nullable: false),
+                    TotalInnings = table.Column<int>(type: "integer", nullable: false),
+                    GeneralAverage = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
+                    BestGameAverage = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
+                    BestGameAverageMatchId = table.Column<int>(type: "integer", nullable: true),
+                    HighRun = table.Column<int>(type: "integer", nullable: false),
+                    HighRunMatchId = table.Column<int>(type: "integer", nullable: true),
+                    Last10Average = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PlayerStats", x => new { x.PlayerId, x.Discipline, x.Scope });
+                    table.ForeignKey(
+                        name: "FK_PlayerStats_Player_PlayerId",
+                        column: x => x.PlayerId,
+                        principalTable: "Player",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TeamMember",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -829,48 +1034,66 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TeamMemberSet", x => x.Id);
+                    table.PrimaryKey("PK_TeamMember", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TeamMemberSet_PlayerSet_PlayerId",
+                        name: "FK_TeamMember_Player_PlayerId",
                         column: x => x.PlayerId,
-                        principalTable: "PlayerSet",
+                        principalTable: "Player",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TeamMemberSet_TeamSet_TeamId",
+                        name: "FK_TeamMember_Team_TeamId",
                         column: x => x.TeamId,
-                        principalTable: "TeamSet",
+                        principalTable: "Team",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "StageGroupSet",
+                name: "TournamentEntry",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    StageId = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    Order = table.Column<int>(type: "integer", nullable: false),
-                    TableIds = table.Column<List<int>>(type: "integer[]", nullable: false),
+                    TournamentId = table.Column<int>(type: "integer", nullable: false),
+                    PlayerId = table.Column<int>(type: "integer", nullable: false),
+                    ClubId = table.Column<int>(type: "integer", nullable: true),
+                    Seed = table.Column<int>(type: "integer", nullable: true),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    HandicapTargetPoints = table.Column<int>(type: "integer", nullable: true),
+                    EntryAverage = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: true),
+                    FeePaid = table.Column<bool>(type: "boolean", nullable: false),
+                    FinalRank = table.Column<int>(type: "integer", nullable: true),
+                    PrizeAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_StageGroupSet", x => x.Id);
+                    table.PrimaryKey("PK_TournamentEntry", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_StageGroupSet_TournamentStageSet_StageId",
-                        column: x => x.StageId,
-                        principalTable: "TournamentStageSet",
+                        name: "FK_TournamentEntry_Club_ClubId",
+                        column: x => x.ClubId,
+                        principalTable: "Club",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_TournamentEntry_Player_PlayerId",
+                        column: x => x.PlayerId,
+                        principalTable: "Player",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_TournamentEntry_Tournament_TournamentId",
+                        column: x => x.TournamentId,
+                        principalTable: "Tournament",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "StageStandingSet",
+                name: "StageStanding",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -896,35 +1119,36 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_StageStandingSet", x => x.Id);
+                    table.PrimaryKey("PK_StageStanding", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_StageStandingSet_StageGroupSet_GroupId",
+                        name: "FK_StageStanding_StageGroup_GroupId",
                         column: x => x.GroupId,
-                        principalTable: "StageGroupSet",
+                        principalTable: "StageGroup",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_StageStandingSet_TournamentEntrySet_EntryId",
+                        name: "FK_StageStanding_TournamentEntry_EntryId",
                         column: x => x.EntryId,
-                        principalTable: "TournamentEntrySet",
+                        principalTable: "TournamentEntry",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_StageStandingSet_TournamentStageSet_StageId",
+                        name: "FK_StageStanding_TournamentStage_StageId",
                         column: x => x.StageId,
-                        principalTable: "TournamentStageSet",
+                        principalTable: "TournamentStage",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "BilliardTableSet",
+                name: "BilliardTable",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     OrganizationId = table.Column<int>(type: "integer", nullable: false),
                     Number = table.Column<int>(type: "integer", nullable: false),
+                    ScoreboardNo = table.Column<int>(type: "integer", nullable: true),
                     Label = table.Column<string>(type: "text", nullable: true),
                     Type = table.Column<int>(type: "integer", nullable: false),
                     Brand = table.Column<string>(type: "text", nullable: true),
@@ -943,23 +1167,78 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_BilliardTableSet", x => x.Id);
+                    table.PrimaryKey("PK_BilliardTable", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_BilliardTableSet_OrganizationSet_OrganizationId",
+                        name: "FK_BilliardTable_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_BilliardTableSet_PricingRuleSet_PricingRuleId",
+                        name: "FK_BilliardTable_PricingRule_PricingRuleId",
                         column: x => x.PricingRuleId,
-                        principalTable: "PricingRuleSet",
+                        principalTable: "PricingRule",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "DeviceSet",
+                name: "CupMatch",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CupId = table.Column<int>(type: "integer", nullable: false),
+                    Round = table.Column<int>(type: "integer", nullable: false),
+                    Number = table.Column<int>(type: "integer", nullable: false),
+                    ParticipantAId = table.Column<int>(type: "integer", nullable: true),
+                    ParticipantBId = table.Column<int>(type: "integer", nullable: true),
+                    TargetA = table.Column<int>(type: "integer", nullable: true),
+                    TargetB = table.Column<int>(type: "integer", nullable: true),
+                    TableId = table.Column<int>(type: "integer", nullable: true),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    ScoreA = table.Column<int>(type: "integer", nullable: false),
+                    ScoreB = table.Column<int>(type: "integer", nullable: false),
+                    Innings = table.Column<int>(type: "integer", nullable: false),
+                    HighRunA = table.Column<int>(type: "integer", nullable: false),
+                    HighRunB = table.Column<int>(type: "integer", nullable: false),
+                    WinnerParticipantId = table.Column<int>(type: "integer", nullable: true),
+                    PlayedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CupMatch", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CupMatch_BilliardTable_TableId",
+                        column: x => x.TableId,
+                        principalTable: "BilliardTable",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CupMatch_CupParticipant_ParticipantAId",
+                        column: x => x.ParticipantAId,
+                        principalTable: "CupParticipant",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CupMatch_CupParticipant_ParticipantBId",
+                        column: x => x.ParticipantBId,
+                        principalTable: "CupParticipant",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CupMatch_Cup_CupId",
+                        column: x => x.CupId,
+                        principalTable: "Cup",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Device",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -981,28 +1260,31 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_DeviceSet", x => x.Id);
+                    table.PrimaryKey("PK_Device", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_DeviceSet_BilliardTableSet_TableId",
+                        name: "FK_Device_BilliardTable_TableId",
                         column: x => x.TableId,
-                        principalTable: "BilliardTableSet",
+                        principalTable: "BilliardTable",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_DeviceSet_OrganizationSet_OrganizationId",
+                        name: "FK_Device_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "MatchStatSet",
+                name: "MatchStat",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    DeviceId = table.Column<int>(type: "integer", nullable: false),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: true),
+                    TableId = table.Column<int>(type: "integer", nullable: true),
+                    TableNo = table.Column<int>(type: "integer", nullable: true),
+                    DeviceId = table.Column<int>(type: "integer", nullable: true),
                     Player1ExternalId = table.Column<int>(type: "integer", nullable: true),
                     Player1Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Player1Score = table.Column<int>(type: "integer", nullable: false),
@@ -1017,21 +1299,58 @@ namespace Scoreboard.WebApp.Data.Migrations
                     MatchTarget = table.Column<int>(type: "integer", nullable: false),
                     Winner = table.Column<int>(type: "integer", nullable: false),
                     PlayedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    EndedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    BucketMinutes = table.Column<int>(type: "integer", nullable: false),
                     RecordedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MatchStatSet", x => x.Id);
+                    table.PrimaryKey("PK_MatchStat", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MatchStatSet_DeviceSet_DeviceId",
+                        name: "FK_MatchStat_BilliardTable_TableId",
+                        column: x => x.TableId,
+                        principalTable: "BilliardTable",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_MatchStat_Device_DeviceId",
                         column: x => x.DeviceId,
-                        principalTable: "DeviceSet",
+                        principalTable: "Device",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_MatchStat_Organization_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "InningSet",
+                name: "MatchStatBucket",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    MatchStatId = table.Column<int>(type: "integer", nullable: false),
+                    PlayerSlot = table.Column<int>(type: "integer", nullable: false),
+                    BucketIndex = table.Column<int>(type: "integer", nullable: false),
+                    TotalPoints = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MatchStatBucket", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MatchStatBucket_MatchStat_MatchStatId",
+                        column: x => x.MatchStatId,
+                        principalTable: "MatchStat",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Inning",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -1050,11 +1369,11 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_InningSet", x => x.Id);
+                    table.PrimaryKey("PK_Inning", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "MatchesSet",
+                name: "Match",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -1091,53 +1410,53 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MatchesSet", x => x.Id);
+                    table.PrimaryKey("PK_Match", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MatchesSet_BilliardTableSet_TableId",
+                        name: "FK_Match_BilliardTable_TableId",
                         column: x => x.TableId,
-                        principalTable: "BilliardTableSet",
+                        principalTable: "BilliardTable",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_MatchesSet_DeviceSet_ScorekeeperDeviceId",
+                        name: "FK_Match_Device_ScorekeeperDeviceId",
                         column: x => x.ScorekeeperDeviceId,
-                        principalTable: "DeviceSet",
+                        principalTable: "Device",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_MatchesSet_OrganizationSet_OrganizationId",
+                        name: "FK_Match_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_MatchesSet_StageGroupSet_StageGroupId",
+                        name: "FK_Match_StageGroup_StageGroupId",
                         column: x => x.StageGroupId,
-                        principalTable: "StageGroupSet",
+                        principalTable: "StageGroup",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_MatchesSet_TeamFixtureSet_TeamFixtureId",
+                        name: "FK_Match_TeamFixture_TeamFixtureId",
                         column: x => x.TeamFixtureId,
-                        principalTable: "TeamFixtureSet",
+                        principalTable: "TeamFixture",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_MatchesSet_TournamentStageSet_TournamentStageId",
+                        name: "FK_Match_TournamentStage_TournamentStageId",
                         column: x => x.TournamentStageId,
-                        principalTable: "TournamentStageSet",
+                        principalTable: "TournamentStage",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_MatchesSet_UserSet_RefereeUserId",
+                        name: "FK_Match_User_RefereeUserId",
                         column: x => x.RefereeUserId,
-                        principalTable: "UserSet",
+                        principalTable: "User",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "MatchEventSet",
+                name: "MatchEvent",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -1154,17 +1473,17 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MatchEventSet", x => x.Id);
+                    table.PrimaryKey("PK_MatchEvent", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MatchEventSet_MatchesSet_MatchId",
+                        name: "FK_MatchEvent_Match_MatchId",
                         column: x => x.MatchId,
-                        principalTable: "MatchesSet",
+                        principalTable: "Match",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "MatchParticipantSet",
+                name: "MatchParticipant",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -1192,23 +1511,23 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MatchParticipantSet", x => x.Id);
+                    table.PrimaryKey("PK_MatchParticipant", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MatchParticipantSet_MatchesSet_MatchId",
+                        name: "FK_MatchParticipant_Match_MatchId",
                         column: x => x.MatchId,
-                        principalTable: "MatchesSet",
+                        principalTable: "Match",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_MatchParticipantSet_PlayerSet_PlayerId",
+                        name: "FK_MatchParticipant_Player_PlayerId",
                         column: x => x.PlayerId,
-                        principalTable: "PlayerSet",
+                        principalTable: "Player",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "MatchSetSet",
+                name: "MatchSet",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -1230,17 +1549,17 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MatchSetSet", x => x.Id);
+                    table.PrimaryKey("PK_MatchSet", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MatchSetSet_MatchesSet_MatchId",
+                        name: "FK_MatchSet_Match_MatchId",
                         column: x => x.MatchId,
-                        principalTable: "MatchesSet",
+                        principalTable: "Match",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "RatingHistorySet",
+                name: "RatingHistory",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -1256,23 +1575,23 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RatingHistorySet", x => x.Id);
+                    table.PrimaryKey("PK_RatingHistory", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_RatingHistorySet_MatchesSet_MatchId",
+                        name: "FK_RatingHistory_Match_MatchId",
                         column: x => x.MatchId,
-                        principalTable: "MatchesSet",
+                        principalTable: "Match",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_RatingHistorySet_PlayerSet_PlayerId",
+                        name: "FK_RatingHistory_Player_PlayerId",
                         column: x => x.PlayerId,
-                        principalTable: "PlayerSet",
+                        principalTable: "Player",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "OrderItemSet",
+                name: "OrderItem",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -1296,17 +1615,17 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_OrderItemSet", x => x.Id);
+                    table.PrimaryKey("PK_OrderItem", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_OrderItemSet_ProductSet_ProductId",
+                        name: "FK_OrderItem_Product_ProductId",
                         column: x => x.ProductId,
-                        principalTable: "ProductSet",
+                        principalTable: "Product",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "PaymentSet",
+                name: "Payment",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -1328,23 +1647,23 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PaymentSet", x => x.Id);
+                    table.PrimaryKey("PK_Payment", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_PaymentSet_CashRegisterShiftSet_CashRegisterShiftId",
+                        name: "FK_Payment_CashRegisterShift_CashRegisterShiftId",
                         column: x => x.CashRegisterShiftId,
-                        principalTable: "CashRegisterShiftSet",
+                        principalTable: "CashRegisterShift",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_PaymentSet_StaffMemberSet_ReceivedByStaffId",
+                        name: "FK_Payment_StaffMember_ReceivedByStaffId",
                         column: x => x.ReceivedByStaffId,
-                        principalTable: "StaffMemberSet",
+                        principalTable: "StaffMember",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "ReservationSet",
+                name: "Reservation",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -1368,29 +1687,29 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ReservationSet", x => x.Id);
+                    table.PrimaryKey("PK_Reservation", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ReservationSet_BilliardTableSet_TableId",
+                        name: "FK_Reservation_BilliardTable_TableId",
                         column: x => x.TableId,
-                        principalTable: "BilliardTableSet",
+                        principalTable: "BilliardTable",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ReservationSet_OrganizationSet_OrganizationId",
+                        name: "FK_Reservation_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ReservationSet_PlayerSet_PlayerId",
+                        name: "FK_Reservation_Player_PlayerId",
                         column: x => x.PlayerId,
-                        principalTable: "PlayerSet",
+                        principalTable: "Player",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "TableSessionSet",
+                name: "TableSession",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -1411,6 +1730,8 @@ namespace Scoreboard.WebApp.Data.Migrations
                     PaidAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     OpenedByStaffId = table.Column<int>(type: "integer", nullable: false),
                     ClosedByStaffId = table.Column<int>(type: "integer", nullable: true),
+                    VoidedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    VoidedByStaffId = table.Column<int>(type: "integer", nullable: true),
                     Notes = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -1419,41 +1740,41 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TableSessionSet", x => x.Id);
+                    table.PrimaryKey("PK_TableSession", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TableSessionSet_BilliardTableSet_TableId",
+                        name: "FK_TableSession_BilliardTable_TableId",
                         column: x => x.TableId,
-                        principalTable: "BilliardTableSet",
+                        principalTable: "BilliardTable",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TableSessionSet_OrganizationSet_OrganizationId",
+                        name: "FK_TableSession_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalTable: "OrganizationSet",
+                        principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TableSessionSet_ReservationSet_ReservationId",
+                        name: "FK_TableSession_Reservation_ReservationId",
                         column: x => x.ReservationId,
-                        principalTable: "ReservationSet",
+                        principalTable: "Reservation",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TableSessionSet_StaffMemberSet_ClosedByStaffId",
+                        name: "FK_TableSession_StaffMember_ClosedByStaffId",
                         column: x => x.ClosedByStaffId,
-                        principalTable: "StaffMemberSet",
+                        principalTable: "StaffMember",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TableSessionSet_StaffMemberSet_OpenedByStaffId",
+                        name: "FK_TableSession_StaffMember_OpenedByStaffId",
                         column: x => x.OpenedByStaffId,
-                        principalTable: "StaffMemberSet",
+                        principalTable: "StaffMember",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "SessionPlayerSet",
+                name: "SessionPlayer",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -1470,535 +1791,675 @@ namespace Scoreboard.WebApp.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SessionPlayerSet", x => x.Id);
+                    table.PrimaryKey("PK_SessionPlayer", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_SessionPlayerSet_CustomerMembershipSet_CustomerMembershipId",
+                        name: "FK_SessionPlayer_CustomerMembership_CustomerMembershipId",
                         column: x => x.CustomerMembershipId,
-                        principalTable: "CustomerMembershipSet",
+                        principalTable: "CustomerMembership",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_SessionPlayerSet_PlayerSet_PlayerId",
+                        name: "FK_SessionPlayer_Player_PlayerId",
                         column: x => x.PlayerId,
-                        principalTable: "PlayerSet",
+                        principalTable: "Player",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_SessionPlayerSet_TableSessionSet_SessionId",
+                        name: "FK_SessionPlayer_TableSession_SessionId",
                         column: x => x.SessionId,
-                        principalTable: "TableSessionSet",
+                        principalTable: "TableSession",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_BilliardTableSet_CurrentSessionId",
-                table: "BilliardTableSet",
+                name: "IX_Association_OrganizationId_Name",
+                table: "Association",
+                columns: new[] { "OrganizationId", "Name" },
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BilliardTable_CurrentSessionId",
+                table: "BilliardTable",
                 column: "CurrentSessionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BilliardTableSet_OrganizationId_Number",
-                table: "BilliardTableSet",
+                name: "IX_BilliardTable_OrganizationId_Number",
+                table: "BilliardTable",
                 columns: new[] { "OrganizationId", "Number" },
                 unique: true,
                 filter: "\"DeletedAt\" IS NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BilliardTableSet_PricingRuleId",
-                table: "BilliardTableSet",
+                name: "IX_BilliardTable_OrganizationId_ScoreboardNo",
+                table: "BilliardTable",
+                columns: new[] { "OrganizationId", "ScoreboardNo" },
+                unique: true,
+                filter: "\"ScoreboardNo\" IS NOT NULL AND \"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BilliardTable_PricingRuleId",
+                table: "BilliardTable",
                 column: "PricingRuleId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CashRegisterShiftSet_OrganizationId",
-                table: "CashRegisterShiftSet",
+                name: "IX_CashRegisterShift_OrganizationId",
+                table: "CashRegisterShift",
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ClubMembershipSet_ClubId",
-                table: "ClubMembershipSet",
+                name: "IX_City_CountryId",
+                table: "City",
+                column: "CountryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_City_OrganizationId_CountryId_Name",
+                table: "City",
+                columns: new[] { "OrganizationId", "CountryId", "Name" },
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Club_OrganizationId",
+                table: "Club",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClubMembership_ClubId",
+                table: "ClubMembership",
                 column: "ClubId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ClubMembershipSet_PlayerId",
-                table: "ClubMembershipSet",
+                name: "IX_ClubMembership_PlayerId",
+                table: "ClubMembership",
                 column: "PlayerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ClubSet_OrganizationId",
-                table: "ClubSet",
+                name: "IX_Country_OrganizationId_Name",
+                table: "Country",
+                columns: new[] { "OrganizationId", "Name" },
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Cup_OrganizationId",
+                table: "Cup",
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CustomerMembershipSet_OrganizationId_MemberNo",
-                table: "CustomerMembershipSet",
+                name: "IX_CupMatch_CupId_Round_Number",
+                table: "CupMatch",
+                columns: new[] { "CupId", "Round", "Number" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CupMatch_ParticipantAId",
+                table: "CupMatch",
+                column: "ParticipantAId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CupMatch_ParticipantBId",
+                table: "CupMatch",
+                column: "ParticipantBId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CupMatch_TableId",
+                table: "CupMatch",
+                column: "TableId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CupParticipant_CupId_PlayerId",
+                table: "CupParticipant",
+                columns: new[] { "CupId", "PlayerId" },
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CupParticipant_PlayerId",
+                table: "CupParticipant",
+                column: "PlayerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CupRuleBlock_CupId",
+                table: "CupRuleBlock",
+                column: "CupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CustomerMembership_OrganizationId_MemberNo",
+                table: "CustomerMembership",
                 columns: new[] { "OrganizationId", "MemberNo" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_CustomerMembershipSet_PlayerId",
-                table: "CustomerMembershipSet",
+                name: "IX_CustomerMembership_PlayerId",
+                table: "CustomerMembership",
                 column: "PlayerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_DeviceSet_OrganizationId",
-                table: "DeviceSet",
+                name: "IX_Device_OrganizationId",
+                table: "Device",
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_DeviceSet_PairingCode",
-                table: "DeviceSet",
+                name: "IX_Device_PairingCode",
+                table: "Device",
                 column: "PairingCode",
                 unique: true,
                 filter: "\"PairingCode\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_DeviceSet_TableId",
-                table: "DeviceSet",
+                name: "IX_Device_TableId",
+                table: "Device",
                 column: "TableId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_InningSet_MatchId",
-                table: "InningSet",
+                name: "IX_Inning_MatchId",
+                table: "Inning",
                 column: "MatchId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchesSet_OrganizationId_StartedAt",
-                table: "MatchesSet",
+                name: "IX_Match_OrganizationId_StartedAt",
+                table: "Match",
                 columns: new[] { "OrganizationId", "StartedAt" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchesSet_RefereeUserId",
-                table: "MatchesSet",
+                name: "IX_Match_RefereeUserId",
+                table: "Match",
                 column: "RefereeUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchesSet_ScorekeeperDeviceId",
-                table: "MatchesSet",
+                name: "IX_Match_ScorekeeperDeviceId",
+                table: "Match",
                 column: "ScorekeeperDeviceId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchesSet_SessionId",
-                table: "MatchesSet",
+                name: "IX_Match_SessionId",
+                table: "Match",
                 column: "SessionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchesSet_StageGroupId",
-                table: "MatchesSet",
+                name: "IX_Match_StageGroupId",
+                table: "Match",
                 column: "StageGroupId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchesSet_TableId",
-                table: "MatchesSet",
+                name: "IX_Match_TableId",
+                table: "Match",
                 column: "TableId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchesSet_TeamFixtureId",
-                table: "MatchesSet",
+                name: "IX_Match_TeamFixtureId",
+                table: "Match",
                 column: "TeamFixtureId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchesSet_TournamentStageId",
-                table: "MatchesSet",
+                name: "IX_Match_TournamentStageId",
+                table: "Match",
                 column: "TournamentStageId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchEventSet_MatchId_Seq",
-                table: "MatchEventSet",
+                name: "IX_MatchEvent_MatchId_Seq",
+                table: "MatchEvent",
                 columns: new[] { "MatchId", "Seq" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchParticipantSet_MatchId_Side",
-                table: "MatchParticipantSet",
+                name: "IX_MatchParticipant_MatchId_Side",
+                table: "MatchParticipant",
                 columns: new[] { "MatchId", "Side" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchParticipantSet_PlayerId",
-                table: "MatchParticipantSet",
+                name: "IX_MatchParticipant_PlayerId",
+                table: "MatchParticipant",
                 column: "PlayerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchSetSet_MatchId",
-                table: "MatchSetSet",
+                name: "IX_MatchSet_MatchId",
+                table: "MatchSet",
                 column: "MatchId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MatchStatSet_DeviceId",
-                table: "MatchStatSet",
+                name: "IX_MatchStat_DeviceId",
+                table: "MatchStat",
                 column: "DeviceId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OrderItemSet_ProductId",
-                table: "OrderItemSet",
+                name: "IX_MatchStat_OrganizationId_PlayedAt",
+                table: "MatchStat",
+                columns: new[] { "OrganizationId", "PlayedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MatchStat_TableId",
+                table: "MatchStat",
+                column: "TableId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MatchStatBucket_MatchStatId_PlayerSlot_BucketIndex",
+                table: "MatchStatBucket",
+                columns: new[] { "MatchStatId", "PlayerSlot", "BucketIndex" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderItem_ProductId",
+                table: "OrderItem",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OrderItemSet_SessionId",
-                table: "OrderItemSet",
+                name: "IX_OrderItem_SessionId",
+                table: "OrderItem",
                 column: "SessionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OrderItemSet_SessionPlayerId",
-                table: "OrderItemSet",
+                name: "IX_OrderItem_SessionPlayerId",
+                table: "OrderItem",
                 column: "SessionPlayerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OrganizationSet_Code",
-                table: "OrganizationSet",
+                name: "IX_Organization_ClientId",
+                table: "Organization",
+                column: "ClientId",
+                unique: true,
+                filter: "\"ClientId\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Organization_Code",
+                table: "Organization",
                 column: "Code",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_OrganizationSet_DefaultRuleSetId",
-                table: "OrganizationSet",
+                name: "IX_Organization_DefaultRuleSetId",
+                table: "Organization",
                 column: "DefaultRuleSetId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OrganizationSet_Slug",
-                table: "OrganizationSet",
+                name: "IX_Organization_Slug",
+                table: "Organization",
                 column: "Slug",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_PaymentSet_CashRegisterShiftId",
-                table: "PaymentSet",
+                name: "IX_Payment_CashRegisterShiftId",
+                table: "Payment",
                 column: "CashRegisterShiftId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PaymentSet_ReceivedByStaffId",
-                table: "PaymentSet",
+                name: "IX_Payment_ReceivedByStaffId",
+                table: "Payment",
                 column: "ReceivedByStaffId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PaymentSet_SessionId",
-                table: "PaymentSet",
+                name: "IX_Payment_SessionId",
+                table: "Payment",
                 column: "SessionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PaymentSet_SessionPlayerId",
-                table: "PaymentSet",
+                name: "IX_Payment_SessionPlayerId",
+                table: "Payment",
                 column: "SessionPlayerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PlayerOrganizationStatsSet_OrganizationId",
-                table: "PlayerOrganizationStatsSet",
-                column: "OrganizationId");
+                name: "IX_Player_AssociationId",
+                table: "Player",
+                column: "AssociationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PlayerSet_CreatedInOrganizationId",
-                table: "PlayerSet",
+                name: "IX_Player_CityId",
+                table: "Player",
+                column: "CityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Player_CountryId",
+                table: "Player",
+                column: "CountryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Player_CreatedInOrganizationId",
+                table: "Player",
                 column: "CreatedInOrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PlayerSet_UserId",
-                table: "PlayerSet",
+                name: "IX_Player_CreatedInOrganizationId_ShortcutNumber",
+                table: "Player",
+                columns: new[] { "CreatedInOrganizationId", "ShortcutNumber" },
+                unique: true,
+                filter: "\"ShortcutNumber\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Player_RegionId",
+                table: "Player",
+                column: "RegionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Player_SystemSlot",
+                table: "Player",
+                column: "SystemSlot",
+                unique: true,
+                filter: "\"SystemSlot\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Player_UserId",
+                table: "Player",
                 column: "UserId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_PricingRuleSet_OrganizationId",
-                table: "PricingRuleSet",
+                name: "IX_PlayerOrganizationStats_OrganizationId",
+                table: "PlayerOrganizationStats",
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductCategorySet_OrganizationId",
-                table: "ProductCategorySet",
+                name: "IX_PricingRule_OrganizationId",
+                table: "PricingRule",
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductSet_CategoryId",
-                table: "ProductSet",
+                name: "IX_Product_CategoryId",
+                table: "Product",
                 column: "CategoryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductSet_OrganizationId",
-                table: "ProductSet",
+                name: "IX_Product_OrganizationId",
+                table: "Product",
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RatingHistorySet_MatchId",
-                table: "RatingHistorySet",
+                name: "IX_ProductCategory_OrganizationId",
+                table: "ProductCategory",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RatingHistory_MatchId",
+                table: "RatingHistory",
                 column: "MatchId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RatingHistorySet_PlayerId",
-                table: "RatingHistorySet",
+                name: "IX_RatingHistory_PlayerId",
+                table: "RatingHistory",
                 column: "PlayerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ReservationSet_OrganizationId_StartAt",
-                table: "ReservationSet",
+                name: "IX_Region_OrganizationId_Name",
+                table: "Region",
+                columns: new[] { "OrganizationId", "Name" },
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reservation_OrganizationId_StartAt",
+                table: "Reservation",
                 columns: new[] { "OrganizationId", "StartAt" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ReservationSet_PlayerId",
-                table: "ReservationSet",
+                name: "IX_Reservation_PlayerId",
+                table: "Reservation",
                 column: "PlayerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ReservationSet_SessionId",
-                table: "ReservationSet",
+                name: "IX_Reservation_SessionId",
+                table: "Reservation",
                 column: "SessionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ReservationSet_TableId",
-                table: "ReservationSet",
+                name: "IX_Reservation_TableId",
+                table: "Reservation",
                 column: "TableId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SeasonSet_LeagueId",
-                table: "SeasonSet",
+                name: "IX_Season_LeagueId",
+                table: "Season",
                 column: "LeagueId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SeasonSet_RuleSetId",
-                table: "SeasonSet",
+                name: "IX_Season_RuleSetId",
+                table: "Season",
                 column: "RuleSetId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SeasonTeamSet_SeasonId",
-                table: "SeasonTeamSet",
+                name: "IX_SeasonTeam_SeasonId",
+                table: "SeasonTeam",
                 column: "SeasonId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SeasonTeamSet_TeamId",
-                table: "SeasonTeamSet",
+                name: "IX_SeasonTeam_TeamId",
+                table: "SeasonTeam",
                 column: "TeamId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SessionPlayerSet_CustomerMembershipId",
-                table: "SessionPlayerSet",
+                name: "IX_SessionPlayer_CustomerMembershipId",
+                table: "SessionPlayer",
                 column: "CustomerMembershipId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SessionPlayerSet_PlayerId",
-                table: "SessionPlayerSet",
+                name: "IX_SessionPlayer_PlayerId",
+                table: "SessionPlayer",
                 column: "PlayerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SessionPlayerSet_SessionId",
-                table: "SessionPlayerSet",
+                name: "IX_SessionPlayer_SessionId",
+                table: "SessionPlayer",
                 column: "SessionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_StaffMemberSet_OrganizationId_UserId",
-                table: "StaffMemberSet",
+                name: "IX_StaffMember_OrganizationId_UserId",
+                table: "StaffMember",
                 columns: new[] { "OrganizationId", "UserId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_StaffMemberSet_UserId",
-                table: "StaffMemberSet",
+                name: "IX_StaffMember_UserId",
+                table: "StaffMember",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_StageGroupSet_StageId",
-                table: "StageGroupSet",
+                name: "IX_StageGroup_StageId",
+                table: "StageGroup",
                 column: "StageId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_StageStandingSet_EntryId",
-                table: "StageStandingSet",
+                name: "IX_StageStanding_EntryId",
+                table: "StageStanding",
                 column: "EntryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_StageStandingSet_GroupId",
-                table: "StageStandingSet",
+                name: "IX_StageStanding_GroupId",
+                table: "StageStanding",
                 column: "GroupId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_StageStandingSet_StageId",
-                table: "StageStandingSet",
+                name: "IX_StageStanding_StageId",
+                table: "StageStanding",
                 column: "StageId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TableSessionSet_ClosedByStaffId",
-                table: "TableSessionSet",
+                name: "IX_TableSession_ClosedByStaffId",
+                table: "TableSession",
                 column: "ClosedByStaffId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TableSessionSet_OpenedByStaffId",
-                table: "TableSessionSet",
+                name: "IX_TableSession_OpenedByStaffId",
+                table: "TableSession",
                 column: "OpenedByStaffId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TableSessionSet_OrganizationId_OpenedAt",
-                table: "TableSessionSet",
+                name: "IX_TableSession_OrganizationId_OpenedAt",
+                table: "TableSession",
                 columns: new[] { "OrganizationId", "OpenedAt" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_TableSessionSet_ReservationId",
-                table: "TableSessionSet",
+                name: "IX_TableSession_ReservationId",
+                table: "TableSession",
                 column: "ReservationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TableSessionSet_TableId",
-                table: "TableSessionSet",
+                name: "IX_TableSession_TableId",
+                table: "TableSession",
                 column: "TableId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TeamFixtureSet_AwayTeamId",
-                table: "TeamFixtureSet",
-                column: "AwayTeamId");
+                name: "IX_Team_ClubId",
+                table: "Team",
+                column: "ClubId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TeamFixtureSet_HomeTeamId",
-                table: "TeamFixtureSet",
-                column: "HomeTeamId");
+                name: "IX_Team_HomeOrganizationId",
+                table: "Team",
+                column: "HomeOrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TeamFixtureSet_OrganizationId",
-                table: "TeamFixtureSet",
-                column: "OrganizationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TeamFixtureSet_RefereeId",
-                table: "TeamFixtureSet",
-                column: "RefereeId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TeamFixtureSet_SeasonId",
-                table: "TeamFixtureSet",
+                name: "IX_Team_SeasonId",
+                table: "Team",
                 column: "SeasonId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TeamMemberSet_PlayerId",
-                table: "TeamMemberSet",
+                name: "IX_TeamFixture_AwayTeamId",
+                table: "TeamFixture",
+                column: "AwayTeamId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamFixture_HomeTeamId",
+                table: "TeamFixture",
+                column: "HomeTeamId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamFixture_OrganizationId",
+                table: "TeamFixture",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamFixture_RefereeId",
+                table: "TeamFixture",
+                column: "RefereeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamFixture_SeasonId",
+                table: "TeamFixture",
+                column: "SeasonId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamMember_PlayerId",
+                table: "TeamMember",
                 column: "PlayerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TeamMemberSet_TeamId_PlayerId",
-                table: "TeamMemberSet",
+                name: "IX_TeamMember_TeamId_PlayerId",
+                table: "TeamMember",
                 columns: new[] { "TeamId", "PlayerId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_TeamSet_ClubId",
-                table: "TeamSet",
-                column: "ClubId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TeamSet_HomeOrganizationId",
-                table: "TeamSet",
-                column: "HomeOrganizationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TeamSet_SeasonId",
-                table: "TeamSet",
-                column: "SeasonId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TournamentEntrySet_ClubId",
-                table: "TournamentEntrySet",
-                column: "ClubId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TournamentEntrySet_PlayerId",
-                table: "TournamentEntrySet",
-                column: "PlayerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TournamentEntrySet_TournamentId",
-                table: "TournamentEntrySet",
-                column: "TournamentId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TournamentSet_DefaultRuleSetId",
-                table: "TournamentSet",
+                name: "IX_Tournament_DefaultRuleSetId",
+                table: "Tournament",
                 column: "DefaultRuleSetId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TournamentSet_OrganizationId",
-                table: "TournamentSet",
+                name: "IX_Tournament_OrganizationId",
+                table: "Tournament",
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TournamentStageSet_RuleSetId",
-                table: "TournamentStageSet",
-                column: "RuleSetId");
+                name: "IX_TournamentEntry_ClubId",
+                table: "TournamentEntry",
+                column: "ClubId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TournamentStageSet_TournamentId",
-                table: "TournamentStageSet",
+                name: "IX_TournamentEntry_PlayerId",
+                table: "TournamentEntry",
+                column: "PlayerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TournamentEntry_TournamentId",
+                table: "TournamentEntry",
                 column: "TournamentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_UserSet_Email",
-                table: "UserSet",
+                name: "IX_TournamentStage_RuleSetId",
+                table: "TournamentStage",
+                column: "RuleSetId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TournamentStage_TournamentId",
+                table: "TournamentStage",
+                column: "TournamentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_User_Email",
+                table: "User",
                 column: "Email",
                 unique: true,
                 filter: "\"Email\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_UserSet_Phone",
-                table: "UserSet",
+                name: "IX_User_Phone",
+                table: "User",
                 column: "Phone",
                 unique: true,
                 filter: "\"Phone\" IS NOT NULL");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_BilliardTableSet_TableSessionSet_CurrentSessionId",
-                table: "BilliardTableSet",
+                name: "FK_BilliardTable_TableSession_CurrentSessionId",
+                table: "BilliardTable",
                 column: "CurrentSessionId",
-                principalTable: "TableSessionSet",
+                principalTable: "TableSession",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_InningSet_MatchesSet_MatchId",
-                table: "InningSet",
+                name: "FK_Inning_Match_MatchId",
+                table: "Inning",
                 column: "MatchId",
-                principalTable: "MatchesSet",
+                principalTable: "Match",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_MatchesSet_TableSessionSet_SessionId",
-                table: "MatchesSet",
+                name: "FK_Match_TableSession_SessionId",
+                table: "Match",
                 column: "SessionId",
-                principalTable: "TableSessionSet",
+                principalTable: "TableSession",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_OrderItemSet_SessionPlayerSet_SessionPlayerId",
-                table: "OrderItemSet",
+                name: "FK_OrderItem_SessionPlayer_SessionPlayerId",
+                table: "OrderItem",
                 column: "SessionPlayerId",
-                principalTable: "SessionPlayerSet",
+                principalTable: "SessionPlayer",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_OrderItemSet_TableSessionSet_SessionId",
-                table: "OrderItemSet",
+                name: "FK_OrderItem_TableSession_SessionId",
+                table: "OrderItem",
                 column: "SessionId",
-                principalTable: "TableSessionSet",
+                principalTable: "TableSession",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_PaymentSet_SessionPlayerSet_SessionPlayerId",
-                table: "PaymentSet",
+                name: "FK_Payment_SessionPlayer_SessionPlayerId",
+                table: "Payment",
                 column: "SessionPlayerId",
-                principalTable: "SessionPlayerSet",
+                principalTable: "SessionPlayer",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_PaymentSet_TableSessionSet_SessionId",
-                table: "PaymentSet",
+                name: "FK_Payment_TableSession_SessionId",
+                table: "Payment",
                 column: "SessionId",
-                principalTable: "TableSessionSet",
+                principalTable: "TableSession",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_ReservationSet_TableSessionSet_SessionId",
-                table: "ReservationSet",
+                name: "FK_Reservation_TableSession_SessionId",
+                table: "Reservation",
                 column: "SessionId",
-                principalTable: "TableSessionSet",
+                principalTable: "TableSession",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
         }
@@ -2007,156 +2468,199 @@ namespace Scoreboard.WebApp.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_BilliardTableSet_OrganizationSet_OrganizationId",
-                table: "BilliardTableSet");
+                name: "FK_Association_Organization_OrganizationId",
+                table: "Association");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_PricingRuleSet_OrganizationSet_OrganizationId",
-                table: "PricingRuleSet");
+                name: "FK_BilliardTable_Organization_OrganizationId",
+                table: "BilliardTable");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_ReservationSet_OrganizationSet_OrganizationId",
-                table: "ReservationSet");
+                name: "FK_City_Organization_OrganizationId",
+                table: "City");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_StaffMemberSet_OrganizationSet_OrganizationId",
-                table: "StaffMemberSet");
+                name: "FK_Country_Organization_OrganizationId",
+                table: "Country");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_TableSessionSet_OrganizationSet_OrganizationId",
-                table: "TableSessionSet");
+                name: "FK_PricingRule_Organization_OrganizationId",
+                table: "PricingRule");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_BilliardTableSet_PricingRuleSet_PricingRuleId",
-                table: "BilliardTableSet");
+                name: "FK_Region_Organization_OrganizationId",
+                table: "Region");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_BilliardTableSet_TableSessionSet_CurrentSessionId",
-                table: "BilliardTableSet");
+                name: "FK_Reservation_Organization_OrganizationId",
+                table: "Reservation");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_ReservationSet_TableSessionSet_SessionId",
-                table: "ReservationSet");
+                name: "FK_StaffMember_Organization_OrganizationId",
+                table: "StaffMember");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_TableSession_Organization_OrganizationId",
+                table: "TableSession");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_BilliardTable_PricingRule_PricingRuleId",
+                table: "BilliardTable");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_BilliardTable_TableSession_CurrentSessionId",
+                table: "BilliardTable");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Reservation_TableSession_SessionId",
+                table: "Reservation");
 
             migrationBuilder.DropTable(
-                name: "AuditLogSet");
+                name: "AuditLog");
 
             migrationBuilder.DropTable(
-                name: "ClubMembershipSet");
+                name: "ClubMembership");
 
             migrationBuilder.DropTable(
-                name: "InningSet");
+                name: "CupMatch");
 
             migrationBuilder.DropTable(
-                name: "MatchEventSet");
+                name: "CupRuleBlock");
 
             migrationBuilder.DropTable(
-                name: "MatchParticipantSet");
+                name: "Inning");
 
             migrationBuilder.DropTable(
-                name: "MatchSetSet");
+                name: "MatchEvent");
 
             migrationBuilder.DropTable(
-                name: "MatchStatSet");
+                name: "MatchParticipant");
 
             migrationBuilder.DropTable(
-                name: "OrderItemSet");
+                name: "MatchSet");
 
             migrationBuilder.DropTable(
-                name: "PaymentSet");
+                name: "MatchStatBucket");
 
             migrationBuilder.DropTable(
-                name: "PlayerOrganizationStatsSet");
+                name: "OrderItem");
 
             migrationBuilder.DropTable(
-                name: "PlayerStatsSet");
+                name: "Payment");
 
             migrationBuilder.DropTable(
-                name: "RatingHistorySet");
+                name: "PlayerOrganizationStats");
 
             migrationBuilder.DropTable(
-                name: "SeasonTeamSet");
+                name: "PlayerStats");
 
             migrationBuilder.DropTable(
-                name: "StageStandingSet");
+                name: "RatingHistory");
 
             migrationBuilder.DropTable(
-                name: "TeamMemberSet");
+                name: "SeasonTeam");
 
             migrationBuilder.DropTable(
-                name: "ProductSet");
+                name: "StageStanding");
 
             migrationBuilder.DropTable(
-                name: "CashRegisterShiftSet");
+                name: "TeamMember");
 
             migrationBuilder.DropTable(
-                name: "SessionPlayerSet");
+                name: "CupParticipant");
 
             migrationBuilder.DropTable(
-                name: "MatchesSet");
+                name: "MatchStat");
 
             migrationBuilder.DropTable(
-                name: "TournamentEntrySet");
+                name: "Product");
 
             migrationBuilder.DropTable(
-                name: "ProductCategorySet");
+                name: "CashRegisterShift");
 
             migrationBuilder.DropTable(
-                name: "CustomerMembershipSet");
+                name: "SessionPlayer");
 
             migrationBuilder.DropTable(
-                name: "DeviceSet");
+                name: "Match");
 
             migrationBuilder.DropTable(
-                name: "StageGroupSet");
+                name: "TournamentEntry");
 
             migrationBuilder.DropTable(
-                name: "TeamFixtureSet");
+                name: "Cup");
 
             migrationBuilder.DropTable(
-                name: "TournamentStageSet");
+                name: "ProductCategory");
 
             migrationBuilder.DropTable(
-                name: "TeamSet");
+                name: "CustomerMembership");
 
             migrationBuilder.DropTable(
-                name: "TournamentSet");
+                name: "Device");
 
             migrationBuilder.DropTable(
-                name: "ClubSet");
+                name: "StageGroup");
 
             migrationBuilder.DropTable(
-                name: "SeasonSet");
+                name: "TeamFixture");
 
             migrationBuilder.DropTable(
-                name: "LeagueSet");
+                name: "TournamentStage");
 
             migrationBuilder.DropTable(
-                name: "OrganizationSet");
+                name: "Team");
 
             migrationBuilder.DropTable(
-                name: "RuleSetSet");
+                name: "Tournament");
 
             migrationBuilder.DropTable(
-                name: "PricingRuleSet");
+                name: "Club");
 
             migrationBuilder.DropTable(
-                name: "TableSessionSet");
+                name: "Season");
 
             migrationBuilder.DropTable(
-                name: "ReservationSet");
+                name: "League");
 
             migrationBuilder.DropTable(
-                name: "StaffMemberSet");
+                name: "Organization");
 
             migrationBuilder.DropTable(
-                name: "BilliardTableSet");
+                name: "RuleSet");
 
             migrationBuilder.DropTable(
-                name: "PlayerSet");
+                name: "PricingRule");
 
             migrationBuilder.DropTable(
-                name: "UserSet");
+                name: "TableSession");
+
+            migrationBuilder.DropTable(
+                name: "Reservation");
+
+            migrationBuilder.DropTable(
+                name: "StaffMember");
+
+            migrationBuilder.DropTable(
+                name: "BilliardTable");
+
+            migrationBuilder.DropTable(
+                name: "Player");
+
+            migrationBuilder.DropTable(
+                name: "Association");
+
+            migrationBuilder.DropTable(
+                name: "City");
+
+            migrationBuilder.DropTable(
+                name: "Region");
+
+            migrationBuilder.DropTable(
+                name: "User");
+
+            migrationBuilder.DropTable(
+                name: "Country");
         }
     }
 }

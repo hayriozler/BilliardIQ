@@ -4,6 +4,7 @@ namespace Scoreboard.WebApp.Domain;
 
 public class PricingRule : BaseEntity
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;     // 'Maç masası standart'
     public string Currency { get; set; } = "TRY";
@@ -31,6 +32,7 @@ public class PricingSnapshot
 
 public class Reservation : BaseEntity
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int? TableId { get; set; }           // null → uygun herhangi masa
     public int? PlayerId { get; set; }
@@ -56,6 +58,7 @@ public class Reservation : BaseEntity
 /// <summary>Masa kiralama — para ile ilgili. Match'ten ayrıdır.</summary>
 public class TableSession : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int TableId { get; set; }
     public int? ReservationId { get; set; }
@@ -107,6 +110,7 @@ public class SessionPlayer : BaseEntity
 
 public class ProductCategory : BaseEntity
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;  // 'Sıcak İçecekler'
     public int SortOrder { get; set; }
@@ -117,6 +121,7 @@ public class ProductCategory : BaseEntity
 
 public class Product : BaseEntity
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int CategoryId { get; set; }
     public string Name { get; set; } = default!;
@@ -134,6 +139,7 @@ public class Product : BaseEntity
 
 public class OrderItem : BaseEntity
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int? SessionId { get; set; }         // null → tezgah satışı
     public int ProductId { get; set; }
@@ -155,6 +161,7 @@ public class OrderItem : BaseEntity
 
 public class Payment : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int? SessionId { get; set; }
     public int? SessionPlayerId { get; set; }
@@ -176,6 +183,7 @@ public class Payment : BaseEntity, ITenantScoped
 /// <summary>Kasa vardiyası — gün sonu mutabakatı</summary>
 public class CashRegisterShift : BaseEntity
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int OpenedByStaffId { get; set; }
     public int? ClosedByStaffId { get; set; }

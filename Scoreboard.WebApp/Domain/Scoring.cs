@@ -3,6 +3,7 @@ namespace Scoreboard.WebApp.Domain;
 /// <summary>Maç kural şablonu. Maç başladığında Match.Rules'a kopyalanır.</summary>
 public class RuleSet : BaseEntity
 {
+    [GlobalFilter(IncludeNull = true)]
     public int? OrganizationId { get; set; }    // null → sistem şablonu (UMB, TBF)
     public string Name { get; set; } = default!; // 'UMB 3 Bant 40 sayı'
     public Discipline Discipline { get; set; }
@@ -58,6 +59,7 @@ public class MatchRules
 
 public class Match : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int? TableId { get; set; }
     public int? SessionId { get; set; }         // masa kiralaması içindeyse

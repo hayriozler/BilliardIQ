@@ -10,10 +10,10 @@ public static class ClubsEndpoints
 {
     public static RouteGroupBuilder MapClubsEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/clubs").WithTags("Clubs");
+        var group = app.MapGroup("/api/clubs").WithTags("Clubs").RequireAuthorization();
 
-        group.MapGet("/", async (ClubService clubs, HttpContext context) =>
-            (await clubs.ListAsync(context.GetOrganizationId())).Select(ToDto).ToList());
+        group.MapGet("/", (ScoreboardDataService data) =>
+            data.ListClubsAsync());
 
         group.MapPost("/", async (UpsertClubRequest request, ClubService clubs, HttpContext context) =>
         {
@@ -44,5 +44,5 @@ public static class ClubsEndpoints
         return group;
     }
 
-    private static ClubDto ToDto(Club club) => new(club.Id, club.Name, club.ShortName, club.City, club.PrimaryColor);
+    private static ClubDto ToDto(Club club) => ScoreboardDataService.ToDto(club);
 }

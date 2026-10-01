@@ -76,44 +76,67 @@ public partial class RemotePullService(
         }
 
         LogSendGet();
-        var clubs = await http.GetFromJsonAsync<List<RemoteClub>>("clubs", _jsonOptions, ct);
-        var players = await http.GetFromJsonAsync<List<RemotePlayer>>("players", _jsonOptions, ct);
-        var teams = await http.GetFromJsonAsync<List<RemoteTeam>>("teams", _jsonOptions, ct);
-        if (clubs is null || players is null || teams is null)
-        {
-            return;
-        }
-
-        LogReceived(clubs.Count, teams.Count, players.Count);
-
-        // Older servers have no /organization; the language then simply stays what the kiosk has.
         RemoteOrganization? organization = null;
+        List<RemoteClub> clubs = [];
+        List<RemotePlayer> players = [];
+        List<RemoteTeam> teams = [];
         try
         {
-            organization = await http.GetFromJsonAsync<RemoteOrganization>("organization", _jsonOptions, ct);
+            organization = await http.GetFromJsonAsync<RemoteOrganization>("scoreboard/organization", _jsonOptions, ct);
+            clubs = await http.GetFromJsonAsync<List<RemoteClub>>("scoreboard/clubs", _jsonOptions, ct) ?? [];
+            players = await http.GetFromJsonAsync<List<RemotePlayer>>("scoreboard/players", _jsonOptions, ct) ?? [];
+            teams = await http.GetFromJsonAsync<List<RemoteTeam>>("scoreboard/teams", _jsonOptions, ct) ?? [];
+            LogReceived(clubs.Count, teams.Count, players.Count);
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException e)
         {
+            LogReceivedFailed(e.Message, e);
         }
 
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
         var languageChanged = await ApplyServerLanguageAsync(db, organization?.Language, ct);
+        languageChanged |= await ApplyOrganizationNameAsync(db, organization, ct);
         await MirrorClubsAsync(db, clubs, ct);
         await MirrorTeamsAsync(db, teams, ct);
         await MirrorPlayersAsync(db, http, players, teams, ct);
 
         await transaction.CommitAsync(ct);
 
-        // Only now can the open board read the new language.
         if (languageChanged)
         {
             languageSync.Notify();
         }
     }
 
-    /// <summary>While connected, the board speaks the venue's language (set on the server); it is stored as the local language.</summary>
+    private static async Task<bool> ApplyOrganizationNameAsync(DataContext db, RemoteOrganization? organization, CancellationToken ct)
+    {
+        if (organization is null)
+        {
+            return false;
+        }
+
+        var name = organization.Name?.Trim() ?? "";
+        var setting = await db.SettingsSet.FirstOrDefaultAsync(s => s.Id == "OrgName", ct);
+        if ((setting?.Value ?? "") == name)
+        {
+            return false;
+        }
+
+        if (setting is null)
+        {
+            db.SettingsSet.Add(new Setting { Id = "OrgName", Value = name });
+        }
+        else
+        {
+            setting.Value = name;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
     private static async Task<bool> ApplyServerLanguageAsync(DataContext db, string? language, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(language) || !LocalizationService.Values.ContainsKey(language))
@@ -132,8 +155,6 @@ public partial class RemotePullService(
         return true;
     }
 
-    // The local tables are keyed by the server's own ids: rows are inserted with the id the server gave them and removed
-    // when the server no longer lists them.
     private static async Task MirrorClubsAsync(DataContext db, List<RemoteClub> remoteClubs, CancellationToken ct)
     {
         var local = await db.ClubSet.ToDictionaryAsync(c => c.Id, ct);
@@ -186,8 +207,6 @@ public partial class RemotePullService(
         var local = await db.PlayerSet.ToDictionaryAsync(p => p.Id, ct);
         var remoteIds = remotePlayers.Select(p => p.Id).ToHashSet();
 
-        // The server's own Player 1 / Player 2 replace the local seeds (Id 1 and 2). Whatever pointed at a seed (the board's
-        // selection, results not sent yet) is moved to the system player of the same slot.
         var serverSlots = remotePlayers
             .Where(r => r.IsSystem == true && r.SystemSlot is 1 or 2)
             .ToDictionary(r => r.SystemSlot!.Value, r => r.Id);
@@ -244,7 +263,6 @@ public partial class RemotePullService(
 
         await db.SaveChangesAsync(ct);
 
-        // Re-point the board's selection and unsent results (one statement, so ids that swap places do not chain).
         var moves = replacedSeeds.Where(s => s.Id != serverSlots[s.SystemSlot!.Value]).ToDictionary(s => s.Id, s => serverSlots[s.SystemSlot!.Value]);
         if (moves.Count > 0)
         {
@@ -367,4 +385,8 @@ public partial class RemotePullService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not delete photo {Path}.")]
     private partial void LogPhotoDeleteFailed(string path, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Receiving operation failed for player. {Message}")]
+    private partial void LogReceivedFailed(string Message, Exception ex);
+
 }

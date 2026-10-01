@@ -27,6 +27,7 @@ public class PlayerStats
 public class PlayerOrganizationStats
 {
     public int PlayerId { get; set; }
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public Discipline Discipline { get; set; }
     public int MatchesPlayed { get; set; }
@@ -65,6 +66,7 @@ public class RatingHistory
 public class AuditLog
 {
     public int Id { get; set; }
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int? ActorUserId { get; set; }
     public int? ActorDeviceId { get; set; }

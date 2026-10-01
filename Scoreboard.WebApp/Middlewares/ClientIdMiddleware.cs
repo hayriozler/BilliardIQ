@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
+using Scoreboard.WebApp.Security;
 
 namespace Scoreboard.WebApp.Middlewares;
 
@@ -15,11 +16,11 @@ public class ClientIdMiddleware(RequestDelegate next)
     public const string TableIdItemKey = "TableId";
     public const string TableNoItemKey = "TableNo";
 
-    private static readonly PathString _apiPath = "/api";
+    private static readonly PathString[] _clientPaths = ["/api/scoreboard", "/api/stats"];
 
-    public async Task InvokeAsync(HttpContext context, DataContext db)
+    public async Task InvokeAsync(HttpContext context, DataContext db, OrganizationScope scope)
     {
-        if (!context.Request.Path.StartsWithSegments(_apiPath))
+        if (!_clientPaths.Any(p => context.Request.Path.StartsWithSegments(p)))
         {
             await next(context);
             return;
@@ -43,6 +44,7 @@ public class ClientIdMiddleware(RequestDelegate next)
         }
 
         context.Items[OrganizationIdItemKey] = organization.Id;
+        scope.OrganizationId = organization.Id;
 
         var tableHeader = context.Request.Headers[TableHeaderName].ToString().Trim();
         if (tableHeader.Length > 0)
@@ -77,9 +79,16 @@ public class ClientIdMiddleware(RequestDelegate next)
     }
 }
 
+public class OrganizationScope
+{
+    public int? OrganizationId { get; set; }
+}
+
 public static class HttpContextClientIdExtensions
 {
-    public static int GetOrganizationId(this HttpContext context) => (int)context.Items[ClientIdMiddleware.OrganizationIdItemKey]!;
+    public static int GetOrganizationId(this HttpContext context) =>
+        context.Items[ClientIdMiddleware.OrganizationIdItemKey] as int?
+        ?? context.User.GetOrganizationId();
 
     /// <summary>Table id resolved from X-Table-No, or null when the header was not sent.</summary>
     public static int? GetTableId(this HttpContext context) => context.Items[ClientIdMiddleware.TableIdItemKey] as int?;

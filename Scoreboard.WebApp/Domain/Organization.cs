@@ -22,6 +22,7 @@ public class User : BaseEntity
 // ========================== ORGANIZATION ==========================
 
 /// <summary>Bilardo salonu / işletme — tenant. Tüm operasyonel veriler buna bağlıdır.</summary>
+[GlobalFilter(nameof(Id))]
 public class Organization : BaseEntity
 {
     public string Name { get; set; } = default!;
@@ -59,6 +60,7 @@ public class Organization : BaseEntity
 /// <summary>User ↔ Organization rol ataması</summary>
 public class StaffMember : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int UserId { get; set; }
     public List<StaffRole> Roles { get; set; } = [];
@@ -74,6 +76,7 @@ public class StaffMember : BaseEntity, ITenantScoped
 
 public class BilliardTable : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int Number { get; set; }
     public int? ScoreboardNo { get; set; }      // scoreboard (monitör) kullanan masalarda otomatik üretilir; istemci X-Table-No olarak bunu gönderir. null → bu masada scoreboard yok
@@ -102,6 +105,7 @@ public class BilliardTable : BaseEntity, ITenantScoped
 /// <summary>Masaya eşlenmiş scoreboard tableti, salon TV'si veya kasa</summary>
 public class Device : BaseEntity, ITenantScoped
 {
+    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int? TableId { get; set; }           // Scoreboard için zorunlu
     public DeviceType Type { get; set; }

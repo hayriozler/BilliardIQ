@@ -22,7 +22,7 @@ public class SystemPlayerService(DataContext db)
         {
             var name = NameFor(slot, Loc.DefaultLanguage);
             await db.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO "PlayerSet" ("Id", "FirstName", "LastName", "DisplayName", "IsGuest", "IsPublicProfile", "Level",
+                INSERT INTO "Player" ("Id", "FirstName", "LastName", "DisplayName", "IsGuest", "IsPublicProfile", "Level",
                                          "IsSystem", "SystemSlot", "CreatedAt", "UpdatedAt")
                 VALUES ({slot}, {name}, '', {name}, TRUE, FALSE, {(int)Level.Intermidiate}, TRUE, {slot}, now(), now())
                 ON CONFLICT ("Id") DO NOTHING
@@ -31,6 +31,6 @@ public class SystemPlayerService(DataContext db)
 
         // the identity counter must be past the reserved ids
         await db.Database.ExecuteSqlRawAsync(
-            """SELECT setval(pg_get_serial_sequence('"PlayerSet"', 'Id'), GREATEST((SELECT COALESCE(MAX("Id"), 0) FROM "PlayerSet"), 2))""");
+            """SELECT setval(pg_get_serial_sequence('"Player"', 'Id'), GREATEST((SELECT COALESCE(MAX("Id"), 0) FROM "Player"), 2))""");
     }
 }
