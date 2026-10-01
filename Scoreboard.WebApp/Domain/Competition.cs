@@ -1,10 +1,7 @@
 namespace Scoreboard.WebApp.Domain;
 
-// =========================== TOURNAMENT ===========================
-
 public class Tournament : BaseEntity, ITenantScoped
 {
-    [GlobalFilter]
     public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;
     public string Slug { get; set; } = default!;
@@ -18,7 +15,7 @@ public class Tournament : BaseEntity, ITenantScoped
     public int? MaxEntries { get; set; }
     public decimal? EntryFee { get; set; }
     public decimal? PrizePool { get; set; }
-    public decimal? MaxAverageLimit { get; set; } // katılım koşulu
+    public decimal? MaxAverageLimit { get; set; }
     public bool IsHandicap { get; set; }
     public string? PosterUrl { get; set; }
     public bool IsPublic { get; set; }
@@ -32,10 +29,10 @@ public class Tournament : BaseEntity, ITenantScoped
 public class TournamentStage : BaseEntity
 {
     public int TournamentId { get; set; }
-    public int Order { get; set; }               // 1 = ön eleme, 2 = grup, 3 = final
-    public string Name { get; set; } = default!; // 'Gruplar', 'Son 16'
+    public int Order { get; set; }
+    public string Name { get; set; } = default!;
     public StageType Type { get; set; }
-    public int? RuleSetId { get; set; }         // aşamaya özel kural
+    public int? RuleSetId { get; set; }
     public int? QualifiersPerGroup { get; set; }
     public DateOnly? StartDate { get; set; }
     public List<Tiebreaker> Tiebreakers { get; set; } =
@@ -51,9 +48,9 @@ public class TournamentStage : BaseEntity
 public class StageGroup : BaseEntity
 {
     public int StageId { get; set; }
-    public string Name { get; set; } = default!; // 'A Grubu'
+    public string Name { get; set; } = default!;
     public int Order { get; set; }
-    public List<int> TableIds { get; set; } = []; // grubun oynandığı masalar
+    public List<int> TableIds { get; set; } = [];
 
     public TournamentStage Stage { get; set; } = default!;
     public ICollection<StageStanding> Standings { get; set; } = [];
@@ -63,11 +60,11 @@ public class TournamentEntry : BaseEntity
 {
     public int TournamentId { get; set; }
     public int PlayerId { get; set; }
-    public int? ClubId { get; set; }            // turnuva anındaki kulübü
+    public int? ClubId { get; set; }
     public int? Seed { get; set; }
     public EntryStatus Status { get; set; }
     public int? HandicapTargetPoints { get; set; }
-    public decimal? EntryAverage { get; set; }   // seri başı için
+    public decimal? EntryAverage { get; set; }
     public bool FeePaid { get; set; }
     public int? FinalRank { get; set; }
     public decimal? PrizeAmount { get; set; }
@@ -77,7 +74,6 @@ public class TournamentEntry : BaseEntity
     public Club? Club { get; set; }
 }
 
-/// <summary>Aşama / grup puan durumu (projeksiyon)</summary>
 public class StageStanding : BaseEntity
 {
     public int StageId { get; set; }
@@ -101,15 +97,12 @@ public class StageStanding : BaseEntity
     public TournamentEntry Entry { get; set; } = default!;
 }
 
-// ======================= LEAGUE / TEAM FIXTURE =======================
-
 public class League : BaseEntity
 {
-    [GlobalFilter(IncludeNull = true)]
-    public int? OrganizationId { get; set; }    // federasyon ligi → null
-    public string Name { get; set; } = default!; // 'İstanbul 3 Bant Takım Ligi'
+    public int? OrganizationId { get; set; }
+    public string Name { get; set; } = default!;
     public Discipline Discipline { get; set; }
-    public string? Level { get; set; }           // 'Süper Lig', '1. Lig'
+    public string? Level { get; set; }
     public bool IsTeamLeague { get; set; }
 
     public ICollection<Season> Seasons { get; set; } = [];
@@ -118,7 +111,7 @@ public class League : BaseEntity
 public class Season : BaseEntity
 {
     public int LeagueId { get; set; }
-    public string Name { get; set; } = default!; // '2026-2027'
+    public string Name { get; set; } = default!;
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
     public SeasonStatus Status { get; set; }
@@ -134,7 +127,6 @@ public class Season : BaseEntity
     public ICollection<TeamFixture> Fixtures { get; set; } = [];
 }
 
-/// <summary>Sezona katılan takım + puan durumu (projeksiyon)</summary>
 public class SeasonTeam : BaseEntity
 {
     public int SeasonId { get; set; }
@@ -153,14 +145,12 @@ public class SeasonTeam : BaseEntity
     public Team Team { get; set; } = default!;
 }
 
-/// <summary>Takım vs takım müsabakası — N adet bireysel Match içerir</summary>
 public class TeamFixture : BaseEntity
 {
     public int SeasonId { get; set; }
-    public int Round { get; set; }               // hafta
+    public int Round { get; set; }
     public int HomeTeamId { get; set; }
     public int AwayTeamId { get; set; }
-    [GlobalFilter]
     public int OrganizationId { get; set; }
     public DateTimeOffset ScheduledAt { get; set; }
     public FixtureStatus Status { get; set; }

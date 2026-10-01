@@ -64,8 +64,6 @@
     padding: 0 4vw;
 }
 
-/* ---------- Header ---------- */
-
 .board-header {
     display: flex;
     align-items: center;
@@ -149,8 +147,6 @@
     background: var(--red);
 }
 
-/* ---------- Shot clock ---------- */
-
 .shot-clock {
     position: fixed;
     left: 0;
@@ -179,8 +175,6 @@
 .shot-clock.urgent .shot-clock-value {
     color: var(--red);
 }
-
-/* ---------- Scores ---------- */
 
 .scores {
     flex: 1;
@@ -405,8 +399,6 @@
     background: var(--red-dark);
 }
 
-/* ---------- Stat bar ---------- */
-
 .stat-bar {
     display: grid;
     grid-template-columns: 1fr minmax(180px, 0.6fr) 1fr;
@@ -450,11 +442,6 @@
 .stat-value.current {
     color: var(--red);
 }
-
-/* ---------- Status + controls ---------- */
-
-
-
 
 .controls-overlay {
     position: fixed;

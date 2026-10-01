@@ -123,7 +123,6 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         player.CityId = city?.Id;
         if (country is not null)
         {
-            // Picked from the lists: the legacy text columns carry the names so API clients and the scoreboard keep working.
             player.Nationality = country.Name;
             player.City = city?.Name;
         }
@@ -173,9 +172,8 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             throw new InvalidOperationException("Sistem oyuncuları silinemez.");
         }
 
-        // Match history keeps referencing the player, so the profile is retired rather than removed.
         db.TeamMemberSet.RemoveRange(await db.TeamMemberSet.Where(m => m.PlayerId == id).ToListAsync());
-        player.ShortcutNumber = null; // frees the number for reuse
+        player.ShortcutNumber = null;
         player.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
         return true;

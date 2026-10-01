@@ -2,7 +2,6 @@ namespace Scoreboard.WebApp.Services;
 
 public record BillingResult(int BilledMinutes, decimal Amount);
 
-/// <summary>Turns a session's price snapshot + elapsed time into billed minutes and an amount.</summary>
 public static class PricingCalculator
 {
     private const int MaxMinutes = 7 * 24 * 60;
@@ -36,7 +35,6 @@ public static class PricingCalculator
         return new BillingResult(billed, Amount(pricing, openedAt, billed, timeZone));
     }
 
-    /// <summary>Live estimate shown on the dashboard while a session is running.</summary>
     public static decimal Estimate(
         PricingSnapshot pricing, DateTimeOffset openedAt, int elapsedMinutes, int roundingMinutes, int minimumMinutes, TimeZoneInfo timeZone) =>
         Calculate(pricing, openedAt, elapsedMinutes, roundingMinutes, minimumMinutes, timeZone).Amount;
@@ -63,7 +61,7 @@ public static class PricingCalculator
         var time = TimeOnly.FromDateTime(local.DateTime);
         foreach (var slot in pricing.TimeSlots)
         {
-            var wraps = slot.To <= slot.From; // e.g. 22:00 → 02:00
+            var wraps = slot.To <= slot.From;
             if (!wraps)
             {
                 if (slot.DaysOfWeek.Contains(local.DayOfWeek) && time >= slot.From && time < slot.To)

@@ -4,12 +4,7 @@ using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Services;
 
-/// <summary>
-/// Starter geography for every salon: Türkiye (81 provinces, 7 geographic regions) and the Netherlands
-/// (well-known cities, 12 provinces as regions). The salon can edit or delete any of it afterwards.
-/// A salon is seeded once: when it has no country rows at all (deleted ones count, so a cleared list stays cleared).
-/// </summary>
-public class GeoSeedService(DataContext db)
+public class GeoSeedService(DataContext db, OrganizationRunner runner)
 {
     private static readonly string[] TurkeyCities = ["Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Aksaray", "Amasya", "Ankara", "Antalya", "Ardahan", "Artvin", "Aydın", "Balıkesir", "Bartın", "Batman", "Bayburt", "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli", "Diyarbakır", "Düzce", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkâri", "Hatay", "Iğdır", "Isparta", "İstanbul", "İzmir", "Kahramanmaraş", "Karabük", "Karaman", "Kars", "Kastamonu", "Kayseri", "Kırıkkale", "Kırklareli", "Kırşehir", "Kilis", "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Mardin", "Mersin", "Muğla", "Muş", "Nevşehir", "Niğde", "Ordu", "Osmaniye", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Şanlıurfa", "Şırnak", "Tekirdağ", "Tokat", "Trabzon", "Tunceli", "Uşak", "Van", "Yalova", "Yozgat", "Zonguldak"];
 
@@ -19,14 +14,14 @@ public class GeoSeedService(DataContext db)
 
     private static readonly string[] NetherlandsRegions = ["Groningen", "Friesland", "Drenthe", "Overijssel", "Flevoland", "Gelderland", "Utrecht", "Noord-Holland", "Zuid-Holland", "Zeeland", "Noord-Brabant", "Limburg"];
 
-    public async Task EnsureAsync(Organization organization)
+    public async Task EnsureAsync(int organizationId)
     {
+        var organization = await db.OrganizationSet.FirstAsync(o => o.Id == organizationId);
         var home = CountryCatalog.Find(organization.CountryCode) ?? CountryCatalog.Find("TR")!;
         var homeName = home.NameIn(organization.Language);
 
         if (!await db.CountrySet.AnyAsync(c => c.OrganizationId == organization.Id))
         {
-            // Only the salon's own country is prepared; further countries are added on the Countries page.
             var country = new Country { OrganizationId = organization.Id, Name = homeName };
             db.CountrySet.Add(country);
             var cities = home.Code switch { "TR" => TurkeyCities, "NL" => NetherlandsCities, _ => [] };
@@ -46,13 +41,12 @@ public class GeoSeedService(DataContext db)
 
     public async Task EnsureAllAsync()
     {
-        foreach (var organization in await db.OrganizationSet.Where(o => o.DeletedAt == null).ToListAsync())
+        foreach (var organizationId in await db.OrganizationSet.Where(o => o.DeletedAt == null).Select(o => o.Id).ToListAsync())
         {
-            await EnsureAsync(organization);
+            await runner.RunAsync<GeoSeedService>(organizationId, seed => seed.EnsureAsync(organizationId));
         }
     }
 
-    /// <summary>Players created before the lists existed carry free text; link it to the matching country / city rows.</summary>
     private async Task LinkExistingPlayersAsync(Organization organization)
     {
         var players = await db.PlayerSet

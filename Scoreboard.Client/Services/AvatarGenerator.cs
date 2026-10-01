@@ -6,12 +6,6 @@ using System.Text.Json.Serialization;
 
 namespace Scoreboard.Client.Services;
 
-/// <summary>
-/// Animal avatars: 20 illustrated animals × 5 team colours = 100 avatars, id 0..99.
-/// The artwork lives in <c>Avatars/animals.json</c> (embedded; the scoreboard client links the same file), so the
-/// panel and the scoreboard always draw the same picture for the same id. Each animal is described by its left half,
-/// which is mirrored, plus optional shapes behind and in front of the face.
-/// </summary>
 public static class AvatarGenerator
 {
     private sealed record Palette(string Bg, string Bg2, string C1, string C2, string C3);
@@ -39,10 +33,8 @@ public static class AvatarGenerator
         _animals = catalog.Animals.Select(a => new Animal(a.Name, a.Back, a.Half, a.Front)).ToList();
     }
 
-    /// <summary>Number of distinct avatars; valid ids are 0 to Count - 1.</summary>
     public static int Count => _animals.Count * _palettes.Count;
 
-    /// <summary>Accent colour of an avatar, handy for tinting UI next to it.</summary>
     public static string GetColor(int seed) => Resolve(seed).Palette.C1;
 
     public static int SeedFromName(string name)

@@ -1,21 +1,16 @@
 using Scoreboard.WebApp.Domain;
 namespace Scoreboard.WebApp.Models;
 
-/// <summary>
-/// Flat match summary pushed by a kiosk. Legacy shape kept until the kiosk speaks
-/// <see cref="Domain.MatchEvent"/>; Player ids are the server's own <see cref="Domain.Player.Id"/>.
-/// </summary>
 public class MatchStat
 {
     public int Id { get; set; }
-    [GlobalFilter]
     public int? OrganizationId { get; set; }
     public Organization? Organization { get; set; }
     public int? TableId { get; set; }
     public int? TableNo { get; set; }
     public BilliardTable? Table { get; set; }
 
-    public int? DeviceId { get; set; }          // legacy: eski eşleştirme koduyla gelen kayıtlar
+    public int? DeviceId { get; set; }
     public Device? Device { get; set; }
 
     public int? Player1ExternalId { get; set; }
@@ -39,14 +34,12 @@ public class MatchStat
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? EndedAt { get; set; }
 
-    /// <summary>Length in minutes of one <see cref="MatchStatBucket"/>; 0 when no distribution was sent.</summary>
     public int BucketMinutes { get; set; }
     public List<MatchStatBucket> Buckets { get; set; } = [];
 
     public DateTimeOffset RecordedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
-/// <summary>Points scored by one player slot (1 or 2) during one time bucket of a match.</summary>
 public class MatchStatBucket
 {
     public int Id { get; set; }

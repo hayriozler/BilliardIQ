@@ -1,14 +1,17 @@
 using Microsoft.EntityFrameworkCore;
-using Scoreboard.WebApp.Middlewares;
+using Scoreboard.WebApp.Services;
 using Scoreboard.WebApp.Models;
-using System.Linq.Expressions;
-using System.Reflection;
 
 namespace Scoreboard.WebApp.Data;
 
-public class DataContext(DbContextOptions<DataContext> options, OrganizationScope? organizationScope = null) : DbContext(options)
+public class DataContext : DbContext
 {
-    private int? ClientOrganizationId => organizationScope?.OrganizationId;
+    private readonly int? _organizationId;
+
+    public DataContext(DbContextOptions<DataContext> options, IOrganizationService organizationService) : base(options)
+    {
+        _organizationId = organizationService.GetCurrentOrganizationId();
+    }
 
     public DbSet<User> UserSet => Set<User>();
     public DbSet<Organization> OrganizationSet => Set<Organization>();
@@ -16,7 +19,6 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
     public DbSet<BilliardTable> BilliardTableSet => Set<BilliardTable>();
     public DbSet<Device> DeviceSet => Set<Device>();
 
-    // People
     public DbSet<Player> PlayerSet => Set<Player>();
     public DbSet<Club> ClubSet => Set<Club>();
     public DbSet<Association> AssociationSet => Set<Association>();
@@ -28,7 +30,6 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
     public DbSet<TeamMember> TeamMemberSet => Set<TeamMember>();
     public DbSet<CustomerMembership> CustomerMembershipSet => Set<CustomerMembership>();
 
-    // Billing / POS
     public DbSet<PricingRule> PricingRuleSet => Set<PricingRule>();
     public DbSet<Reservation> ReservationSet => Set<Reservation>();
     public DbSet<TableSession> TableSessionSet => Set<TableSession>();
@@ -39,7 +40,6 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
     public DbSet<Payment> PaymentSet => Set<Payment>();
     public DbSet<CashRegisterShift> CashRegisterShiftSet => Set<CashRegisterShift>();
 
-    // Scoring
     public DbSet<RuleSet> RuleSetSet => Set<RuleSet>();
     public DbSet<Match> MatchesSet => Set<Match>();
     public DbSet<MatchParticipant> MatchParticipantSet => Set<MatchParticipant>();
@@ -47,13 +47,11 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
     public DbSet<Inning> InningSet => Set<Inning>();
     public DbSet<MatchEvent> MatchEventSet => Set<MatchEvent>();
 
-    // Competition
     public DbSet<Tournament> TournamentSet => Set<Tournament>();
     public DbSet<TournamentStage> TournamentStageSet => Set<TournamentStage>();
     public DbSet<StageGroup> StageGroupSet => Set<StageGroup>();
     public DbSet<TournamentEntry> TournamentEntrySet => Set<TournamentEntry>();
 
-    // Salon tournaments (Turnuvalar module)
     public DbSet<Cup> CupSet => Set<Cup>();
     public DbSet<CupParticipant> CupParticipantSet => Set<CupParticipant>();
     public DbSet<CupRuleBlock> CupRuleBlockSet => Set<CupRuleBlock>();
@@ -64,19 +62,16 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
     public DbSet<SeasonTeam> SeasonTeamSet => Set<SeasonTeam>();
     public DbSet<TeamFixture> TeamFixtureSet => Set<TeamFixture>();
 
-    // Stats
     public DbSet<PlayerStats> PlayerStatsSet => Set<PlayerStats>();
     public DbSet<PlayerOrganizationStats> PlayerOrganizationStatsSet => Set<PlayerOrganizationStats>();
     public DbSet<RatingHistory> RatingHistorySet => Set<RatingHistory>();
     public DbSet<AuditLog> AuditLogSet => Set<AuditLog>();
 
-    // Legacy kiosk sync (Pi pushes flat match summaries here until it speaks MatchEvent)
     public DbSet<MatchStat> MatchStatSet => Set<MatchStat>();
     public DbSet<MatchStatBucket> MatchStatBucketSet => Set<MatchStatBucket>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // ---------- owned / JSON value objects ----------
         modelBuilder.Entity<Organization>(e =>
         {
             e.OwnsOne(o => o.Address, a => a.ToJson());
@@ -115,7 +110,6 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
             e.HasIndex(s => new { s.OrganizationId, s.OpenedAt });
         });
 
-        // ---------- identity ----------
         modelBuilder.Entity<User>(e =>
         {
             e.HasIndex(u => u.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
@@ -130,7 +124,6 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
             e.HasIndex(s => new { s.OrganizationId, s.UserId }).IsUnique();
         });
 
-        // ---------- tables / devices ----------
         modelBuilder.Entity<BilliardTable>(e =>
         {
             e.HasIndex(t => new { t.OrganizationId, t.Number }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
@@ -148,8 +141,6 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
             e.Property(d => d.Name).HasMaxLength(200);
         });
 
-        // ---------- people ----------
-        // ---------- salon tournaments ----------
         modelBuilder.Entity<Cup>(e =>
         {
             e.Property(c => c.Name).HasMaxLength(200);
@@ -210,7 +201,6 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
             e.Property(p => p.LastName).HasMaxLength(100);
             e.Property(p => p.Nickname).HasMaxLength(100);
             e.Property(p => p.FederationLicenseNo).HasMaxLength(50);
-            // the two default players are global: one row per slot, and no real player may take Id 1 or 2
             e.HasIndex(p => p.SystemSlot)
                 .IsUnique()
                 .HasFilter("\"SystemSlot\" IS NOT NULL");
@@ -253,14 +243,12 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
             e.HasIndex(m => new { m.OrganizationId, m.MemberNo }).IsUnique();
         });
 
-        // ---------- billing ----------
         modelBuilder.Entity<Reservation>(e =>
         {
             e.HasOne(r => r.Session).WithMany().HasForeignKey(r => r.SessionId);
             e.HasIndex(r => new { r.OrganizationId, r.StartAt });
         });
 
-        // ---------- scoring ----------
         modelBuilder.Entity<MatchEvent>(e =>
         {
             e.HasIndex(x => new { x.MatchId, x.Seq }).IsUnique();
@@ -299,7 +287,34 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
             e.HasIndex(b => new { b.MatchStatId, b.PlayerSlot, b.BucketIndex }).IsUnique();
         });
 
-        // ---------- conventions ----------
+        modelBuilder.Entity<PricingRule>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<Reservation>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<TableSession>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<ProductCategory>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<Product>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<OrderItem>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<Payment>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<CashRegisterShift>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<Tournament>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<League>().HasQueryFilter(e => e.OrganizationId == _organizationId || e.OrganizationId == null);
+        modelBuilder.Entity<TeamFixture>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<Cup>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<BilliardTable>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<Device>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<Association>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<Country>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<City>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<Region>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<Player>().HasQueryFilter(e => e.CreatedInOrganizationId == _organizationId || e.IsSystem);
+        modelBuilder.Entity<Club>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<Team>().HasQueryFilter(e => e.HomeOrganizationId == _organizationId);
+        modelBuilder.Entity<CustomerMembership>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<RuleSet>().HasQueryFilter(e => e.OrganizationId == _organizationId || e.OrganizationId == null);
+        modelBuilder.Entity<Match>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<PlayerOrganizationStats>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<AuditLog>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<MatchStat>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (entityType.BaseType is null && !entityType.IsOwned())
@@ -319,43 +334,6 @@ public class DataContext(DbContextOptions<DataContext> options, OrganizationScop
                 property.SetPrecision(18);
                 property.SetScale(threeDecimals ? 3 : 2);
             }
-        }
-
-        ApplyGlobalFilters(modelBuilder);
-    }
-
-    private void ApplyGlobalFilters(ModelBuilder modelBuilder)
-    {
-        var scope = Expression.Property(Expression.Constant(this), nameof(ClientOrganizationId));
-        var noScope = Expression.Equal(scope, Expression.Constant(null, typeof(int?)));
-
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes().Where(t => t.BaseType is null && !t.IsOwned()))
-        {
-            var clr = entityType.ClrType;
-            var classFilter = clr.GetCustomAttribute<GlobalFilterAttribute>();
-            var column = classFilter?.Property is { } name
-                ? clr.GetProperty(name)
-                : clr.GetProperties().FirstOrDefault(p => p.IsDefined(typeof(GlobalFilterAttribute)));
-            if (column is null)
-            {
-                continue;
-            }
-
-            var filter = classFilter ?? column.GetCustomAttribute<GlobalFilterAttribute>()!;
-            var e = Expression.Parameter(clr, "e");
-            var value = Expression.Convert(Expression.Property(e, column), typeof(int?));
-            Expression visible = Expression.Equal(value, scope);
-            if (filter.IncludeNull)
-            {
-                visible = Expression.OrElse(visible, Expression.Equal(value, Expression.Constant(null, typeof(int?))));
-            }
-
-            if (filter.IncludeWhen is { } flag)
-            {
-                visible = Expression.OrElse(visible, Expression.Property(e, flag));
-            }
-
-            modelBuilder.Entity(clr).HasQueryFilter(Expression.Lambda(Expression.OrElse(noScope, visible), e));
         }
     }
 

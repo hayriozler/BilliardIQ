@@ -3,7 +3,6 @@ using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Services;
 
-/// <summary>Products and services added to an open table's bill. The session keeps a denormalized ItemsAmount that the close/settle steps use.</summary>
 public class OrderService(DataContext db)
 {
     public Task<List<OrderItem>> ListItemsAsync(int organizationId, int sessionId) =>
@@ -13,7 +12,6 @@ public class OrderService(DataContext db)
             .OrderBy(i => i.Id)
             .ToListAsync();
 
-    /// <summary>Adds one unit of a product to the session's bill (or one more of a line that already exists).</summary>
     public async Task AddItemAsync(int organizationId, int sessionId, int productId, int staffId)
     {
         var session = await FindOpenSessionAsync(organizationId, sessionId);
@@ -50,7 +48,6 @@ public class OrderService(DataContext db)
         await RecalculateAsync(session);
     }
 
-    /// <summary>Takes one unit off a line; the line is cancelled when nothing is left.</summary>
     public async Task RemoveOneAsync(int organizationId, int itemId)
     {
         var item = await db.OrderItemSet.FirstOrDefaultAsync(i =>

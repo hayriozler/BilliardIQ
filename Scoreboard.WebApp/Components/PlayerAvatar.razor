@@ -1,4 +1,3 @@
-@* Photo if there is one, otherwise the chosen avatar, otherwise the player's initial. *@
 @if (Player.PhotoUrl is not null)
 {
     <img src="@($"/{Player.PhotoUrl}")" class="thumb" style="@SizeStyle" alt="" />

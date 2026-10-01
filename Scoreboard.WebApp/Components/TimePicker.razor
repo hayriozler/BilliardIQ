@@ -21,7 +21,6 @@
 
     [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>Minute steps of 5, plus the current minute when it is not a multiple of 5.</summary>
     private IEnumerable<int> Minutes =>
         Enumerable.Range(0, 12).Select(i => i * 5).Append(Value.Minute).Distinct().Order();
 

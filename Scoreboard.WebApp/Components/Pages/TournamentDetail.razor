@@ -646,8 +646,6 @@ else
         (_uncovered, _overlapping) = CupLogic.CheckCoverage(blocks, TotalRounds);
     }
 
-    // ---------------------------------------------------------------- labels
-
     private string Name(int? participantId) =>
         participantId is { } id && _names.TryGetValue(id, out var name) ? name : "—";
 
@@ -690,8 +688,6 @@ else
     private static string TargetText(CupMatch match) =>
         match.TargetA is null ? "—" : match.TargetA == match.TargetB ? match.TargetA.ToString()! : $"{match.TargetA} / {match.TargetB}";
 
-    // ---------------------------------------------------------------- participants
-
     private void TogglePlayer(int playerId, bool on)
     {
         if (on) _selectedPlayers.Add(playerId); else _selectedPlayers.Remove(playerId);
@@ -714,8 +710,6 @@ else
         return Db.RunAsync((CupService s) => s.SetParticipantAsync(_tenant!.OrganizationId, Id, participantId, edit.Handicap, edit.Seed));
     });
 
-    // ---------------------------------------------------------------- rules
-
     private void AddRuleRow()
     {
         var next = _rules.Count == 0 ? 1 : _rules.Max(r => r.ToRound) + 1;
@@ -737,8 +731,6 @@ else
         () => Db.RunAsync((CupService s) => s.QuickRulesAsync(_tenant!.OrganizationId, Id, TotalRounds, null)),
         reloadEditors: true);
 
-    // ---------------------------------------------------------------- start / reset
-
     private Task StartAsync() => RunAsync(async () =>
     {
         await Db.RunAsync((CupService s) => s.StartAsync(_tenant!.OrganizationId, Id));
@@ -752,8 +744,6 @@ else
         _editMatchId = null;
         _tab = "participants";
     }, reloadEditors: true);
-
-    // ---------------------------------------------------------------- results
 
     private void OpenResult(CupMatch match)
     {

@@ -4,7 +4,6 @@ using Scoreboard.WebApp.Models;
 
 namespace Scoreboard.WebApp.Services;
 
-/// <summary>One player's match, seen from that player's side.</summary>
 public record PlayerMatchEntry(
     int MatchId,
     DateTimeOffset PlayedAt,
@@ -22,7 +21,6 @@ public record PlayerMatchEntry(
     int BucketMinutes,
     IReadOnlyList<int> PaceBuckets);
 
-/// <summary>Aggregate numbers, same definitions as the mobile app's player statistics.</summary>
 public record StatSummary(
     int Matches,
     int Wins,
@@ -41,10 +39,6 @@ public record TeamStatRow(Team Team, int MemberCount, StatSummary Summary);
 
 public record TeamStatDetail(Team Team, StatSummary Summary, IReadOnlyList<PlayerStatRow> Members, IReadOnlyList<(Player Player, PlayerMatchEntry Match)> RecentMatches);
 
-/// <summary>
-/// Player and team statistics computed from the match results the tables' scoreboards send (MatchStat).
-/// Players are matched by their server id, which the scoreboard sends as Player1Id / Player2Id.
-/// </summary>
 public class StatsService(DataContext db)
 {
     public async Task<List<PlayerStatRow>> PlayersAsync(int organizationId, DateTimeOffset? since = null)
@@ -110,8 +104,6 @@ public class StatsService(DataContext db)
             .ToList();
         return new TeamStatDetail(team, Summarize(all), memberRows, recent);
     }
-
-    // ------------------------------------------------------------------ internals
 
     private Task<List<Player>> RosterPlayersAsync(int organizationId) =>
         db.PlayerSet.AsNoTracking()

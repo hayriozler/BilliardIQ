@@ -3,7 +3,6 @@ using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Services;
 
-/// <summary>The salon's list of regions that players can belong to.</summary>
 public class RegionService(DataContext db)
 {
     public Task<List<Region>> ListAsync(int organizationId) =>

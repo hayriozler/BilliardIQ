@@ -7,7 +7,7 @@ namespace Scoreboard.WebApp.Services;
 
 public record LoginResult(User User, StaffMember Staff, Organization Organization);
 
-public class AuthService(DataContext db, ClientIdService clientIds, GeoSeedService geoSeed)
+public class AuthService(DataContext db, ClientIdService clientIds, OrganizationRunner runner)
 {
     private static readonly PasswordHasher<User> _hasher = new();
 
@@ -74,7 +74,6 @@ public class AuthService(DataContext db, ClientIdService clientIds, GeoSeedServi
         return new LoginResult(user, staff, staff.Organization);
     }
 
-    /// <summary>Creates a salon (tenant) with its owner account. Tables and pricing are set up after registration.</summary>
     public async Task<LoginResult> RegisterOrganizationAsync(
         string organizationName, string ownerName, string email, string password, string? countryCode = null, string? currency = null, string? language = null)
     {
@@ -91,7 +90,6 @@ public class AuthService(DataContext db, ClientIdService clientIds, GeoSeedServi
             : CountryCatalog.Find(countryCode) ?? throw new ArgumentException("Desteklenmeyen ülke.");
         currency = string.IsNullOrWhiteSpace(currency) ? country.Currency : currency.Trim().ToUpperInvariant();
         if (!CountryCatalog.IsCurrency(currency)) throw new ArgumentException("Desteklenmeyen para birimi.");
-        // Asked on the form; when nothing was chosen the country's language is used.
         language = string.IsNullOrWhiteSpace(language) ? country.Language : language.Trim().ToLowerInvariant();
         if (!Loc.IsSupported(language)) throw new ArgumentException("Desteklenmeyen dil.");
 
@@ -122,7 +120,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, GeoSeedServi
 
         db.StaffMemberSet.Add(staff);
         await db.SaveChangesAsync();
-        await geoSeed.EnsureAsync(organization);
+        await runner.RunAsync<GeoSeedService>(organization.Id, seed => seed.EnsureAsync(organization.Id));
         return new LoginResult(user, staff, organization);
     }
 

@@ -51,7 +51,6 @@ public static class PlayersEndpoints
 
     private static PlayerDto ToDto(Player p, string language)
     {
-        // Player 1 / Player 2 (Id 1 and 2) carry the venue's language, whatever the stored source-language name is.
         var shown = p.IsSystem && p.SystemSlot is int slot ? SystemPlayerService.NameFor(slot, language) : null;
         return BuildDto(p, shown);
     }

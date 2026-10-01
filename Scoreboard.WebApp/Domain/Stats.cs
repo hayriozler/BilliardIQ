@@ -1,6 +1,5 @@
 namespace Scoreboard.WebApp.Domain;
 
-/// <summary>Oyuncunun disiplin bazlı toplam istatistiği (projeksiyon). PK: (PlayerId, Discipline, Scope)</summary>
 public class PlayerStats
 {
     public int PlayerId { get; set; }
@@ -12,22 +11,20 @@ public class PlayerStats
     public int Losses { get; set; }
     public int TotalScore { get; set; }
     public int TotalInnings { get; set; }
-    public decimal GeneralAverage { get; set; }  // GA = TotalScore / TotalInnings
-    public decimal BestGameAverage { get; set; } // BGA
+    public decimal GeneralAverage { get; set; }
+    public decimal BestGameAverage { get; set; }
     public int? BestGameAverageMatchId { get; set; }
-    public int HighRun { get; set; }             // HR
+    public int HighRun { get; set; }
     public int? HighRunMatchId { get; set; }
-    public decimal Last10Average { get; set; }   // form göstergesi
+    public decimal Last10Average { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
     public Player Player { get; set; } = default!;
 }
 
-/// <summary>Salon bazlı istatistik (salon içi lider tablosu). PK: (PlayerId, OrganizationId, Discipline)</summary>
 public class PlayerOrganizationStats
 {
     public int PlayerId { get; set; }
-    [GlobalFilter]
     public int OrganizationId { get; set; }
     public Discipline Discipline { get; set; }
     public int MatchesPlayed { get; set; }
@@ -66,13 +63,12 @@ public class RatingHistory
 public class AuditLog
 {
     public int Id { get; set; }
-    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int? ActorUserId { get; set; }
     public int? ActorDeviceId { get; set; }
-    public string EntityType { get; set; } = default!; // 'TableSession', 'Payment'
+    public string EntityType { get; set; } = default!;
     public int EntityId { get; set; }
-    public string Action { get; set; } = default!;     // 'VOIDED', 'DISCOUNT_APPLIED'
+    public string Action { get; set; } = default!;
     public string? BeforeJson { get; set; }
     public string? AfterJson { get; set; }
     public string? Ip { get; set; }

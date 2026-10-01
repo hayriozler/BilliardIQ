@@ -31,13 +31,16 @@ builder.Services.AddScoped<RegionService>();
 builder.Services.AddScoped<CountryService>();
 builder.Services.AddScoped<CityService>();
 builder.Services.AddScoped<GeoSeedService>();
+builder.Services.AddSingleton<OrganizationRunner>();
 builder.Services.AddScoped<Scoreboard.WebApp.Services.Tournaments.CupService>();
 builder.Services.AddScoped<StatsService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ClientIdService>();
 builder.Services.AddScoped<SystemPlayerService>();
 builder.Services.AddScoped<ScoreboardDataService>();
-builder.Services.AddScoped<OrganizationScope>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<OrganizationService>();
+builder.Services.AddScoped<IOrganizationService>(sp => sp.GetRequiredService<OrganizationService>());
 builder.Services.AddScoped<TenantContext>();
 builder.Services.AddScoped<ScopedRunner>();
 
@@ -59,7 +62,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = context =>
         {
-            // API callers get a status code, browsers get the login page.
             if (context.Request.Path.StartsWithSegments("/api"))
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -89,7 +91,6 @@ if (app.Configuration.GetValue("Database:MigrateOnStartup", app.Environment.IsDe
     await scope.ServiceProvider.GetRequiredService<DataContext>().Database.MigrateAsync();
 }
 
-// Organizations created before client ids existed get one.
 using (var backfillScope = app.Services.CreateScope())
 {
     await backfillScope.ServiceProvider.GetRequiredService<ClientIdService>().EnsureAllAsync();
@@ -97,7 +98,6 @@ using (var backfillScope = app.Services.CreateScope())
     await backfillScope.ServiceProvider.GetRequiredService<GeoSeedService>().EnsureAllAsync();
 }
 
-// Optional seed accounts (Seed:Accounts): each salon + owner is created if its e-mail is not registered yet.
 foreach (var account in app.Configuration.GetSection("Seed:Accounts").GetChildren())
 {
     var email = account["Email"];
@@ -117,7 +117,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// The kiosk clients call /api over plain HTTP inside the compose network; Api:AllowHttp keeps them from being redirected.
 if (app.Configuration.GetValue<bool>("Api:AllowHttp"))
 {
     app.UseWhen(
@@ -145,16 +144,6 @@ app.MapStaticAssets();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.Use(async (context, next) =>
-{
-    if (context.User.Identity?.IsAuthenticated == true && context.User.FindFirst(AuthClaims.OrganizationId) is { } claim)
-    {
-        context.RequestServices.GetRequiredService<OrganizationScope>().OrganizationId = int.Parse(claim.Value);
-    }
-
-    await next();
-});
-
 app.UseMiddleware<ClientIdMiddleware>();
 
 app.MapClubsEndpoints();
@@ -165,7 +154,7 @@ app.MapAuthEndpoints();
 app.MapOrganizationEndpoints();
 app.MapScoreboardEndpoints();
 
-app.MapPost("/culture", async (HttpContext context, DataContext db, [FromForm] string lang, [FromForm] string? returnUrl) =>
+app.MapPost("/culture", async (HttpContext context, DataContext db, SystemPlayerService systemPlayers, [FromForm] string lang, [FromForm] string? returnUrl) =>
 {
     if (Loc.Languages.Any(l => l.Code == lang))
     {
@@ -173,6 +162,7 @@ app.MapPost("/culture", async (HttpContext context, DataContext db, [FromForm] s
         {
             var organizationId = context.User.GetOrganizationId();
             await db.OrganizationSet.Where(o => o.Id == organizationId).ExecuteUpdateAsync(o => o.SetProperty(x => x.Language, lang));
+            await systemPlayers.RenameAsync(lang);
         }
 
         context.Response.Cookies.Append(

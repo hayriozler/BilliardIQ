@@ -3,7 +3,6 @@ using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Services;
 
-/// <summary>The salon's own catalog: products and services (drinks, food, darts, ...) with their prices, grouped in categories.</summary>
 public class ProductService(DataContext db)
 {
     public Task<List<ProductCategory>> ListCategoriesAsync(int organizationId) =>
@@ -49,7 +48,6 @@ public class ProductService(DataContext db)
         return category;
     }
 
-    /// <summary>Moves a category one place up (-1) or down (+1) in the menu order.</summary>
     public async Task MoveCategoryAsync(int organizationId, int id, int direction)
     {
         var list = await db.ProductCategorySet
@@ -120,7 +118,6 @@ public class ProductService(DataContext db)
         return product;
     }
 
-    /// <summary>Sold items keep referencing the product, so it is retired rather than removed.</summary>
     public async Task DeleteProductAsync(int organizationId, int id)
     {
         var product = await db.ProductSet.FirstOrDefaultAsync(p => p.Id == id && p.OrganizationId == organizationId && p.DeletedAt == null)

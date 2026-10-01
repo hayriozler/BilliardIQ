@@ -377,7 +377,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // "Open here" reloads the page with ?takeover=1 to claim the board from a window that is still holding it.
         var takeOver = Nav.Uri.Contains("takeover=1", StringComparison.OrdinalIgnoreCase);
         if (takeOver)
         {
@@ -424,12 +423,8 @@ else
         else Current = game;
         ResolvePlayers();
         StateHasChanged();
-
     }
 
-    /// <summary>
-    /// Player 1 / Player 2: the server's system players when there is a server, otherwise the local rows with Id 1 and 2.
-    /// </summary>
     private int DefaultPlayerId(int slot) =>
         DbContext.PlayerSet
             .Where(p => p.IsSystem && p.SystemSlot == slot)
@@ -442,7 +437,6 @@ else
         _resolvedPlayer1 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player1Id);
         _resolvedPlayer2 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player2Id);
 
-        // The roster is a mirror of the server: a selected player may have been removed there since.
         if (_resolvedPlayer1 is null)
         {
             Current.Player1Id = DefaultPlayerId(1);
@@ -487,7 +481,6 @@ else
 
     private string? GetPhotoPath(int slot) => (slot == 1 ? _resolvedPlayer1 : _resolvedPlayer2)?.PhotoPath;
 
-    /// <summary>The picture shown for a player: the uploaded photo, otherwise the chosen avatar.</summary>
     private string? GetImageSource(int slot) =>
         string.IsNullOrEmpty(GetPhotoPath(slot)) ? GetAvatarDataUri(slot) : GetPhotoPath(slot);
 
@@ -538,7 +531,6 @@ else
 
     private void StartWarmup(int minutes) => Nav.NavigateTo($"/warmup/{minutes}");
 
-    /// <summary>The player chosen for the other side; the same player may not play against himself.</summary>
     private bool IsTakenByOtherSide(int slot, int playerId) =>
         playerId == (slot == 1 ? Current.Player2Id : Current.Player1Id);
 
@@ -624,7 +616,6 @@ else
 
     private void UpdateDefaultPlayers()
     {
-        // Once pulled, the placeholder rows belong to the server's system players; only the local seeds are relabelled.
         var players = DbContext.PlayerSet.Where(p => p.IsSystem && p.UpdatedAt == null && p.SystemSlot != null).ToList();
         foreach (var p in players)
         {
@@ -978,8 +969,6 @@ else
         }
         catch (JSDisconnectedException)
         {
-            // circuit is already gone (tab closed, refresh, connection drop) - the browser
-            // side is being torn down anyway, so there's nothing left to clean up via JS interop
         }
     }
 }

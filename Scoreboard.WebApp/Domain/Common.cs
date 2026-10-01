@@ -1,35 +1,24 @@
 namespace Scoreboard.WebApp.Domain;
 
-/*
- * Konvansiyonlar
- *  - Id: int, veritabanı tarafından üretilir (istemciler sunucudaki Id'yi doğrudan kullanır).
- *  - Zaman: DateTimeOffset (UTC saklanır, gösterimde Organization.TimeZone).
- *  - Para: decimal (precision 18,2).
- *  - Snapshot / value object'ler EF Core'da Owned Type veya JSON column olarak map edilir.
- */
-
 public abstract class BaseEntity
 {
     public int Id { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
-    public DateTimeOffset? DeletedAt { get; set; } // soft delete
+    public DateTimeOffset? DeletedAt { get; set; }
 }
 
-/// <summary>Tenant'a (Organization) bağlı entity'ler</summary>
 public interface ITenantScoped
 {
     int OrganizationId { get; set; }
 }
 
-// ---------- Value objects ----------
-
 public class Address
 {
     public string Line1 { get; set; } = default!;
     public string? Line2 { get; set; }
-    public string? District { get; set; }   // ilçe
-    public string City { get; set; } = default!; // il
+    public string? District { get; set; }
+    public string City { get; set; } = default!;
     public string? PostalCode { get; set; }
     public string CountryCode { get; set; } = "TR";
     public double? Latitude { get; set; }
@@ -40,7 +29,7 @@ public class OpeningHours
 {
     public DayOfWeek DayOfWeek { get; set; }
     public TimeOnly OpensAt { get; set; }
-    public TimeOnly ClosesAt { get; set; } // gece yarısını geçebilir (02:00)
+    public TimeOnly ClosesAt { get; set; }
     public bool IsClosed { get; set; }
 }
 

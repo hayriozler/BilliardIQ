@@ -1,13 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
-using Scoreboard.WebApp.Middlewares;
 using Scoreboard.WebApp.Responses;
 
 namespace Scoreboard.WebApp.Services;
 
-public class ScoreboardDataService(DataContext db, OrganizationScope scope, ClubService clubs, PlayerService players, TeamService teams)
+public class ScoreboardDataService(DataContext db, IOrganizationService organizationService, ClubService clubs, PlayerService players, TeamService teams)
 {
-    private int OrganizationId => scope.OrganizationId ?? throw new InvalidOperationException("No organization for this request.");
+    private int OrganizationId => organizationService.GetCurrentOrganizationId() ?? throw new InvalidOperationException("No organization for this request.");
 
     public async Task<OrganizationDto> GetOrganizationAsync()
     {

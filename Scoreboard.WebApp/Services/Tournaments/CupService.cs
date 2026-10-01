@@ -3,11 +3,8 @@ using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Services.Tournaments;
 
-/// <summary>Salon tournaments: setup, round rules, fixture generation, results and standings.</summary>
 public class CupService(DataContext db)
 {
-    // ---------------------------------------------------------------- reading
-
     public Task<List<Cup>> ListAsync(int organizationId) =>
         db.CupSet
             .AsNoTracking()
@@ -25,7 +22,6 @@ public class CupService(DataContext db)
             .AsSplitQuery()
             .FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == organizationId && c.DeletedAt == null);
 
-    /// <summary>Players of the salon that can join a tournament (system players are placeholders and never can).</summary>
     public Task<List<Player>> AvailablePlayersAsync(int organizationId, int cupId) =>
         db.PlayerSet
             .AsNoTracking()
@@ -48,8 +44,6 @@ public class CupService(DataContext db)
             .Select(m => m.WinnerParticipantId!.Value);
         return CupLogic.Standings(cup.Participants.Select(p => p.Id), finished, byes);
     }
-
-    // ---------------------------------------------------------------- tournament
 
     public async Task<Cup> UpsertAsync(
         int organizationId, int id, string name, string? description, DateOnly startDate, DateOnly? endDate,
@@ -94,8 +88,6 @@ public class CupService(DataContext db)
         cup.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
     }
-
-    // ---------------------------------------------------------------- participants
 
     public async Task AddParticipantsAsync(int organizationId, int cupId, IEnumerable<int> playerIds)
     {
@@ -143,8 +135,6 @@ public class CupService(DataContext db)
         await db.SaveChangesAsync();
     }
 
-    // ---------------------------------------------------------------- round rules
-
     public async Task SetRuleBlocksAsync(int organizationId, int cupId, IEnumerable<RuleBlockInput> blocks)
     {
         var cup = await FindDraftAsync(organizationId, cupId);
@@ -167,7 +157,6 @@ public class CupService(DataContext db)
         await db.SaveChangesAsync();
     }
 
-    /// <summary>"First N rounds handicap, the remaining rounds fixed at M" in one call (handicapRounds 0 = all fixed, ≥ rounds = all handicap).</summary>
     public async Task QuickRulesAsync(int organizationId, int cupId, int handicapRounds, int? fixedTarget)
     {
         var cup = await FindDraftAsync(organizationId, cupId);
@@ -202,8 +191,6 @@ public class CupService(DataContext db)
             }
         }
     }
-
-    // ---------------------------------------------------------------- start / reset
 
     public async Task StartAsync(int organizationId, int cupId)
     {
@@ -312,7 +299,6 @@ public class CupService(DataContext db)
             }
             else
             {
-                // A bye: the only participant advances at once.
                 match.Status = CupMatchStatus.Bye;
                 match.WinnerParticipantId = match.ParticipantAId ?? match.ParticipantBId;
                 Advance(all, match, byId, blocks, rounds);
@@ -329,7 +315,6 @@ public class CupService(DataContext db)
         (match.TargetA, match.TargetB) = CupLogic.ResolveTargets(blocks, match.Round, a, b);
     }
 
-    /// <summary>Puts the winner of `match` into its slot of the next round and resolves that match's targets once both are known.</summary>
     private static void Advance(IEnumerable<CupMatch> all, CupMatch match, Dictionary<int, CupParticipant> byId, List<RuleBlockInput> blocks, int totalRounds)
     {
         if (match.Round >= totalRounds || match.WinnerParticipantId is null) return;
@@ -341,8 +326,6 @@ public class CupService(DataContext db)
             ResolveTargets(next, byId, blocks);
         }
     }
-
-    // ---------------------------------------------------------------- results
 
     public async Task RecordResultAsync(
         int organizationId, int matchId, int scoreA, int scoreB, int innings, int highRunA, int highRunB, int winnerParticipantId)
@@ -420,8 +403,6 @@ public class CupService(DataContext db)
         await db.SaveChangesAsync();
     }
 
-    // ---------------------------------------------------------------- helpers
-
     private async Task<Cup> FindDraftAsync(int organizationId, int cupId)
     {
         var cup = await db.CupSet.FirstOrDefaultAsync(c => c.Id == cupId && c.OrganizationId == organizationId && c.DeletedAt == null)
@@ -436,7 +417,6 @@ public class CupService(DataContext db)
             .FirstOrDefaultAsync(m => m.Id == matchId && m.Cup.OrganizationId == organizationId && m.Cup.DeletedAt == null)
             ?? throw new InvalidOperationException("Maç bulunamadı.");
         var all = await db.CupMatchSet.Where(m => m.CupId == match.CupId).ToListAsync();
-        // Reuse the tracked instance for the requested match.
         return (match.Cup, all.First(m => m.Id == matchId), all);
     }
 

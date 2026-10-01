@@ -3,7 +3,6 @@ using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Services;
 
-/// <summary>The salon's list of cities, each belonging to one of its countries.</summary>
 public class CityService(DataContext db)
 {
     public Task<List<City>> ListAsync(int organizationId, int? countryId = null) =>

@@ -33,7 +33,6 @@ public static class AuthClaims
         user.IsInRole(nameof(StaffRole.Owner)) || user.IsInRole(nameof(StaffRole.Manager));
 }
 
-/// <summary>Resolves the signed-in staff member's tenant for Blazor components.</summary>
 public class TenantContext(AuthenticationStateProvider authState)
 {
     private Tenant? _tenant;

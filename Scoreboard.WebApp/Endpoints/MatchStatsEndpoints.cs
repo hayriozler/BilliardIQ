@@ -7,7 +7,6 @@ using Scoreboard.WebApp.Responses;
 
 namespace Scoreboard.WebApp.Endpoints;
 
-/// <summary>Match results + statistics pushed by a table's scoreboard. Identified by X-Client-Id and X-Table-No only.</summary>
 public static class MatchStatsEndpoints
 {
     public static RouteGroupBuilder MapMatchStatsEndpoints(this IEndpointRouteBuilder app)
@@ -86,7 +85,6 @@ public static class MatchStatsEndpoints
                 return Results.NotFound();
             }
 
-            // Foreign keys are Restrict by convention (see DataContext), so the distribution rows go first.
             db.MatchStatBucketSet.RemoveRange(stat.Buckets);
             db.MatchStatSet.Remove(stat);
             await db.SaveChangesAsync();

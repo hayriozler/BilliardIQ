@@ -1,4 +1,3 @@
-@* Simple SVG bar chart. Values are drawn left to right; the dashed line is the mean of the values. *@
 <div class="chart-box">
     @if (Values.Count == 0)
     {
@@ -42,7 +41,6 @@
 @code {
     [Parameter] public IReadOnlyList<double> Values { get; set; } = [];
 
-    /// <summary>Optional x-axis / tooltip labels, same length as <see cref="Values"/>.</summary>
     [Parameter] public IReadOnlyList<string>? Labels { get; set; }
 
     [Parameter] public string EmptyText { get; set; } = "";

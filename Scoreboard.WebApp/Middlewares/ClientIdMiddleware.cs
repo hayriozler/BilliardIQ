@@ -1,13 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
 using Scoreboard.WebApp.Security;
+using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Middlewares;
 
-/// <summary>
-/// Identifies a kiosk's salon (organization) from the X-Client-Id header, and optionally its table from X-Table-No.
-/// There is no other authentication: the client id is the organization's shared kiosk identifier.
-/// </summary>
 public class ClientIdMiddleware(RequestDelegate next)
 {
     public const string HeaderName = "X-Client-Id";
@@ -16,9 +13,10 @@ public class ClientIdMiddleware(RequestDelegate next)
     public const string TableIdItemKey = "TableId";
     public const string TableNoItemKey = "TableNo";
 
+    private static readonly PathString _statsPath = "/api/stats";
     private static readonly PathString[] _clientPaths = ["/api/scoreboard", "/api/stats"];
 
-    public async Task InvokeAsync(HttpContext context, DataContext db, OrganizationScope scope)
+    public async Task InvokeAsync(HttpContext context, IServiceScopeFactory scopeFactory, OrganizationRunner runner)
     {
         if (!_clientPaths.Any(p => context.Request.Path.StartsWithSegments(p)))
         {
@@ -33,6 +31,9 @@ public class ClientIdMiddleware(RequestDelegate next)
             return;
         }
 
+        using var lookupScope = scopeFactory.CreateScope();
+        var db = lookupScope.ServiceProvider.GetRequiredService<DataContext>();
+
         var organization = await db.OrganizationSet
             .Where(o => o.ClientId == clientId && o.DeletedAt == null && o.IsActive)
             .Select(o => new { o.Id })
@@ -44,10 +45,9 @@ public class ClientIdMiddleware(RequestDelegate next)
         }
 
         context.Items[OrganizationIdItemKey] = organization.Id;
-        scope.OrganizationId = organization.Id;
 
         var tableHeader = context.Request.Headers[TableHeaderName].ToString().Trim();
-        if (tableHeader.Length > 0)
+        if (tableHeader.Length > 0 && context.Request.Path.StartsWithSegments(_statsPath))
         {
             if (!int.TryParse(tableHeader, out var tableNo))
             {
@@ -55,17 +55,18 @@ public class ClientIdMiddleware(RequestDelegate next)
                 return;
             }
 
-            var table = await db.BilliardTableSet
-                .Where(t => t.OrganizationId == organization.Id && t.ScoreboardNo == tableNo && t.DeletedAt == null)
-                .Select(t => new { t.Id })
-                .FirstOrDefaultAsync();
+            var table = await runner.RunAsync<DataContext, int?>(organization.Id, tables =>
+                tables.BilliardTableSet
+                    .Where(t => t.ScoreboardNo == tableNo && t.DeletedAt == null)
+                    .Select(t => (int?)t.Id)
+                    .FirstOrDefaultAsync());
             if (table is null)
             {
                 await RejectAsync(context, StatusCodes.Status404NotFound, $"No scoreboard table with number {tableNo}.");
                 return;
             }
 
-            context.Items[TableIdItemKey] = table.Id;
+            context.Items[TableIdItemKey] = table.Value;
             context.Items[TableNoItemKey] = tableNo;
         }
 
@@ -79,18 +80,12 @@ public class ClientIdMiddleware(RequestDelegate next)
     }
 }
 
-public class OrganizationScope
-{
-    public int? OrganizationId { get; set; }
-}
-
 public static class HttpContextClientIdExtensions
 {
     public static int GetOrganizationId(this HttpContext context) =>
         context.Items[ClientIdMiddleware.OrganizationIdItemKey] as int?
         ?? context.User.GetOrganizationId();
 
-    /// <summary>Table id resolved from X-Table-No, or null when the header was not sent.</summary>
     public static int? GetTableId(this HttpContext context) => context.Items[ClientIdMiddleware.TableIdItemKey] as int?;
 
     public static int? GetTableNo(this HttpContext context) => context.Items[ClientIdMiddleware.TableNoItemKey] as int?;

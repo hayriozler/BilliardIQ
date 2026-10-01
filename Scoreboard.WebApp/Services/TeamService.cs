@@ -29,7 +29,6 @@ public class TeamService(DataContext db, ClubService clubs)
 
         var team = id != 0 ? await FindAsync(organizationId, id) : null;
 
-        // Resolve the club before the new team is tracked: creating a default club saves changes.
         if (clubId is not null || team is null)
         {
             var club = clubId is null

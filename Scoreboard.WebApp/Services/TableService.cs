@@ -64,8 +64,6 @@ public class TableService(DataContext db)
             matches);
     }
 
-    // ---------------------------------------------------------------- sessions
-
     public async Task<TableSession> OpenSessionAsync(int organizationId, int tableId, int staffId)
     {
         var table = await FindTableAsync(organizationId, tableId);
@@ -125,7 +123,6 @@ public class TableService(DataContext db)
         await db.SaveChangesAsync();
     }
 
-    /// <summary>Stops the clock, bills the table time and frees the table. Payment is taken separately.</summary>
     public async Task<TableSession> CloseSessionAsync(int organizationId, int sessionId, int staffId)
     {
         var session = await FindSessionAsync(organizationId, sessionId);
@@ -192,7 +189,6 @@ public class TableService(DataContext db)
         return session;
     }
 
-    /// <summary>Deletes a pending collection. The session stays on record as voided and no revenue is counted for it.</summary>
     public async Task VoidPendingCollectionAsync(int organizationId, int sessionId, int staffId)
     {
         var session = await FindSessionAsync(organizationId, sessionId);
@@ -233,8 +229,6 @@ public class TableService(DataContext db)
             .OrderByDescending(s => s.ClosedAt)
             .Take(take)
             .ToListAsync();
-
-    // ---------------------------------------------------------------- table management
 
     public async Task<BilliardTable> UpsertTableAsync(
         int organizationId, int id, int number, string? label, TableType type, int? pricingRuleId, bool hasScoreboard = false)
@@ -285,7 +279,6 @@ public class TableService(DataContext db)
         return table;
     }
 
-    /// <summary>The table's own number when it is free as a scoreboard number, otherwise the next unused one.</summary>
     private async Task<int> NextScoreboardNoAsync(int organizationId, int preferred)
     {
         var used = await db.BilliardTableSet
@@ -320,12 +313,9 @@ public class TableService(DataContext db)
             throw new InvalidOperationException("Açık oturumu olan masa silinemez.");
         }
 
-        // Sessions and matches keep pointing at the table, so it is retired rather than removed.
         table.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
     }
-
-    // ---------------------------------------------------------------- helpers
 
     private async Task<BilliardTable> FindTableAsync(int organizationId, int tableId) =>
         await db.BilliardTableSet.FirstOrDefaultAsync(t => t.Id == tableId && t.OrganizationId == organizationId && t.DeletedAt == null)

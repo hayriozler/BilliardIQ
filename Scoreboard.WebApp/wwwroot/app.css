@@ -54,8 +54,6 @@ a {
     font-size: 0.88rem;
 }
 
-/* ------------------------------------------------------------ shell */
-
 .shell {
     display: grid;
     grid-template-columns: 240px 1fr;
@@ -243,8 +241,6 @@ main.content {
     font-size: 0.9rem;
 }
 
-/* ------------------------------------------------------------ controls */
-
 label.field {
     display: flex;
     flex-direction: column;
@@ -363,8 +359,6 @@ p.error {
     padding: 0.6rem 0.9rem;
     border-radius: 10px;
 }
-
-/* ------------------------------------------------------------ cards, tables */
 
 .card {
     background: var(--surface);
@@ -496,8 +490,6 @@ td.num, th.num {
     place-items: center;
     font-weight: 700;
 }
-
-/* ------------------------------------------------------------ dashboard */
 
 .stat-grid {
     display: grid;
@@ -642,8 +634,6 @@ td.num, th.num {
     flex: 1;
 }
 
-/* ------------------------------------------------------------ modal */
-
 .modal-backdrop {
     position: fixed;
     inset: 0;
@@ -696,8 +686,6 @@ td.num, th.num {
     grid-template-columns: 1fr 1fr;
     gap: 0.6rem;
 }
-
-/* ------------------------------------------------------------ misc */
 
 .team-card {
     background: var(--surface);
@@ -809,7 +797,6 @@ td.num, th.num {
     }
 }
 
-/* Language switcher */
 .lang-switcher {
     display: flex;
     gap: 0.35rem;
@@ -838,7 +825,6 @@ td.num, th.num {
     color: #fff;
 }
 
-/* pinned to the top-right corner so the login / register card stays centered */
 .anon { position: relative; }
 
 .anon .lang-switcher {
@@ -919,7 +905,6 @@ a.small-link:hover {
     border-color: var(--primary, #0f766e);
 }
 
-/* statistics */
 td.num.win { color: var(--ok); font-weight: 600; }
 td.num.loss { color: var(--danger); font-weight: 600; }
 
@@ -932,7 +917,6 @@ td.num.loss { color: var(--danger); font-weight: 600; }
 .chart-label { font-size: 9px; fill: #64748b; }
 .range-select { min-width: 160px; }
 
-/* Tournaments */
 td.win { font-weight: 700; color: var(--ok, #15803d); }
 
 .bracket {
@@ -984,7 +968,6 @@ td.win { font-weight: 700; color: var(--ok, #15803d); }
     text-align: right;
 }
 
-/* date / time pickers */
 .dp { position: relative; }
 .dp-input {
     display: flex;
@@ -1040,7 +1023,6 @@ td.win { font-weight: 700; color: var(--ok, #15803d); }
 .tp select { width: auto; flex: 1; min-width: 4.2rem; }
 .tp-sep { font-weight: 700; color: #64748b; }
 
-/* collapsible sidebar groups */
 .sidebar .nav-group { display: flex; flex-direction: column; }
 .sidebar .nav-items { display: flex; flex-direction: column; gap: 2px; }
 .sidebar .nav-toggle {
@@ -1064,7 +1046,6 @@ td.win { font-weight: 700; color: var(--ok, #15803d); }
 .sidebar .nav-toggle .chev { transition: transform 0.15s ease; font-size: 0.8rem; }
 .sidebar .nav-group.collapsed .chev { transform: rotate(-90deg); }
 
-/* participant picker */
 .picker-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin: 0.6rem 0; }
 .picker-list { max-height: 380px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
 .picker-list table { width: 100%; }
@@ -1073,7 +1054,6 @@ td.win { font-weight: 700; color: var(--ok, #15803d); }
 .picker-list tr.picked { background: var(--primary-soft); }
 .picker-list .pick-check { width: 2rem; }
 
-/* avatar popup */
 .avatar-modal { max-width: 720px; }
 .avatar-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
 .avatar-modal-head h2 { margin: 0; }
@@ -1088,7 +1068,6 @@ td.win { font-weight: 700; color: var(--ok, #15803d); }
 .avatar-grid-lg .avatar-cell:hover { border-color: #cbd5e1; }
 .avatar-grid-lg .avatar-cell.active { border-color: var(--primary); }
 
-/* Zeymera logo */
 .brand-logo { height: 38px; width: auto; object-fit: contain; flex: none; }
 .sidebar .brand-logo {
     height: 40px;

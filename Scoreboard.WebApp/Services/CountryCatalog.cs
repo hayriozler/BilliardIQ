@@ -1,9 +1,5 @@
 namespace Scoreboard.WebApp.Services;
 
-/// <summary>
-/// Countries a salon can be registered in. The country decides the salon's language, currency (default), time zone
-/// and the starter cities / regions (see <see cref="GeoSeedService"/>).
-/// </summary>
 public static class CountryCatalog
 {
     public sealed record Entry(string Code, string Tr, string En, string Nl, string Language, string Currency, string TimeZone)
@@ -39,7 +35,6 @@ public static class CountryCatalog
 
     public static bool IsCurrency(string? code) => code is not null && Currencies.Contains(code.Trim().ToUpperInvariant());
 
-    /// <summary>Country that fits the UI language best, used to preselect the registration form.</summary>
     public static string DefaultFor(string language) => language switch
     {
         "tr" => "TR",

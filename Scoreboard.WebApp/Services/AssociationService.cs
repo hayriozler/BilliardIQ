@@ -3,7 +3,6 @@ using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Services;
 
-/// <summary>The salon's list of associations / federations that players can be affiliated with.</summary>
 public class AssociationService(DataContext db)
 {
     public Task<List<Association>> ListAsync(int organizationId) =>

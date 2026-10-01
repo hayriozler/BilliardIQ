@@ -98,7 +98,6 @@
 @code {
     private const string StorageKey = "billardiq.nav.open";
 
-    // First URL segment of each page -> the menu group it belongs to.
     private static readonly Dictionary<string, string> GroupOf = new(StringComparer.OrdinalIgnoreCase)
     {
         [""] = "ops", ["tables"] = "ops", ["pricing"] = "ops", ["products"] = "ops",
@@ -117,7 +116,6 @@
         OpenActiveGroup();
     }
 
-    /// <summary>The group of the current page is always open; other groups keep the user's choice.</summary>
     private bool OpenActiveGroup()
     {
         var path = Nav.ToBaseRelativePath(Nav.Uri);
@@ -162,7 +160,6 @@
         }
         catch (Exception)
         {
-            // storage unavailable (private window, prerender, blocked): the menu just keeps its default state
         }
     }
 
@@ -184,7 +181,6 @@
         }
         catch (Exception)
         {
-            // not persisted; nothing else depends on it
         }
     }
 

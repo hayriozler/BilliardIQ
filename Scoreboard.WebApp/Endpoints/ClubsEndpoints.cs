@@ -5,7 +5,6 @@ using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Endpoints;
 
-/// <summary>Clubs of the salon the calling kiosk is paired with.</summary>
 public static class ClubsEndpoints
 {
     public static RouteGroupBuilder MapClubsEndpoints(this IEndpointRouteBuilder app)

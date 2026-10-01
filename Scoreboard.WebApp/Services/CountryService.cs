@@ -3,7 +3,6 @@ using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Services;
 
-/// <summary>The salon's list of countries that players can be assigned to.</summary>
 public class CountryService(DataContext db)
 {
     public Task<List<Country>> ListAsync(int organizationId) =>
@@ -40,7 +39,6 @@ public class CountryService(DataContext db)
         country.Name = name;
         if (renamed)
         {
-            // Players keep the country name as text for API clients; keep it in step.
             foreach (var player in await db.PlayerSet.Where(p => p.CountryId == country.Id).ToListAsync())
             {
                 player.Nationality = name;

@@ -388,7 +388,6 @@ else
     private async Task OnTickAsync()
     {
         _now = DateTimeOffset.UtcNow;
-        // Timer text is computed from _now on every render; other staff/devices may change tables, so re-read every 10s.
         if (++_tick % 10 == 0 && !_busy)
         {
             try

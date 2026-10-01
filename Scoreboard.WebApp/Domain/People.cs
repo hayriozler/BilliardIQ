@@ -1,19 +1,15 @@
 namespace Scoreboard.WebApp.Domain;
 
-/// <summary>Salonun tanımladığı dernek / federasyon. Oyuncular listeden seçer, serbest metin yazılmaz.</summary>
 public class Association : BaseEntity, ITenantScoped
 {
-    [GlobalFilter]
     public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;
 
     public Organization Organization { get; set; } = default!;
 }
 
-/// <summary>Salonun tanımladığı ülke. Oyuncular listeden seçer.</summary>
 public class Country : BaseEntity, ITenantScoped
 {
-    [GlobalFilter]
     public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;
 
@@ -21,10 +17,8 @@ public class Country : BaseEntity, ITenantScoped
     public ICollection<City> Cities { get; set; } = [];
 }
 
-/// <summary>Salonun tanımladığı şehir; bir ülkeye bağlıdır.</summary>
 public class City : BaseEntity, ITenantScoped
 {
-    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int CountryId { get; set; }
     public string Name { get; set; } = default!;
@@ -33,42 +27,38 @@ public class City : BaseEntity, ITenantScoped
     public Country Country { get; set; } = default!;
 }
 
-/// <summary>Salonun tanımladığı bölge (ör. federasyon bölgesi). Oyuncular listeden seçer.</summary>
 public class Region : BaseEntity, ITenantScoped
 {
-    [GlobalFilter]
     public int OrganizationId { get; set; }
     public string Name { get; set; } = default!;
 
     public Organization Organization { get; set; } = default!;
 }
 
-/// <summary>Oyuncu profili. Global — salonlar arası taşınır.</summary>
 public class Player : BaseEntity
 {
-    public int? UserId { get; set; }            // hesapsız misafir oyuncu olabilir
+    public int? UserId { get; set; }
     public string FirstName { get; set; } = default!;
     public string LastName { get; set; } = default!;
     public string? Nickname { get; set; }
-    public int? ShortcutNumber { get; set; }     // scoreboard: hızlı seçim numarası, salon içinde benzersiz
-    public string DisplayName { get; set; } = default!; // scoreboard: 'M. YILMAZ'
+    public int? ShortcutNumber { get; set; }
+    public string DisplayName { get; set; } = default!;
     public DateOnly? BirthDate { get; set; }
     public Gender? Gender { get; set; }
-    public string? Nationality { get; set; }     // 'TR'
+    public string? Nationality { get; set; }
     public string? PhotoUrl { get; set; }
     public Handedness? Handedness { get; set; }
-    public string? FederationLicenseNo { get; set; } // TBF lisans no
-    public DateOnly? LicenseValidUntil { get; set; } // lisans geçerlilik bitiş tarihi
-    public int? AssociationId { get; set; }          // bağlı dernek / federasyon (salonun tanımladığı listeden)
-    public int? RegionId { get; set; }               // bağlı bölge (salonun tanımladığı listeden)
-    public int? CountryId { get; set; }              // ülke (listeden); Nationality adını taşır
-    public int? CityId { get; set; }                 // şehir (listeden); City adını taşır
-    public bool IsSystem { get; set; }               // 'Oyuncu 1/2': tüm salonlar için ortak, Id 1 ve 2, değiştirilemez, silinemez
-    public int? SystemSlot { get; set; }             // 1 veya 2 (yalnızca sistem oyuncularında)
+    public string? FederationLicenseNo { get; set; }
+    public DateOnly? LicenseValidUntil { get; set; }
+    public int? AssociationId { get; set; }
+    public int? RegionId { get; set; }
+    public int? CountryId { get; set; }
+    public int? CityId { get; set; }
+    public bool IsSystem { get; set; }
+    public int? SystemSlot { get; set; }
     public string? UmbPlayerId { get; set; }
-    public int? DefaultTargetPoints { get; set; }    // serbest maç handikapı
+    public int? DefaultTargetPoints { get; set; }
     public bool IsGuest { get; set; }
-    [GlobalFilter(IncludeWhen = nameof(IsSystem))]
     public int? CreatedInOrganizationId { get; set; }
     public bool IsPublicProfile { get; set; }
     public string? Email { get; set; }
@@ -92,15 +82,14 @@ public class Player : BaseEntity
 
 public class Club : BaseEntity
 {
-    [GlobalFilter]
-    public int? OrganizationId { get; set; }    // bağımsız kulüp olabilir
+    public int? OrganizationId { get; set; }
     public string Name { get; set; } = default!;
-    public string ShortName { get; set; } = default!; // scoreboard: 'KBSK'
+    public string ShortName { get; set; } = default!;
     public string? LogoUrl { get; set; }
     public int? FoundedYear { get; set; }
     public string? FederationClubNo { get; set; }
     public string? City { get; set; }
-    public string? PrimaryColor { get; set; }    // '#C8102E'
+    public string? PrimaryColor { get; set; }
     public bool IsActive { get; set; } = true;
 
     public Organization? Organization { get; set; }
@@ -113,7 +102,7 @@ public class ClubMembership : BaseEntity
     public int ClubId { get; set; }
     public int PlayerId { get; set; }
     public ClubMembershipRole Role { get; set; }
-    public string? LicenseSeason { get; set; }   // '2026-2027'
+    public string? LicenseSeason { get; set; }
     public DateOnly JoinedAt { get; set; }
     public DateOnly? LeftAt { get; set; }
 
@@ -124,13 +113,12 @@ public class ClubMembership : BaseEntity
 public class Team : BaseEntity
 {
     public int ClubId { get; set; }
-    public string Name { get; set; } = default!;      // 'Kadıköy BSK A'
+    public string Name { get; set; } = default!;
     public string ShortName { get; set; } = default!;
-    public int? SeasonId { get; set; }               // kadro sezona bağlı
-    [GlobalFilter]
+    public int? SeasonId { get; set; }
     public int? HomeOrganizationId { get; set; }
     public string? LogoUrl { get; set; }
-    public int? AvatarId { get; set; }               // hazır avatar galerisinden seçilen avatar
+    public int? AvatarId { get; set; }
 
     public Club Club { get; set; } = default!;
     public Season? Season { get; set; }
@@ -143,7 +131,7 @@ public class TeamMember : BaseEntity
     public int TeamId { get; set; }
     public int PlayerId { get; set; }
     public TeamMemberRole Role { get; set; }
-    public int? BoardOrder { get; set; }         // 1.-4. masa sırası
+    public int? BoardOrder { get; set; }
     public DateOnly JoinedAt { get; set; }
     public DateOnly? LeftAt { get; set; }
 
@@ -151,17 +139,15 @@ public class TeamMember : BaseEntity
     public Player Player { get; set; } = default!;
 }
 
-/// <summary>Salon müşteri üyeliği (kulüp üyeliğinden bağımsız)</summary>
 public class CustomerMembership : BaseEntity
 {
-    [GlobalFilter]
     public int OrganizationId { get; set; }
     public int PlayerId { get; set; }
     public string MemberNo { get; set; } = default!;
     public MembershipTier Tier { get; set; }
-    public decimal DiscountPercent { get; set; } // 0-100
+    public decimal DiscountPercent { get; set; }
     public decimal PrepaidBalance { get; set; }
-    public int? PrepaidMinutes { get; set; }     // saat paketi
+    public int? PrepaidMinutes { get; set; }
     public DateOnly ValidFrom { get; set; }
     public DateOnly? ValidUntil { get; set; }
     public bool IsActive { get; set; } = true;

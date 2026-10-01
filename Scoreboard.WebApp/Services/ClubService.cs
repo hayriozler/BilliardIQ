@@ -3,7 +3,6 @@ using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Services;
 
-/// <summary>Clubs belonging to one organization (salon). An organization can host several clubs.</summary>
 public class ClubService(DataContext db)
 {
     public Task<List<Club>> ListAsync(int organizationId) =>
@@ -38,7 +37,6 @@ public class ClubService(DataContext db)
         return club;
     }
 
-    /// <summary>Kiosk-created teams without an explicit club land in the salon's first club, created on demand.</summary>
     public async Task<Club> EnsureDefaultClubAsync(int organizationId)
     {
         var club = await db.ClubSet

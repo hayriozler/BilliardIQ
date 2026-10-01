@@ -14,7 +14,6 @@
 
     private Task OnChangedAsync(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value?.ToString() ?? "all");
 
-    /// <summary>Start of the chosen period, or null for all time.</summary>
     public static DateTimeOffset? Since(string range) => range switch
     {
         "30" => DateTimeOffset.UtcNow.AddDays(-30),

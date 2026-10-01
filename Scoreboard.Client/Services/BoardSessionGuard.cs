@@ -2,11 +2,6 @@ using Microsoft.AspNetCore.Components.Server.Circuits;
 
 namespace Scoreboard.Client.Services;
 
-/// <summary>
-/// The board can be open in one window at a time. A window that was closed or reloaded keeps its server-side session for
-/// a while (Blazor holds on to a disconnected circuit so the browser can reconnect), so a session whose connection is
-/// down no longer blocks a new window, and a window can take the board over explicitly.
-/// </summary>
 public class BoardSessionGuard
 {
     private readonly Lock _lock = new();
@@ -30,7 +25,6 @@ public class BoardSessionGuard
         }
     }
 
-    /// <summary>Takes the board even when another window holds it.</summary>
     public Guid ForceAcquire()
     {
         lock (_lock)
@@ -65,13 +59,11 @@ public class BoardSessionGuard
     }
 }
 
-/// <summary>Per browser connection (circuit): which board session it holds.</summary>
 public class BoardSessionTracker
 {
     public Guid? SessionId { get; set; }
 }
 
-/// <summary>Tells the guard when the window holding the board loses or regains its connection.</summary>
 public class BoardCircuitHandler(BoardSessionTracker tracker, BoardSessionGuard guard) : CircuitHandler
 {
     public override Task OnConnectionDownAsync(Circuit circuit, CancellationToken cancellationToken)

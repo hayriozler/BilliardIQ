@@ -60,9 +60,6 @@ public static class DbInitializerExtension
         );
         """);
 
-        // Players 1 and 2 are what the board shows when nobody is picked. With a remote server configured they are
-        // the server's system players (with the server's ids) and arrive with the first pull; without one there is no
-        // server id, so they are created right here with Id 1 and 2.
         if (!scope.ServiceProvider.GetRequiredService<IOptions<RemoteSyncOptions>>().Value.IsConfigured)
         {
             db.Database.ExecuteSqlRaw("""
@@ -137,19 +134,12 @@ public static class DbInitializerExtension
         );
         """);
 
-
         return sp;
     }
 
     private static int Count(DataContext db, string sql) =>
         db.Database.SqlQueryRaw<int>(sql).AsEnumerable().First();
 
-    /// <summary>
-    /// Kiosks set up by older builds keyed the player/team/club mirror by a local generated id plus a RemoteId column.
-    /// The mirror now uses the server's id as the key. Those tables are only a copy of the server, so they are dropped
-    /// and refilled by the next pull; what must survive keeps pointing at the same people: unsent match results and the
-    /// board's selection get the server id of their player (0 = unknown, for the local Player 1 / Player 2 seeds).
-    /// </summary>
     private static void ConvertToServerIds(DataContext db)
     {
         if (Count(db, "SELECT COUNT(*) AS Value FROM sqlite_master WHERE type = 'table' AND name = 'player'") == 0)
@@ -172,7 +162,7 @@ public static class DbInitializerExtension
                          ("scoreboard_state", "Player1Id"), ("scoreboard_state", "Player2Id")
                      })
             {
-#pragma warning disable EF1002 // table / column names come from the literal list above, not from input
+#pragma warning disable EF1002
                 db.Database.ExecuteSqlRaw(
                     $"UPDATE {table} SET {column} = COALESCE((SELECT RemoteId FROM player WHERE player.Id = {table}.{column}), 0)");
 #pragma warning restore EF1002

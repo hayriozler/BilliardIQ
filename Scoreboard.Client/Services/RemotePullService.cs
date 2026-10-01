@@ -76,13 +76,21 @@ public partial class RemotePullService(
         }
 
         LogSendGet();
-        RemoteOrganization? organization = null;
-        List<RemoteClub> clubs = [];
-        List<RemotePlayer> players = [];
-        List<RemoteTeam> teams = [];
+        var organizationPulled = await IsOrganizationPulledAsync(ct);
+        RemoteOrganization organization;
+        List<RemoteClub>? clubs;
+        List<RemoteTeam>? teams;
+        List<RemotePlayer>? players;
+        string orgLang = "";
+        string orgName = "";
         try
         {
-            organization = await http.GetFromJsonAsync<RemoteOrganization>("scoreboard/organization", _jsonOptions, ct);
+            if (!organizationPulled)
+            {
+                organization = await http.GetFromJsonAsync<RemoteOrganization>("scoreboard/organization", _jsonOptions, ct) ?? throw new HttpRequestException("Organization data is null");
+                orgLang = organization.Language;
+                orgName = organization.Name;
+            }
             clubs = await http.GetFromJsonAsync<List<RemoteClub>>("scoreboard/clubs", _jsonOptions, ct) ?? [];
             players = await http.GetFromJsonAsync<List<RemotePlayer>>("scoreboard/players", _jsonOptions, ct) ?? [];
             teams = await http.GetFromJsonAsync<List<RemoteTeam>>("scoreboard/teams", _jsonOptions, ct) ?? [];
@@ -91,13 +99,20 @@ public partial class RemotePullService(
         catch (HttpRequestException e)
         {
             LogReceivedFailed(e.Message, e);
+            return;
         }
 
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
-        var languageChanged = await ApplyServerLanguageAsync(db, organization?.Language, ct);
-        languageChanged |= await ApplyOrganizationNameAsync(db, organization, ct);
+        var languageChanged = false;
+        if (!organizationPulled)
+        {
+            languageChanged = await ApplyServerLanguageAsync(db, orgLang, ct);
+            languageChanged |= await ApplyOrganizationNameAsync(db, orgName, ct);
+            await MarkOrganizationPulledAsync(db, ct);
+        }
+
         await MirrorClubsAsync(db, clubs, ct);
         await MirrorTeamsAsync(db, teams, ct);
         await MirrorPlayersAsync(db, http, players, teams, ct);
@@ -110,27 +125,43 @@ public partial class RemotePullService(
         }
     }
 
-    private static async Task<bool> ApplyOrganizationNameAsync(DataContext db, RemoteOrganization? organization, CancellationToken ct)
+    private async Task<bool> IsOrganizationPulledAsync(CancellationToken ct)
     {
-        if (organization is null)
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        var pulledFor = await db.SettingsSet.AsNoTracking().Where(s => s.Id == "OrgClientId").Select(s => s.Value).FirstOrDefaultAsync(ct);
+        return pulledFor == _options.ClientId;
+    }
+
+    private async Task MarkOrganizationPulledAsync(DataContext db, CancellationToken ct)
+    {
+        var setting = await db.SettingsSet.FirstOrDefaultAsync(s => s.Id == "OrgClientId", ct);
+        if (setting is null)
         {
-            return false;
+            db.SettingsSet.Add(new Setting { Id = "OrgClientId", Value = _options.ClientId });
+        }
+        else
+        {
+            setting.Value = _options.ClientId;
         }
 
-        var name = organization.Name?.Trim() ?? "";
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static async Task<bool> ApplyOrganizationNameAsync(DataContext db, string orgName, CancellationToken ct)
+    {
         var setting = await db.SettingsSet.FirstOrDefaultAsync(s => s.Id == "OrgName", ct);
-        if ((setting?.Value ?? "") == name)
+        if ((setting?.Value ?? "") == orgName)
         {
             return false;
         }
 
         if (setting is null)
         {
-            db.SettingsSet.Add(new Setting { Id = "OrgName", Value = name });
+            db.SettingsSet.Add(new Setting { Id = "OrgName", Value = orgName });
         }
         else
         {
-            setting.Value = name;
+            setting.Value = orgName;
         }
 
         await db.SaveChangesAsync(ct);
@@ -152,6 +183,7 @@ public partial class RemotePullService(
 
         setting.Value = language;
         await db.SaveChangesAsync(ct);
+        LocalizationService.RenameSystemPlayers(db, language);
         return true;
     }
 
@@ -246,7 +278,6 @@ public partial class RemotePullService(
 
         db.PlayerSet.RemoveRange(gone);
 
-        // Team membership. A player belongs to one team locally; when the server lists several the first wins.
         var teamOfPlayer = new Dictionary<int, int>();
         foreach (var team in remoteTeams)
         {
@@ -273,13 +304,12 @@ public partial class RemotePullService(
                          ("match_result", "Player1Id", " WHERE SyncedAPI = 0"), ("match_result", "Player2Id", " WHERE SyncedAPI = 0")
                      })
             {
-#pragma warning disable EF1002 // identifiers are literals and the CASE arms are integer ids from our own tables
+#pragma warning disable EF1002
                 await db.Database.ExecuteSqlRawAsync($"UPDATE {table} SET {column} = CASE {column} {cases} ELSE {column} END{filter}", ct);
 #pragma warning restore EF1002
             }
         }
 
-        // A removed player on the board falls back to Player 1 / Player 2.
         if (gone.Count > 0)
         {
             var goneIds = gone.Select(p => p.Id).ToList();
@@ -290,7 +320,6 @@ public partial class RemotePullService(
         }
     }
 
-    /// <summary>Downloads the player's photo when it is new or changed. Best effort: failures keep what is there.</summary>
     private async Task<string?> SyncPhotoAsync(HttpClient http, RemotePlayer remote, string? currentPath, bool changed, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(remote.PhotoPath))
@@ -309,7 +338,6 @@ public partial class RemotePullService(
 
         try
         {
-            // The server serves photos from its site root, next to (not under) the /api/ base address.
             var url = new Uri(new Uri(http.BaseAddress!, "/"), remote.PhotoPath);
             var bytes = await http.GetByteArrayAsync(url, ct);
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
@@ -388,5 +416,4 @@ public partial class RemotePullService(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Receiving operation failed for player. {Message}")]
     private partial void LogReceivedFailed(string Message, Exception ex);
-
 }

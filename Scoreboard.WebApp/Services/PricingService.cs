@@ -77,7 +77,6 @@ public class PricingService(DataContext db)
             table.PricingRuleId = null;
         }
 
-        // Closed sessions hold their own price snapshot; the rule can simply be retired.
         rule.DeletedAt = DateTimeOffset.UtcNow;
         rule.IsActive = false;
         await db.SaveChangesAsync();

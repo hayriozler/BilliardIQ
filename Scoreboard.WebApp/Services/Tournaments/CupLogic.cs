@@ -1,26 +1,17 @@
 namespace Scoreboard.WebApp.Services.Tournaments;
 
-/// <summary>One participant's row in the standings table.</summary>
 public record CupStandingRow(
     int ParticipantId, int Played, int Won, int Lost, int MatchPoints,
     int PointsFor, int PointsAgainst, int Innings, double Average, int BestHighRun);
 
-/// <summary>A rule block as plain data (used by the editor and by validation).</summary>
 public record RuleBlockInput(int FromRound, int ToRound, CupRuleMode Mode, int? FixedTarget);
 
-/// <summary>Result of one match as far as the standings are concerned.</summary>
 public record CupResultLine(
     int ParticipantAId, int ParticipantBId, int ScoreA, int ScoreB, int Innings, int HighRunA, int HighRunB, int WinnerParticipantId);
 
-/// <summary>
-/// Pure tournament logic (no database): schedules, brackets, round-rule resolution and standings.
-/// Kept static and side-effect free so it is easy to test.
-/// </summary>
 public static class CupLogic
 {
     public const int WinPoints = 2;
-
-    // ---------------------------------------------------------------- rounds
 
     public static int TotalRounds(CupFormat format, int participants)
     {
@@ -30,12 +21,6 @@ public static class CupLogic
             : (int)Math.Ceiling(Math.Log2(participants));
     }
 
-    // ---------------------------------------------------------------- round robin
-
-    /// <summary>
-    /// Circle-method schedule. Participants are 0..n-1; an odd count gets a dummy that shows up as a null opponent (bye).
-    /// Returns rounds of (a, b) pairs; b is null for a bye. Every pair meets exactly once.
-    /// </summary>
     public static List<List<(int A, int? B)>> RoundRobin(int n)
     {
         var rounds = new List<List<(int A, int? B)>>();
@@ -58,7 +43,6 @@ public static class CupLogic
 
             rounds.Add(pairs);
 
-            // Keep slot 0 fixed and rotate the rest one place.
             var last = slots[^1];
             slots.RemoveAt(size - 1);
             slots.Insert(1, last);
@@ -67,9 +51,6 @@ public static class CupLogic
         return rounds;
     }
 
-    // ---------------------------------------------------------------- elimination
-
-    /// <summary>Smallest power of two that is at least n (n >= 1).</summary>
     public static int BracketSize(int n)
     {
         var size = 1;
@@ -77,11 +58,6 @@ public static class CupLogic
         return size;
     }
 
-    /// <summary>
-    /// Standard seeded bracket order for the first round: positions hold seed numbers (1-based) so that
-    /// seed 1 meets seed `size`, seed 2 meets `size - 1`, ... and seeds 1 and 2 can only meet in the final.
-    /// Seed numbers above the participant count are byes.
-    /// </summary>
     public static List<int> BracketOrder(int size)
     {
         var order = new List<int> { 1 };
@@ -94,7 +70,6 @@ public static class CupLogic
         return order;
     }
 
-    /// <summary>First-round pairs as seed numbers; a seed above the participant count is null (bye).</summary>
     public static List<(int? SeedA, int? SeedB)> EliminationFirstRound(int participants)
     {
         var size = BracketSize(participants);
@@ -110,12 +85,8 @@ public static class CupLogic
         return pairs;
     }
 
-    /// <summary>Where the winner of match `number` (1-based) in a round goes in the next round: (match number, isSlotA).</summary>
     public static (int Number, bool IsSlotA) NextSlot(int number) => ((number + 1) / 2, number % 2 == 1);
 
-    // ---------------------------------------------------------------- rules
-
-    /// <summary>Rounds in 1..totalRounds that no block covers, plus rounds covered more than once.</summary>
     public static (List<int> Uncovered, List<int> Overlapping) CheckCoverage(IEnumerable<RuleBlockInput> blocks, int totalRounds)
     {
         var count = new int[totalRounds + 1];
@@ -132,7 +103,6 @@ public static class CupLogic
         return (uncovered, overlapping);
     }
 
-    /// <summary>Target points for both players of a match in the given round, or null when the rule/handicap is missing.</summary>
     public static (int? TargetA, int? TargetB) ResolveTargets(
         IEnumerable<RuleBlockInput> blocks, int round, int? handicapA, int? handicapB)
     {
@@ -143,7 +113,6 @@ public static class CupLogic
             : (handicapA, handicapB);
     }
 
-    /// <summary>"First N rounds handicap, the rest fixed" (or all handicap / all fixed) as rule blocks.</summary>
     public static List<RuleBlockInput> QuickBlocks(int totalRounds, int handicapRounds, int? fixedTarget)
     {
         handicapRounds = Math.Clamp(handicapRounds, 0, totalRounds);
@@ -161,10 +130,6 @@ public static class CupLogic
         return blocks;
     }
 
-    /// <summary>
-    /// Suggested winner of a finished score line: the only player who reached his target, otherwise whoever is
-    /// closer to his target (score / target). 1 = A, 2 = B, 0 = cannot tell.
-    /// </summary>
     public static int SuggestWinner(int scoreA, int scoreB, int? targetA, int? targetB)
     {
         var reachedA = targetA is > 0 && scoreA >= targetA;
@@ -178,12 +143,6 @@ public static class CupLogic
         return ratioA > ratioB ? 1 : 2;
     }
 
-    // ---------------------------------------------------------------- standings
-
-    /// <summary>
-    /// Standings from finished matches. A bye counts as a win worth the full match points but adds no played
-    /// match, points or innings. Sorted by match points, then average, then point difference.
-    /// </summary>
     public static List<CupStandingRow> Standings(IEnumerable<int> participantIds, IEnumerable<CupResultLine> results, IEnumerable<int> byeWinners)
     {
         var rows = participantIds.ToDictionary(id => id, id => new Acc());
