@@ -14,7 +14,7 @@ public partial class RemotePullService(
     LanguageSync languageSync,
     ILogger<RemotePullService> logger) : BackgroundService
 {
-    private const string PhotosFolder = "PlayerSet";
+    private const string _photosFolder = "PlayerSet";
 
     private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -33,6 +33,12 @@ public partial class RemotePullService(
             if (string.IsNullOrWhiteSpace(_options.BaseUrl))
             {
                 LogPullNoBaseUrl();
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_options.ClientId))
+            {
+                LogPullNoClientId();
                 return;
             }
 
@@ -77,19 +83,21 @@ public partial class RemotePullService(
 
         LogSendGet();
         var organizationPulled = await IsOrganizationPulledAsync(ct);
-        RemoteOrganization organization;
+        RemoteOrganization? organization = null;
         List<RemoteClub>? clubs;
         List<RemoteTeam>? teams;
         List<RemotePlayer>? players;
-        string orgLang = "";
-        string orgName = "";
         try
         {
             if (!organizationPulled)
             {
-                organization = await http.GetFromJsonAsync<RemoteOrganization>("scoreboard/organization", _jsonOptions, ct) ?? throw new HttpRequestException("Organization data is null");
-                orgLang = organization.Language;
-                orgName = organization.Name;
+                organization = await http.GetFromJsonAsync<RemoteOrganization>("scoreboard/organization", _jsonOptions, ct);
+                if (organization is null)
+                {
+                    var ex = new InvalidOperationException("Organization data is null");
+                    LogReceivedFailed("Organization data is null", ex);
+                    return;
+                }
             }
             clubs = await http.GetFromJsonAsync<List<RemoteClub>>("scoreboard/clubs", _jsonOptions, ct) ?? [];
             players = await http.GetFromJsonAsync<List<RemotePlayer>>("scoreboard/players", _jsonOptions, ct) ?? [];
@@ -108,8 +116,8 @@ public partial class RemotePullService(
         var languageChanged = false;
         if (!organizationPulled)
         {
-            languageChanged = await ApplyServerLanguageAsync(db, orgLang, ct);
-            languageChanged |= await ApplyOrganizationNameAsync(db, orgName, ct);
+            languageChanged = await ApplyServerLanguageAsync(db, organization!.Language, ct);
+            await ApplyOrganizationNameAsync(db, organization.Name, ct);
             await MarkOrganizationPulledAsync(db, ct);
         }
 
@@ -147,12 +155,12 @@ public partial class RemotePullService(
         await db.SaveChangesAsync(ct);
     }
 
-    private static async Task<bool> ApplyOrganizationNameAsync(DataContext db, string orgName, CancellationToken ct)
+    private static async Task ApplyOrganizationNameAsync(DataContext db, string orgName, CancellationToken ct)
     {
         var setting = await db.SettingsSet.FirstOrDefaultAsync(s => s.Id == "OrgName", ct);
         if ((setting?.Value ?? "") == orgName)
         {
-            return false;
+            return;
         }
 
         if (setting is null)
@@ -163,9 +171,7 @@ public partial class RemotePullService(
         {
             setting.Value = orgName;
         }
-
         await db.SaveChangesAsync(ct);
-        return true;
     }
 
     private static async Task<bool> ApplyServerLanguageAsync(DataContext db, string? language, CancellationToken ct)
@@ -329,8 +335,8 @@ public partial class RemotePullService(
         }
 
         var extension = Path.GetExtension(remote.PhotoPath);
-        var relativePath = $"{PhotosFolder}/{remote.Id}{(extension.Length is > 1 and <= 5 ? extension : ".jpg")}";
-        var fullPath = Path.Combine(env.WebRootPath, PhotosFolder, Path.GetFileName(relativePath));
+        var relativePath = $"{_photosFolder}/{remote.Id}{(extension.Length is > 1 and <= 5 ? extension : ".jpg")}";
+        var fullPath = Path.Combine(env.WebRootPath, _photosFolder, Path.GetFileName(relativePath));
         if (!changed && currentPath == relativePath && File.Exists(fullPath))
         {
             return currentPath;
@@ -395,6 +401,9 @@ public partial class RemotePullService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "RemotePull is enabled but RemoteSync:BaseUrl is empty - skipping remote data pull.")]
     private partial void LogPullNoBaseUrl();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "RemotePull is enabled but RemoteSync:ClientId is empty - skipping remote data pull.")]
+    private partial void LogPullNoClientId();
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Remote pull tick failed; will retry next interval.")]
     private partial void LogPullTickFailed(Exception ex);

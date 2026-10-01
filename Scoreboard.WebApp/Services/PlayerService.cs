@@ -48,13 +48,19 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         City? city = null;
         if (countryId is not null)
         {
-            country = await db.CountrySet.FirstOrDefaultAsync(c => c.Id == countryId && c.OrganizationId == organizationId && c.DeletedAt == null)
+            country = await db.OrganizationCountrySet
+                .Where(x => x.CountryId == countryId && x.OrganizationId == organizationId && x.DeletedAt == null)
+                .Select(x => x.Country)
+                .FirstOrDefaultAsync()
                 ?? throw new ArgumentException("Ülke bulunamadı.");
         }
 
         if (cityId is not null)
         {
-            city = await db.CitySet.FirstOrDefaultAsync(c => c.Id == cityId && c.OrganizationId == organizationId && c.DeletedAt == null)
+            city = await db.OrganizationCitySet
+                .Where(x => x.CityId == cityId && x.OrganizationId == organizationId && x.DeletedAt == null)
+                .Select(x => x.City)
+                .FirstOrDefaultAsync()
                 ?? throw new ArgumentException("Şehir bulunamadı.");
             if (country is null || city.CountryId != country.Id)
             {
@@ -62,8 +68,8 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             }
         }
 
-        if (regionId is not null && !await db.RegionSet.AnyAsync(r =>
-                r.Id == regionId && r.OrganizationId == organizationId && r.DeletedAt == null))
+        if (regionId is not null && !await db.OrganizationRegionSet.AnyAsync(x =>
+                x.RegionId == regionId && x.OrganizationId == organizationId && x.DeletedAt == null))
         {
             throw new ArgumentException("Bölge bulunamadı.");
         }

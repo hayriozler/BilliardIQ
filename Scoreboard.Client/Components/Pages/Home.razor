@@ -52,7 +52,7 @@ else
     </header>
 
     <main class="scores">
-        <section class="player-panel @(Current.ActivePlayer == 1 ? "active-white" : "")">
+        <section class="player-panel @(Current.ActivePlayer == 1 ? "active-white" : "")" data-slot="1">
             <div class="player-name-bar">
                 <div class="player-name-content">
                     @if (Current.ActivePlayer == 1)
@@ -103,7 +103,7 @@ else
             </div>
         </section>
 
-        <section class="player-panel @(Current.ActivePlayer == 2 ? "active-yellow" : "")">
+        <section class="player-panel @(Current.ActivePlayer == 2 ? "active-yellow" : "")" data-slot="2">
             <div class="player-name-bar">
                 <div class="player-name-content">
                     @if (Current.ActivePlayer == 2)
@@ -247,12 +247,8 @@ else
                 </select>
             </div>
             <div class="control-group">
-                <a href="/players">Manage Players</a>
-                <a href="/matches">Match History</a>
-            </div>
-            <div class="control-group">
-                <button @onclick="() => DispatchAsync(ScoreboardCommand.EndGame)" disabled="@_gameEnded">End Game</button>
                 <button @onclick="() => DispatchAsync(ScoreboardCommand.NewGame)">New Game</button>
+                <button @onclick="() => DispatchAsync(ScoreboardCommand.EndGame)" disabled="@_gameEnded">End Game</button>
             </div>
             <p class="hint">@L.T("ControlsHint")</p>
         </div>
@@ -725,11 +721,16 @@ else
 
         Current.ShotClockActive = false;
         _gameEnded = true;
+        if (winner != 0)
+        {
+            _ = SetFireworksAsync(winner);
+        }
     }
 
     private void NewGame()
     {
         _gameEnded = false;
+        _ = SetFireworksAsync(0);
         _gameStartedAt = DateTime.Now;
         Current.Player1Score = 0;
         Current.Player2Score = 0;
@@ -913,6 +914,25 @@ else
         int.TryParse(value, out var target) ? DispatchAsync(ScoreboardCommand.SetMatchTarget, target) : Task.CompletedTask;
 
     private void ChangeActivePlayer(int player) => Current.ActivePlayer = player;
+
+    private async Task SetFireworksAsync(int winner)
+    {
+        try
+        {
+            _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
+            if (winner == 0)
+            {
+                await _kiosk.InvokeVoidAsync("stopFireworks");
+            }
+            else
+            {
+                await _kiosk.InvokeVoidAsync("startFireworks", winner);
+            }
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or InvalidOperationException or TaskCanceledException)
+        {
+        }
+    }
 
     private async Task RequestFullscreenAsync()
     {

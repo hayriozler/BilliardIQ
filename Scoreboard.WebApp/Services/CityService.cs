@@ -5,70 +5,54 @@ namespace Scoreboard.WebApp.Services;
 
 public class CityService(DataContext db)
 {
-    public Task<List<City>> ListAsync(int organizationId, int? countryId = null) =>
-        db.CitySet
+    public async Task<List<City>> ListAsync(int organizationId, int? countryId = null) =>
+        (await db.OrganizationCitySet
             .AsNoTracking()
-            .Include(c => c.Country)
-            .Where(c => c.OrganizationId == organizationId && c.DeletedAt == null && (countryId == null || c.CountryId == countryId))
-            .OrderBy(c => c.Country.Name).ThenBy(c => c.Name)
-            .ToListAsync();
+            .Include(x => x.City).ThenInclude(c => c.Country)
+            .Where(x => x.OrganizationId == organizationId && x.DeletedAt == null && (countryId == null || x.City.CountryId == countryId))
+            .Select(x => x.City)
+            .ToListAsync())
+        .Select(c => { CountryService.Localized(c.Country); return c; })
+        .OrderBy(c => c.Country.Name).ThenBy(c => c.Name)
+        .ToList();
 
-    public async Task<City> UpsertAsync(int organizationId, int id, int countryId, string name)
+    public async Task<List<City>> AvailableAsync(int organizationId, int countryId)
     {
-        name = name.Trim();
-        if (name.Length == 0) throw new ArgumentException("Şehir adı gerekli.");
-        if (name.Length > 100) throw new ArgumentException("Şehir adı en fazla 100 karakter olabilir.");
-
-        var country = await db.CountrySet.FirstOrDefaultAsync(c => c.Id == countryId && c.OrganizationId == organizationId && c.DeletedAt == null)
-            ?? throw new ArgumentException("Ülke seçin.");
-
-        var city = id != 0
-            ? await db.CitySet.FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == organizationId && c.DeletedAt == null)
-            : null;
-        if (id != 0 && city is null) throw new ArgumentException("Şehir bulunamadı.");
-
-        if (await db.CitySet.AnyAsync(c =>
-                c.OrganizationId == organizationId && c.DeletedAt == null && c.Id != id && c.CountryId == country.Id && c.Name.ToLower() == name.ToLower()))
-        {
-            throw new ArgumentException("Bu ülkede bu isimde bir şehir zaten var.");
-        }
-
-        if (city is null)
-        {
-            city = new City { OrganizationId = organizationId };
-            db.CitySet.Add(city);
-        }
-        else if (city.CountryId != country.Id &&
-                 await db.PlayerSet.AnyAsync(p => p.CityId == city.Id && p.DeletedAt == null))
-        {
-            throw new InvalidOperationException("Oyuncusu olan şehrin ülkesi değiştirilemez.");
-        }
-
-        var renamed = city.Id != 0 && city.Name != name;
-        city.Name = name;
-        city.CountryId = country.Id;
-        if (renamed)
-        {
-            foreach (var player in await db.PlayerSet.Where(p => p.CityId == city.Id).ToListAsync())
-            {
-                player.City = name;
-            }
-        }
-
-        await db.SaveChangesAsync();
-        return city;
+        var selected = db.OrganizationCitySet.Where(x => x.OrganizationId == organizationId && x.DeletedAt == null).Select(x => x.CityId);
+        return await db.CitySet.AsNoTracking()
+            .Where(c => c.CountryId == countryId && !selected.Contains(c.Id))
+            .OrderBy(c => c.Name)
+            .ToListAsync();
     }
 
-    public async Task DeleteAsync(int organizationId, int id)
+    public async Task AddAsync(int organizationId, int cityId)
     {
-        var city = await db.CitySet.FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == organizationId && c.DeletedAt == null)
+        var city = await db.CitySet.AsNoTracking().FirstOrDefaultAsync(c => c.Id == cityId)
+            ?? throw new ArgumentException("Katalogda şehir bulunamadı.");
+        if (!await db.OrganizationCountrySet.AnyAsync(x => x.OrganizationId == organizationId && x.CountryId == city.CountryId && x.DeletedAt == null))
+        {
+            throw new ArgumentException("Önce şehrin ülkesini ekleyin.");
+        }
+
+        if (await db.OrganizationCitySet.AnyAsync(x => x.OrganizationId == organizationId && x.CityId == cityId && x.DeletedAt == null))
+        {
+            throw new ArgumentException("Bu şehir zaten ekli.");
+        }
+
+        db.OrganizationCitySet.Add(new OrganizationCity { OrganizationId = organizationId, CityId = cityId });
+        await db.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(int organizationId, int cityId)
+    {
+        var link = await db.OrganizationCitySet.FirstOrDefaultAsync(x => x.CityId == cityId && x.OrganizationId == organizationId && x.DeletedAt == null)
             ?? throw new InvalidOperationException("Şehir bulunamadı.");
-        if (await db.PlayerSet.AnyAsync(p => p.CityId == id && p.DeletedAt == null))
+        if (await db.PlayerSet.AnyAsync(p => p.CityId == cityId && p.DeletedAt == null))
         {
             throw new InvalidOperationException("Oyuncusu olan şehir silinemez. Önce oyuncuların şehrini değiştirin.");
         }
 
-        city.DeletedAt = DateTimeOffset.UtcNow;
+        link.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
     }
 }

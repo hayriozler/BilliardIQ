@@ -27,7 +27,7 @@ public class ClientIdMiddleware(RequestDelegate next)
         var clientId = context.Request.Headers[HeaderName].ToString().Trim();
         if (clientId.Length == 0)
         {
-            await RejectAsync(context, StatusCodes.Status400BadRequest, $"'{HeaderName}' header is required.");
+            await RejectAsync(context, StatusCodes.Status401Unauthorized, $"'{HeaderName}' header is required.");
             return;
         }
 

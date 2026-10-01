@@ -28,5 +28,22 @@
   "Oyuncusu olan şehrin ülkesi değiştirilemez.": "Het land van een stad met spelers kan niet worden gewijzigd.",
   "Oyuncusu olan şehir silinemez. Önce oyuncuların şehrini değiştirin.": "Een stad met spelers kan niet worden verwijderd. Wijzig eerst de stad van de spelers.",
   "Şehir seçilen ülkeye ait değil.": "De stad hoort niet bij het gekozen land.",
-  "Ülke seçin.": "Kies een land."
+  "Ülke seçin.": "Kies een land.",
+  "Katalogdan ülke ekle": "Land toevoegen uit de catalogus",
+  "Katalogdan şehir ekle": "Stad toevoegen uit de catalogus",
+  "Katalogdan bölge ekle": "Regio toevoegen uit de catalogus",
+  "Şehir seçin": "Kies een stad",
+  "Bölge seçin": "Kies een regio",
+  "Organizasyonunuzun kullandığı ülkeleri katalogdan seçin; oyuncu formunda ve şehir seçiminde bu liste kullanılır.": "Kies de landen die uw organisatie gebruikt uit de catalogus; deze lijst wordt gebruikt in het spelersformulier en bij het kiezen van steden.",
+  "Organizasyonunuzun kullandığı şehirleri katalogdan seçin; oyuncu formunda ülke seçilince o ülkenin şehirleri listelenir.": "Kies de steden die uw organisatie gebruikt uit de catalogus; het spelersformulier toont de steden van het gekozen land.",
+  "Organizasyonunuzun kullandığı bölgeleri katalogdan seçin; oyuncu formunda listeden seçilir.": "Kies de regio's die uw organisatie gebruikt uit de catalogus; ze worden in het spelersformulier uit de lijst gekozen.",
+  "Katalogda ülke bulunamadı.": "Land niet gevonden in de catalogus.",
+  "Bu ülke zaten ekli.": "Dit land is al toegevoegd.",
+  "Katalogda şehir bulunamadı.": "Stad niet gevonden in de catalogus.",
+  "Önce şehrin ülkesini ekleyin.": "Voeg eerst het land van de stad toe.",
+  "Bu şehir zaten ekli.": "Deze stad is al toegevoegd.",
+  "Katalogda bölge bulunamadı.": "Regio niet gevonden in de catalogus.",
+  "Önce bölgenin ülkesini ekleyin.": "Voeg eerst het land van de regio toe.",
+  "Bu bölge zaten ekli.": "Deze regio is al toegevoegd.",
+  "Bölgesi olan ülke silinemez. Önce bölgeleri silin.": "Een land met regio's kan niet worden verwijderd. Verwijder eerst de regio's."
 }

@@ -8,7 +8,7 @@
 <div class="page-head">
     <div>
         <h1>@L["Şehirler"]</h1>
-        <div class="subtitle">@L["Şehirleri bağlı oldukları ülkeyle tanımlayın; oyuncu formunda ülke seçilince o ülkenin şehirleri listelenir."]</div>
+        <div class="subtitle">@L["Organizasyonunuzun kullandığı şehirleri katalogdan seçin; oyuncu formunda ülke seçilince o ülkenin şehirleri listelenir."]</div>
     </div>
 </div>
 
@@ -25,10 +25,10 @@
 @if (_tenant is { CanManage: true } && _countries.Count > 0)
 {
     <div class="card">
-        <h2>@(_form.Id == 0 ? L["Yeni şehir"] : L["Şehri düzenle"])</h2>
+        <h2>@L["Katalogdan şehir ekle"]</h2>
         <div class="form-row">
             <label class="field">@L["Ülke"]
-                <select @bind="_form.CountryId">
+                <select value="@_addCountryId" @onchange="OnAddCountryChanged">
                     <option value="0">@L["Ülke seçin"]</option>
                     @foreach (var country in _countries)
                     {
@@ -37,13 +37,15 @@
                 </select>
             </label>
             <label class="field">@L["Şehir"]
-                <input type="text" @bind="_form.Name" maxlength="100" />
+                <select @bind="_selectedId" disabled="@(_addCountryId == 0)">
+                    <option value="0">@L["Şehir seçin"]</option>
+                    @foreach (var city in _available)
+                    {
+                        <option value="@city.Id">@city.Name</option>
+                    }
+                </select>
             </label>
-            <button class="primary" disabled="@_busy" @onclick="SaveAsync">@(_form.Id == 0 ? L["Ekle"] : L["Kaydet"])</button>
-            @if (_form.Id != 0)
-            {
-                <button @onclick="() => _form = new()">@L["Vazgeç"]</button>
-            }
+            <button class="primary" disabled="@(_busy || _selectedId == 0)" @onclick="AddAsync">@L["Ekle"]</button>
         </div>
     </div>
 }
@@ -81,7 +83,6 @@
                                 @if (_tenant is { CanManage: true })
                                 {
                                     <div class="row-actions">
-                                        <button class="small" @onclick="() => _form = new FormModel { Id = city.Id, CountryId = city.CountryId, Name = city.Name }">@L["Düzenle"]</button>
                                         @if (_confirmDelete == city.Id)
                                         {
                                             <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(city.Id)">@L["Silmeyi onayla"]</button>
@@ -105,10 +106,12 @@
 @code {
     private Tenant? _tenant;
     private List<City> _cities = [];
+    private List<City> _available = [];
     private List<Country> _countries = [];
     private Dictionary<int, int> _playerCounts = [];
-    private FormModel _form = new();
     private int _filterCountryId;
+    private int _addCountryId;
+    private int _selectedId;
     private string? _error;
     private bool _busy;
     private int? _confirmDelete;
@@ -126,16 +129,31 @@
         var orgId = _tenant!.OrganizationId;
         _countries = await Db.RunAsync((CountryService s) => s.ListAsync(orgId));
         _cities = await Db.RunAsync((CityService s) => s.ListAsync(orgId));
+        await LoadAvailableAsync();
         var players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId));
         _playerCounts = players.Where(p => p.CityId != null)
             .GroupBy(p => p.CityId!.Value)
             .ToDictionary(g => g.Key, g => g.Count());
     }
 
-    private Task SaveAsync() => RunAsync(async () =>
+    private async Task LoadAvailableAsync()
     {
-        await Db.RunAsync((CityService s) => s.UpsertAsync(_tenant!.OrganizationId, _form.Id, _form.CountryId, _form.Name));
-        _form = new FormModel { CountryId = _form.CountryId };
+        var orgId = _tenant!.OrganizationId;
+        var countryId = _addCountryId;
+        _available = countryId == 0 ? [] : await Db.RunAsync((CityService s) => s.AvailableAsync(orgId, countryId));
+    }
+
+    private async Task OnAddCountryChanged(ChangeEventArgs e)
+    {
+        _addCountryId = int.TryParse(e.Value?.ToString(), out var id) ? id : 0;
+        _selectedId = 0;
+        await LoadAvailableAsync();
+    }
+
+    private Task AddAsync() => RunAsync(async () =>
+    {
+        await Db.RunAsync((CityService s) => s.AddAsync(_tenant!.OrganizationId, _selectedId));
+        _selectedId = 0;
     });
 
     private Task DeleteAsync(int id) => RunAsync(async () =>
@@ -162,12 +180,5 @@
         }
 
         await LoadAsync();
-    }
-
-    private class FormModel
-    {
-        public int Id { get; set; }
-        public int CountryId { get; set; }
-        public string Name { get; set; } = "";
     }
 }

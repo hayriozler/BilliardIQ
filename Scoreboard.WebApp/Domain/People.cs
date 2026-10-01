@@ -8,31 +8,55 @@ public class Association : BaseEntity, ITenantScoped
     public Organization Organization { get; set; } = default!;
 }
 
-public class Country : BaseEntity, ITenantScoped
+public class Country : BaseEntity
 {
-    public int OrganizationId { get; set; }
+    public string Code { get; set; } = default!;
     public string Name { get; set; } = default!;
 
-    public Organization Organization { get; set; } = default!;
     public ICollection<City> Cities { get; set; } = [];
 }
 
-public class City : BaseEntity, ITenantScoped
+public class City : BaseEntity
+{
+    public int CountryId { get; set; }
+    public string Name { get; set; } = default!;
+
+    public Country Country { get; set; } = default!;
+}
+
+public class Region : BaseEntity
+{
+    public int CountryId { get; set; }
+    public string Name { get; set; } = default!;
+
+    public Country Country { get; set; } = default!;
+}
+
+public class OrganizationCountry : BaseEntity, ITenantScoped
 {
     public int OrganizationId { get; set; }
     public int CountryId { get; set; }
-    public string Name { get; set; } = default!;
 
     public Organization Organization { get; set; } = default!;
     public Country Country { get; set; } = default!;
 }
 
-public class Region : BaseEntity, ITenantScoped
+public class OrganizationCity : BaseEntity, ITenantScoped
 {
     public int OrganizationId { get; set; }
-    public string Name { get; set; } = default!;
+    public int CityId { get; set; }
 
     public Organization Organization { get; set; } = default!;
+    public City City { get; set; } = default!;
+}
+
+public class OrganizationRegion : BaseEntity, ITenantScoped
+{
+    public int OrganizationId { get; set; }
+    public int RegionId { get; set; }
+
+    public Organization Organization { get; set; } = default!;
+    public Region Region { get; set; } = default!;
 }
 
 public class Player : BaseEntity

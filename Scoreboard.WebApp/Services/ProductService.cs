@@ -111,7 +111,7 @@ public class ProductService(DataContext db)
 
         product.CategoryId = categoryId;
         product.Name = name;
-        product.Price = Math.Round(price, 2);
+        product.Price = Math.Round(price, 3);
         product.VatRate = Math.Round(vatRate, 2);
         product.IsActive = isActive;
         await db.SaveChangesAsync();

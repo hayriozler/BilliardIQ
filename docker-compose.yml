@@ -30,9 +30,10 @@ services:
 
   # The table scoreboard (kiosk). It pulls clubs/teams/players from the panel and pushes finished match results back,
   # identifying itself with the venue's client id (X-Client-Id) and its scoreboard number (X-Table-No) only.
-  # Sync with the panel is optional and off by default (SCOREBOARD_SYNC_ENABLED=false): the two apps do not depend on each
-  # other and only share data when it is configured. Set SCOREBOARD_CLIENT_ID / SCOREBOARD_TABLE_NO in .env (see .env.example): the client id is shown on the panel's
-  # "Bağlantı" page, the table number is the scoreboard number listed there.
+  # Sync with the panel is optional: the two apps do not depend on each other and only share data when it is configured.
+  # Configure it in Scoreboard.Client/appsettings.json (RemoteSync: Enabled, ClientId, TableNo, PollSeconds); the client id is
+  # shown on the panel's "Bağlantı" page, the table number is the scoreboard number listed there. Only the panel's address
+  # is set here, because inside Docker the panel is reached by its container name.
   zeymera.billardiq.scoreboard.client:
     image: ${DOCKER_REGISTRY-}zeymerabillardiqscoreboardclient
     build:
@@ -44,11 +45,7 @@ services:
     # panel is down. The panel is only contacted in the background to pull clubs/teams/players and push match results.
     environment:
       ASPNETCORE_HTTP_PORTS: "8080"
-      RemoteSync__Enabled: ${SCOREBOARD_SYNC_ENABLED:-false}
       RemoteSync__BaseUrl: http://zeymera.billardiq.webapp:8080/api/
-      RemoteSync__ClientId: ${SCOREBOARD_CLIENT_ID:-}
-      RemoteSync__TableNo: ${SCOREBOARD_TABLE_NO:-1}
-      RemoteSync__PollSeconds: ${SCOREBOARD_POLL_SECONDS:-15}
     ports:
       - "5288:8080"
     volumes:

@@ -56,10 +56,19 @@ public class StatsService(DataContext db)
     {
         var player = await db.PlayerSet.AsNoTracking()
             .Include(p => p.Association)
-            .FirstOrDefaultAsync(p => p.Id == playerId && p.CreatedInOrganizationId == organizationId && p.DeletedAt == null);
+            .FirstOrDefaultAsync(p => p.Id == playerId && (p.CreatedInOrganizationId == organizationId || p.IsSystem) && p.DeletedAt == null);
         if (player is null)
         {
             return null;
+        }
+
+        if (player.IsSystem && player.SystemSlot is int slot)
+        {
+            var language = await db.OrganizationSet.Where(o => o.Id == organizationId).Select(o => o.Language).FirstOrDefaultAsync() ?? Loc.DefaultLanguage;
+            var name = SystemPlayerService.NameFor(slot, language);
+            player.FirstName = name;
+            player.DisplayName = name;
+            player.Nickname = name;
         }
 
         var entries = (await EntriesByPlayerAsync(organizationId, since, includeBuckets: true, onlyPlayerId: playerId))
@@ -105,10 +114,22 @@ public class StatsService(DataContext db)
         return new TeamStatDetail(team, Summarize(all), memberRows, recent);
     }
 
-    private Task<List<Player>> RosterPlayersAsync(int organizationId) =>
-        db.PlayerSet.AsNoTracking()
-            .Where(p => p.CreatedInOrganizationId == organizationId && p.DeletedAt == null && !p.IsSystem)
+    private async Task<List<Player>> RosterPlayersAsync(int organizationId)
+    {
+        var language = await db.OrganizationSet.Where(o => o.Id == organizationId).Select(o => o.Language).FirstOrDefaultAsync() ?? Loc.DefaultLanguage;
+        var players = await db.PlayerSet.AsNoTracking()
+            .Where(p => (p.CreatedInOrganizationId == organizationId || p.IsSystem) && p.DeletedAt == null)
             .ToListAsync();
+        foreach (var player in players.Where(p => p.IsSystem && p.SystemSlot is not null))
+        {
+            var name = SystemPlayerService.NameFor(player.SystemSlot!.Value, language);
+            player.FirstName = name;
+            player.DisplayName = name;
+            player.Nickname = name;
+        }
+
+        return players;
+    }
 
     private Task<List<Team>> TeamsWithMembersAsync(int organizationId) =>
         db.TeamSet.AsNoTracking()
