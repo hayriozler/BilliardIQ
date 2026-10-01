@@ -11,6 +11,7 @@ public partial class RemotePullService(
     IWebHostEnvironment env,
     IOptions<RemoteSyncOptions> options,
     SystemPowerService systemPower,
+    LanguageSync languageSync,
     ILogger<RemotePullService> logger) : BackgroundService
 {
     private const string PhotosFolder = "PlayerSet";
@@ -85,14 +86,50 @@ public partial class RemotePullService(
 
         LogReceived(clubs.Count, teams.Count, players.Count);
 
+        // Older servers have no /organization; the language then simply stays what the kiosk has.
+        RemoteOrganization? organization = null;
+        try
+        {
+            organization = await http.GetFromJsonAsync<RemoteOrganization>("organization", _jsonOptions, ct);
+        }
+        catch (HttpRequestException)
+        {
+        }
+
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
+        var languageChanged = await ApplyServerLanguageAsync(db, organization?.Language, ct);
         await MirrorClubsAsync(db, clubs, ct);
         await MirrorTeamsAsync(db, teams, ct);
         await MirrorPlayersAsync(db, http, players, teams, ct);
 
         await transaction.CommitAsync(ct);
+
+        // Only now can the open board read the new language.
+        if (languageChanged)
+        {
+            languageSync.Notify();
+        }
+    }
+
+    /// <summary>While connected, the board speaks the venue's language (set on the server); it is stored as the local language.</summary>
+    private static async Task<bool> ApplyServerLanguageAsync(DataContext db, string? language, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(language) || !LocalizationService.Values.ContainsKey(language))
+        {
+            return false;
+        }
+
+        var setting = await db.SettingsSet.FirstOrDefaultAsync(s => s.Id == "Lang", ct);
+        if (setting is null || setting.Value == language)
+        {
+            return false;
+        }
+
+        setting.Value = language;
+        await db.SaveChangesAsync(ct);
+        return true;
     }
 
     // The local tables are keyed by the server's own ids: rows are inserted with the id the server gave them and removed
@@ -293,6 +330,8 @@ public partial class RemotePullService(
             LogPhotoDeleteFailed(relativePath, ex);
         }
     }
+
+    private record RemoteOrganization(string Name, string Language);
 
     private record RemoteClub(int Id, string Name, string ShortName, string? City, string? PrimaryColor);
 

@@ -7,6 +7,7 @@
 @inject SystemPowerService SystemPower
 @inject BoardSessionGuard BoardSession
 @inject BoardSessionTracker BoardTracker
+@inject LanguageSync LanguageSync
 @using Scoreboard.Client.Models
 @using Scoreboard.Client.Services
 @using Microsoft.AspNetCore.Components.Web
@@ -344,6 +345,13 @@ else
 
     private bool _boardOccupiedElsewhere;
 
+    private void OnServerLanguageChanged() =>
+        _ = InvokeAsync(() =>
+        {
+            UpdateDefaultPlayers();
+            StateHasChanged();
+        });
+
     private void TakeOverBoard() => Nav.NavigateTo("/?takeover=1", forceLoad: true);
     private Guid _sessionId;
 
@@ -362,6 +370,7 @@ else
         }
 
         BoardTracker.SessionId = _sessionId;
+        LanguageSync.Changed += OnServerLanguageChanged;
         UpdateDefaultPlayers();
         _ = RunShotClockAsync(_shotClockCts.Token);
         var game = await DbContext.ScoreboardStateSet.Where(p => p.Id == 1).FirstOrDefaultAsync();
@@ -926,6 +935,7 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        LanguageSync.Changed -= OnServerLanguageChanged;
         BoardSession.Release(_sessionId);
         if (_boardOccupiedElsewhere)
         {

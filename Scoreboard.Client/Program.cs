@@ -58,6 +58,7 @@ builder.Services.AddDbContextFactory<DataContext>(options => options.UseSqlite($
 builder.Services.AddScoped<LocalizationService>();
 builder.Services.AddSingleton<SystemPowerService>();
 builder.Services.AddSingleton<BoardSessionGuard>();
+builder.Services.AddSingleton<LanguageSync>();
 builder.Services.AddScoped<BoardSessionTracker>();
 builder.Services.AddScoped<CircuitHandler, BoardCircuitHandler>();
 builder.Services.Configure<RemoteSyncOptions>(builder.Configuration.GetSection("RemoteSync"));

@@ -150,6 +150,7 @@ app.MapPlayersEndpoints();
 app.MapMatchStatsEndpoints();
 app.MapTeamsEndpoints();
 app.MapAuthEndpoints();
+app.MapOrganizationEndpoints();
 
 app.MapPost("/culture", (HttpContext context, [FromForm] string lang, [FromForm] string? returnUrl) =>
 {

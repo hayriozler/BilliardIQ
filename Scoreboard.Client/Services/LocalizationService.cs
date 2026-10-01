@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace Scoreboard.Client.Services;
 
@@ -12,7 +13,8 @@ public class LocalizationService(DataContext db)
         SetLang(language);
         LanguageChanged?.Invoke();
     }
-    public string GetLang => db.SettingsSet.First(p => p.Id == "Lang").Value;
+    // not tracked: the language can be changed by another context (the server sync), and a tracked copy would be stale
+    public string GetLang => db.SettingsSet.AsNoTracking().First(p => p.Id == "Lang").Value;
     private void SetLang(string language)
     {
         var setting = db.SettingsSet.First(p => p.Id == "Lang");
