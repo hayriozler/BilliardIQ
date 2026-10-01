@@ -218,6 +218,7 @@ main.content {
 .auth-card .brand-row {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.7rem;
     margin-bottom: 1.25rem;
     font-weight: 700;
@@ -837,9 +838,14 @@ td.num, th.num {
     color: #fff;
 }
 
+/* pinned to the top-right corner so the login / register card stays centered */
+.anon { position: relative; }
+
 .anon .lang-switcher {
+    position: absolute;
+    top: 1rem;
+    right: 1.25rem;
     justify-content: flex-end;
-    padding: 0.75rem 1rem 0;
 }
 
 .validation-errors {
@@ -977,3 +983,118 @@ td.win { font-weight: 700; color: var(--ok, #15803d); }
     min-width: 1.5rem;
     text-align: right;
 }
+
+/* date / time pickers */
+.dp { position: relative; }
+.dp-input {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #cdd5e1;
+    border-radius: 9px;
+    background: #fff;
+    font: inherit;
+    font-weight: 400;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+.dp-input:focus-visible { outline: 2px solid var(--primary-soft); border-color: var(--primary); }
+.dp-placeholder { color: #94a3b8; }
+.dp-ico { font-size: 0.95rem; opacity: .7; }
+.dp-backdrop { position: fixed; inset: 0; z-index: 40; background: transparent; }
+.dp-pop {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 41;
+    width: 286px;
+    padding: 0.7rem;
+    border: 1px solid #d5dbe4;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+.dp-head { display: flex; align-items: center; justify-content: space-between; gap: 0.25rem; margin-bottom: 0.45rem; }
+.dp-head strong { flex: 1; text-align: center; font-size: 0.92rem; }
+.dp-nav { padding: 0.15rem 0.5rem; border-radius: 8px; line-height: 1.2; }
+.dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.dp-week span { text-align: center; font-size: 0.7rem; font-weight: 600; color: #64748b; padding: 0.2rem 0; }
+.dp-day {
+    padding: 0.4rem 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 0.85rem;
+}
+.dp-day:hover:not(:disabled) { background: #eef2f7; }
+.dp-day.today { box-shadow: inset 0 0 0 1px var(--primary); }
+.dp-day.selected, .dp-day.selected:hover { background: var(--primary); color: #fff; }
+.dp-day:disabled { color: #cbd5e1; cursor: default; }
+.dp-foot { display: flex; justify-content: space-between; margin-top: 0.5rem; }
+
+.tp { display: flex; align-items: center; gap: 0.3rem; }
+.tp select { width: auto; flex: 1; min-width: 4.2rem; }
+.tp-sep { font-weight: 700; color: #64748b; }
+
+/* collapsible sidebar groups */
+.sidebar .nav-group { display: flex; flex-direction: column; }
+.sidebar .nav-items { display: flex; flex-direction: column; gap: 2px; }
+.sidebar .nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin: 0.55rem 0 0.15rem;
+    padding: 0.4rem 0.75rem;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8a9ab3;
+    cursor: pointer;
+}
+.sidebar .nav-toggle:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+.sidebar .nav-toggle .chev { transition: transform 0.15s ease; font-size: 0.8rem; }
+.sidebar .nav-group.collapsed .chev { transform: rotate(-90deg); }
+
+/* participant picker */
+.picker-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin: 0.6rem 0; }
+.picker-list { max-height: 380px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
+.picker-list table { width: 100%; }
+.picker-list tr { cursor: pointer; }
+.picker-list tr:hover { background: #f8fafc; }
+.picker-list tr.picked { background: var(--primary-soft); }
+.picker-list .pick-check { width: 2rem; }
+
+/* avatar popup */
+.avatar-modal { max-width: 720px; }
+.avatar-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+.avatar-modal-head h2 { margin: 0; }
+.avatar-grid-lg {
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    max-height: min(60vh, 520px);
+    margin-top: 0;
+    gap: 0.5rem;
+}
+.avatar-grid-lg .avatar-cell { padding: 3px; }
+.avatar-grid-lg .avatar-cell img { width: 100%; height: auto; border-radius: 12px; }
+.avatar-grid-lg .avatar-cell:hover { border-color: #cbd5e1; }
+.avatar-grid-lg .avatar-cell.active { border-color: var(--primary); }
+
+/* Zeymera logo */
+.brand-logo { height: 38px; width: auto; object-fit: contain; flex: none; }
+.sidebar .brand-logo {
+    height: 40px;
+    padding: 3px 6px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.92);
+}
+.auth-card .brand-row .brand-logo { height: 54px; }
+.auth-card .brand-row { font-size: 1.4rem; }

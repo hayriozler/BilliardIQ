@@ -1,0 +1,33 @@
+<div class="tp">
+    <select value="@Value.Hour" disabled="@Disabled" @onchange="OnHourChanged" aria-label="@L["Saat"]">
+        @for (var h = 0; h < 24; h++)
+        {
+            <option value="@h">@h.ToString("00")</option>
+        }
+    </select>
+    <span class="tp-sep">:</span>
+    <select value="@Value.Minute" disabled="@Disabled" @onchange="OnMinuteChanged" aria-label="@L["Dakika"]">
+        @foreach (var m in Minutes)
+        {
+            <option value="@m">@m.ToString("00")</option>
+        }
+    </select>
+</div>
+
+@code {
+    [Parameter] public TimeOnly Value { get; set; }
+
+    [Parameter] public EventCallback<TimeOnly> ValueChanged { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Minute steps of 5, plus the current minute when it is not a multiple of 5.</summary>
+    private IEnumerable<int> Minutes =>
+        Enumerable.Range(0, 12).Select(i => i * 5).Append(Value.Minute).Distinct().Order();
+
+    private Task OnHourChanged(ChangeEventArgs e) =>
+        ValueChanged.InvokeAsync(new TimeOnly(int.Parse(e.Value?.ToString() ?? "0"), Value.Minute));
+
+    private Task OnMinuteChanged(ChangeEventArgs e) =>
+        ValueChanged.InvokeAsync(new TimeOnly(Value.Hour, int.Parse(e.Value?.ToString() ?? "0")));
+}

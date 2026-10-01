@@ -26,5 +26,8 @@
   "NoPlayersInRoster": "Kadroda henüz oyuncu yok - Oyuncular sayfasından ekleyebilirsiniz.",
   "UseManualNameInstead": "Bunun yerine manuel isim kullan",
   "Close": "Kapat",
-  "BoardOccupiedElsewhere": "Bu pano zaten başka bir pencerede açık."
+  "BoardOccupiedElsewhere": "Bu pano zaten başka bir pencerede açık.",
+  "PlayerAlreadySelected": "Bu oyuncu zaten karşı tarafta seçili.",
+  "OtherSide": "karşı tarafta",
+  "TakeOverBoard": "Bu pencerede aç"
 }

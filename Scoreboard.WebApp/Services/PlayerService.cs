@@ -8,6 +8,9 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
     public Task<List<Player>> ListForOrganizationAsync(int organizationId) =>
         db.PlayerSet
             .Include(p => p.Association)
+            .Include(p => p.Region)
+            .Include(p => p.CountryRef)
+            .Include(p => p.CityRef)
             .Where(p => p.CreatedInOrganizationId == organizationId && p.DeletedAt == null)
             .OrderBy(p => p.DisplayName)
             .ToListAsync();
@@ -31,11 +34,38 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         int? shortcutNumber = null,
         string? licenseNo = null,
         DateOnly? licenseValidUntil = null,
-        int? associationId = null)
+        int? associationId = null,
+        int? regionId = null,
+        int? countryId = null,
+        int? cityId = null)
     {
         if (avatarId is < 0 || avatarId >= AvatarGenerator.Count)
         {
             throw new ArgumentException("Geçersiz avatar.");
+        }
+
+        Country? country = null;
+        City? city = null;
+        if (countryId is not null)
+        {
+            country = await db.CountrySet.FirstOrDefaultAsync(c => c.Id == countryId && c.OrganizationId == organizationId && c.DeletedAt == null)
+                ?? throw new ArgumentException("Ülke bulunamadı.");
+        }
+
+        if (cityId is not null)
+        {
+            city = await db.CitySet.FirstOrDefaultAsync(c => c.Id == cityId && c.OrganizationId == organizationId && c.DeletedAt == null)
+                ?? throw new ArgumentException("Şehir bulunamadı.");
+            if (country is null || city.CountryId != country.Id)
+            {
+                throw new ArgumentException("Şehir seçilen ülkeye ait değil.");
+            }
+        }
+
+        if (regionId is not null && !await db.RegionSet.AnyAsync(r =>
+                r.Id == regionId && r.OrganizationId == organizationId && r.DeletedAt == null))
+        {
+            throw new ArgumentException("Bölge bulunamadı.");
         }
 
         if (associationId is not null && !await db.AssociationSet.AnyAsync(a =>
@@ -88,6 +118,15 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         player.FederationLicenseNo = licenseNo;
         player.LicenseValidUntil = licenseValidUntil;
         player.AssociationId = associationId;
+        player.RegionId = regionId;
+        player.CountryId = country?.Id;
+        player.CityId = city?.Id;
+        if (country is not null)
+        {
+            // Picked from the lists: the legacy text columns carry the names so API clients and the scoreboard keep working.
+            player.Nationality = country.Name;
+            player.City = city?.Name;
+        }
         player.AvatarId = avatarId;
         player.Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
         player.Level = level;

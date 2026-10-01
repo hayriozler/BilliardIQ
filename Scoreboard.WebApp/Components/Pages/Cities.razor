@@ -1,0 +1,173 @@
+@page "/cities"
+@attribute [Authorize]
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>@L["Şehirler"] • BillardIQ</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>@L["Şehirler"]</h1>
+        <div class="subtitle">@L["Şehirleri bağlı oldukları ülkeyle tanımlayın; oyuncu formunda ülke seçilince o ülkenin şehirleri listelenir."]</div>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert error">@_error</div>
+}
+
+@if (_countries.Count == 0)
+{
+    <div class="alert info">@L["Şehir eklemek için önce bir ülke tanımlayın."] <a href="/countries">@L["Ülkeler"]</a></div>
+}
+
+@if (_tenant is { CanManage: true } && _countries.Count > 0)
+{
+    <div class="card">
+        <h2>@(_form.Id == 0 ? L["Yeni şehir"] : L["Şehri düzenle"])</h2>
+        <div class="form-row">
+            <label class="field">@L["Ülke"]
+                <select @bind="_form.CountryId">
+                    <option value="0">@L["Ülke seçin"]</option>
+                    @foreach (var country in _countries)
+                    {
+                        <option value="@country.Id">@country.Name</option>
+                    }
+                </select>
+            </label>
+            <label class="field">@L["Şehir"]
+                <input type="text" @bind="_form.Name" maxlength="100" />
+            </label>
+            <button class="primary" disabled="@_busy" @onclick="SaveAsync">@(_form.Id == 0 ? L["Ekle"] : L["Kaydet"])</button>
+            @if (_form.Id != 0)
+            {
+                <button @onclick="() => _form = new()">@L["Vazgeç"]</button>
+            }
+        </div>
+    </div>
+}
+
+<div class="card">
+    <h2>@L["Şehirler"] (@Visible.Count)</h2>
+    <div class="form-row">
+        <label class="field">@L["Ülkeye göre süz"]
+            <select @bind="_filterCountryId">
+                <option value="0">@L["Tümü"]</option>
+                @foreach (var country in _countries)
+                {
+                    <option value="@country.Id">@country.Name</option>
+                }
+            </select>
+        </label>
+    </div>
+    @if (Visible.Count == 0)
+    {
+        <div class="empty">@L["Henüz şehir yok."]</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>@L["Şehir"]</th><th>@L["Ülke"]</th><th class="num">@L["Oyuncu sayısı"]</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var city in Visible)
+                    {
+                        <tr>
+                            <td><strong>@city.Name</strong></td>
+                            <td>@city.Country.Name</td>
+                            <td class="num">@_playerCounts.GetValueOrDefault(city.Id)</td>
+                            <td>
+                                @if (_tenant is { CanManage: true })
+                                {
+                                    <div class="row-actions">
+                                        <button class="small" @onclick="() => _form = new FormModel { Id = city.Id, CountryId = city.CountryId, Name = city.Name }">@L["Düzenle"]</button>
+                                        @if (_confirmDelete == city.Id)
+                                        {
+                                            <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(city.Id)">@L["Silmeyi onayla"]</button>
+                                            <button class="small ghost" @onclick="() => _confirmDelete = null">@L["Vazgeç"]</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="small ghost" @onclick="() => _confirmDelete = city.Id">@L["Sil"]</button>
+                                        }
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private Tenant? _tenant;
+    private List<City> _cities = [];
+    private List<Country> _countries = [];
+    private Dictionary<int, int> _playerCounts = [];
+    private FormModel _form = new();
+    private int _filterCountryId;
+    private string? _error;
+    private bool _busy;
+    private int? _confirmDelete;
+
+    private List<City> Visible => _filterCountryId == 0 ? _cities : _cities.Where(c => c.CountryId == _filterCountryId).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenant = await TenantContext.GetAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var orgId = _tenant!.OrganizationId;
+        _countries = await Db.RunAsync((CountryService s) => s.ListAsync(orgId));
+        _cities = await Db.RunAsync((CityService s) => s.ListAsync(orgId));
+        var players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId));
+        _playerCounts = players.Where(p => p.CityId != null)
+            .GroupBy(p => p.CityId!.Value)
+            .ToDictionary(g => g.Key, g => g.Count());
+    }
+
+    private Task SaveAsync() => RunAsync(async () =>
+    {
+        await Db.RunAsync((CityService s) => s.UpsertAsync(_tenant!.OrganizationId, _form.Id, _form.CountryId, _form.Name));
+        _form = new FormModel { CountryId = _form.CountryId };
+    });
+
+    private Task DeleteAsync(int id) => RunAsync(async () =>
+    {
+        await Db.RunAsync((CityService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+        _confirmDelete = null;
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            _error = L.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+    }
+
+    private class FormModel
+    {
+        public int Id { get; set; }
+        public int CountryId { get; set; }
+        public string Name { get; set; } = "";
+    }
+}

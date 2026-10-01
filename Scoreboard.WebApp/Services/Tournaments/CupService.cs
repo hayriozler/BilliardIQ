@@ -29,6 +29,10 @@ public class CupService(DataContext db)
     public Task<List<Player>> AvailablePlayersAsync(int organizationId, int cupId) =>
         db.PlayerSet
             .AsNoTracking()
+            .Include(p => p.Association)
+            .Include(p => p.Region)
+            .Include(p => p.CityRef)
+            .Include(p => p.TeamMemberships.Where(m => m.LeftAt == null)).ThenInclude(m => m.Team)
             .Where(p => p.CreatedInOrganizationId == organizationId && p.DeletedAt == null && !p.IsSystem
                         && !db.CupParticipantSet.Any(x => x.CupId == cupId && x.PlayerId == p.Id))
             .OrderBy(p => p.DisplayName)

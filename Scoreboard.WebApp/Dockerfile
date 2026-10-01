@@ -27,4 +27,11 @@ RUN dotnet publish "./Scoreboard.WebApp.csproj" -c $BUILD_CONFIGURATION -o /app/
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+# Uploaded player photos are written to wwwroot/Players; the folder is a volume (docker-compose.yml), so it must
+# exist and belong to the unprivileged app user.
+USER root
+RUN mkdir -p wwwroot/Players && chown -R $APP_UID:$APP_UID wwwroot/Players
+USER $APP_UID
+
 ENTRYPOINT ["dotnet", "Scoreboard.WebApp.dll"]

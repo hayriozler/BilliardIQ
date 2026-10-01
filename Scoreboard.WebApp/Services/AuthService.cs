@@ -7,7 +7,7 @@ namespace Scoreboard.WebApp.Services;
 
 public record LoginResult(User User, StaffMember Staff, Organization Organization);
 
-public class AuthService(DataContext db, ClientIdService clientIds, SystemPlayerService systemPlayers)
+public class AuthService(DataContext db, ClientIdService clientIds, SystemPlayerService systemPlayers, GeoSeedService geoSeed)
 {
     private static readonly PasswordHasher<User> _hasher = new();
 
@@ -55,7 +55,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, SystemPlayer
 
     /// <summary>Creates a salon (tenant) with its owner account. Tables and pricing are set up after registration.</summary>
     public async Task<LoginResult> RegisterOrganizationAsync(
-        string organizationName, string ownerName, string email, string password, string? language = null)
+        string organizationName, string ownerName, string email, string password, string? countryCode = null, string? currency = null, string? language = null)
     {
         organizationName = organizationName.Trim();
         ownerName = ownerName.Trim();
@@ -65,7 +65,13 @@ public class AuthService(DataContext db, ClientIdService clientIds, SystemPlayer
         if (ownerName.Length == 0) throw new ArgumentException("Ad soyad gerekli.");
         if (!email.Contains('@')) throw new ArgumentException("Geçerli bir e-posta girin.");
         ValidatePassword(password);
-        language = string.IsNullOrWhiteSpace(language) ? Loc.DefaultLanguage : language.Trim().ToLowerInvariant();
+        var country = string.IsNullOrWhiteSpace(countryCode)
+            ? CountryCatalog.Find("TR")!
+            : CountryCatalog.Find(countryCode) ?? throw new ArgumentException("Desteklenmeyen ülke.");
+        currency = string.IsNullOrWhiteSpace(currency) ? country.Currency : currency.Trim().ToUpperInvariant();
+        if (!CountryCatalog.IsCurrency(currency)) throw new ArgumentException("Desteklenmeyen para birimi.");
+        // Asked on the form; when nothing was chosen the country's language is used.
+        language = string.IsNullOrWhiteSpace(language) ? country.Language : language.Trim().ToLowerInvariant();
         if (!Loc.IsSupported(language)) throw new ArgumentException("Desteklenmeyen dil.");
 
         if (await db.UserSet.AnyAsync(u => u.Email == email))
@@ -79,9 +85,12 @@ public class AuthService(DataContext db, ClientIdService clientIds, SystemPlayer
             Slug = await UniqueSlugAsync(organizationName),
             Code = await UniqueCodeAsync(),
             ClientId = await clientIds.GenerateUniqueAsync(),
-            Address = new Address { Line1 = "", City = "" },
+            Address = new Address { Line1 = "", City = "", CountryCode = country.Code },
             Email = email,
             Language = language,
+            CountryCode = country.Code,
+            Currency = currency,
+            TimeZone = country.TimeZone,
             Plan = SubscriptionPlan.Free
         };
 
@@ -93,6 +102,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, SystemPlayer
         db.StaffMemberSet.Add(staff);
         await db.SaveChangesAsync();
         await systemPlayers.EnsureAsync(organization);
+        await geoSeed.EnsureAsync(organization);
         return new LoginResult(user, staff, organization);
     }
 

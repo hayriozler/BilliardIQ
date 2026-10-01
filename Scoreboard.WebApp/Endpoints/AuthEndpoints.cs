@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Scoreboard.WebApp.Security;
 using Scoreboard.WebApp.Services;
@@ -27,12 +28,16 @@ public static class AuthEndpoints
         app.MapPost("/register", async (
             HttpContext context, AuthService auth, Loc loc,
             [FromForm] string organization, [FromForm] string name, [FromForm] string email,
-            [FromForm] string password, [FromForm] string? language) =>
+            [FromForm] string password, [FromForm] string? country, [FromForm] string? currency, [FromForm] string? language) =>
         {
             try
             {
-                var result = await auth.RegisterOrganizationAsync(organization, name, email, password, language);
+                var result = await auth.RegisterOrganizationAsync(organization, name, email, password, country, currency, language);
                 await SignInAsync(context, result);
+                context.Response.Cookies.Append(
+                    CookieRequestCultureProvider.DefaultCookieName,
+                    CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(result.Organization.Language)),
+                    new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true, Path = "/", SameSite = SameSiteMode.Lax });
                 return Results.LocalRedirect("/");
             }
             catch (ArgumentException ex)
@@ -41,6 +46,8 @@ public static class AuthEndpoints
                             $"&organization={Uri.EscapeDataString(organization ?? "")}" +
                             $"&name={Uri.EscapeDataString(name ?? "")}" +
                             $"&email={Uri.EscapeDataString(email ?? "")}" +
+                            $"&country={Uri.EscapeDataString(country ?? "")}" +
+                            $"&currency={Uri.EscapeDataString(currency ?? "")}" +
                             $"&language={Uri.EscapeDataString(language ?? "")}";
                 return Results.Redirect($"/register?{query}");
             }

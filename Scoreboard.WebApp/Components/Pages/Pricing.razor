@@ -102,10 +102,10 @@
                             }
                         </div>
                         <label class="field">@L["Başlangıç"]
-                            <input type="time" @bind="slot.From" />
+                            <TimePicker @bind-Value="slot.From" />
                         </label>
                         <label class="field">@L["Bitiş"]
-                            <input type="time" @bind="slot.To" />
+                            <TimePicker @bind-Value="slot.To" />
                         </label>
                         <label class="field">@L["Saatlik ücret"]
                             <input type="number" step="0.01" min="0" @bind="slot.Rate" />

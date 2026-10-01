@@ -88,24 +88,25 @@ public partial class RemotePullService(
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
-        var clubIds = await MirrorClubsAsync(db, clubs, ct);
-        var playerIds = await MirrorPlayersAsync(db, http, players, ct);
-        await MirrorTeamsAsync(db, teams, clubIds, playerIds, ct);
+        await MirrorClubsAsync(db, clubs, ct);
+        await MirrorTeamsAsync(db, teams, ct);
+        await MirrorPlayersAsync(db, http, players, teams, ct);
 
         await transaction.CommitAsync(ct);
     }
-    private static async Task<Dictionary<int, int>> MirrorClubsAsync(DataContext db, List<RemoteClub> remoteClubs, CancellationToken ct)
-    {
-        var local = await db.ClubSet.ToListAsync(ct);
-        var byRemoteId = local.Where(c => c.RemoteId != null).ToDictionary(c => c.RemoteId!.Value);
 
+    // The local tables are keyed by the server's own ids: rows are inserted with the id the server gave them and removed
+    // when the server no longer lists them.
+    private static async Task MirrorClubsAsync(DataContext db, List<RemoteClub> remoteClubs, CancellationToken ct)
+    {
+        var local = await db.ClubSet.ToDictionaryAsync(c => c.Id, ct);
         foreach (var remote in remoteClubs)
         {
-            if (!byRemoteId.TryGetValue(remote.Id, out var club))
+            if (!local.TryGetValue(remote.Id, out var club))
             {
-                club = new Club { RemoteId = remote.Id };
+                club = new Club { Id = remote.Id };
                 db.ClubSet.Add(club);
-                byRemoteId[remote.Id] = club;
+                local[remote.Id] = club;
             }
 
             club.Name = remote.Name;
@@ -115,47 +116,58 @@ public partial class RemotePullService(
         }
 
         var remoteIds = remoteClubs.Select(c => c.Id).ToHashSet();
-        var gone = local.Where(c => c.RemoteId is not int id || !remoteIds.Contains(id)).ToList();
-        if (gone.Count > 0)
-        {
-            var goneIds = gone.Select(c => c.Id).ToList();
-            foreach (var team in await db.TeamSet.Where(t => t.ClubId != null && goneIds.Contains(t.ClubId.Value)).ToListAsync(ct))
-            {
-                team.ClubId = null;
-            }
-
-            db.ClubSet.RemoveRange(gone);
-        }
-
+        db.ClubSet.RemoveRange(local.Values.Where(c => !remoteIds.Contains(c.Id)));
         await db.SaveChangesAsync(ct);
-        return byRemoteId.Where(kv => remoteIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value.Id);
     }
 
-    /// <returns>Server player id → local player id.</returns>
-    private async Task<Dictionary<int, int>> MirrorPlayersAsync(DataContext db, HttpClient http, List<RemotePlayer> remotePlayers, CancellationToken ct)
+    private static async Task MirrorTeamsAsync(DataContext db, List<RemoteTeam> remoteTeams, CancellationToken ct)
     {
-        var local = await db.PlayerSet.ToListAsync(ct);
-        var byRemoteId = local.Where(p => p.RemoteId != null).ToDictionary(p => p.RemoteId!.Value);
+        var local = await db.TeamSet.ToDictionaryAsync(t => t.Id, ct);
+        foreach (var remote in remoteTeams)
+        {
+            if (!local.TryGetValue(remote.Id, out var team))
+            {
+                team = new Team { Id = remote.Id };
+                db.TeamSet.Add(team);
+                local[remote.Id] = team;
+            }
+
+            team.Name = remote.Name;
+            team.ClubId = remote.ClubId;
+            team.UpdatedAt = remote.UpdatedAt;
+            team.AvatarId = remote.AvatarId;
+        }
+
+        var remoteIds = remoteTeams.Select(t => t.Id).ToHashSet();
+        db.TeamSet.RemoveRange(local.Values.Where(t => !remoteIds.Contains(t.Id)));
+        await db.SaveChangesAsync(ct);
+    }
+
+    private async Task MirrorPlayersAsync(
+        DataContext db, HttpClient http, List<RemotePlayer> remotePlayers, List<RemoteTeam> remoteTeams, CancellationToken ct)
+    {
+        var local = await db.PlayerSet.ToDictionaryAsync(p => p.Id, ct);
+        var remoteIds = remotePlayers.Select(p => p.Id).ToHashSet();
+
+        // The server's own Player 1 / Player 2 replace the local seeds (Id 1 and 2). Whatever pointed at a seed (the board's
+        // selection, results not sent yet) is moved to the system player of the same slot.
+        var serverSlots = remotePlayers
+            .Where(r => r.IsSystem == true && r.SystemSlot is 1 or 2)
+            .ToDictionary(r => r.SystemSlot!.Value, r => r.Id);
+        var replacedSeeds = local.Values.Where(p => p.IsLocalSeed && p.SystemSlot is int slot && serverSlots.ContainsKey(slot)).ToList();
+        foreach (var seed in replacedSeeds.Where(s => !remoteIds.Contains(s.Id)))
+        {
+            db.PlayerSet.Remove(seed);
+            local.Remove(seed.Id);
+        }
 
         foreach (var remote in remotePlayers)
         {
-            if (!byRemoteId.TryGetValue(remote.Id, out var player))
+            if (!local.TryGetValue(remote.Id, out var player))
             {
-                player = remote.IsSystem == true && remote.SystemSlot is 1 or 2
-                    ? local.FirstOrDefault(p => p.Id == remote.SystemSlot && p.RemoteId is null)
-                    : null;
-                if (player is not null)
-                {
-                    player.RemoteId = remote.Id;
-                    byRemoteId[remote.Id] = player;
-                }
-            }
-
-            if (player is null)
-            {
-                player = new Player { RemoteId = remote.Id };
+                player = new Player { Id = remote.Id };
                 db.PlayerSet.Add(player);
-                byRemoteId[remote.Id] = player;
+                local[remote.Id] = player;
             }
 
             var photoChanged = player.UpdatedAt != remote.UpdatedAt;
@@ -163,12 +175,6 @@ public partial class RemotePullService(
             player.Name = remote.Name ?? "";
             player.ShortcutNumber = remote.ShortcutNumber;
             player.AvatarId = remote.AvatarId ?? remote.Id % AvatarGenerator.Count;
-            player.Level = remote.Level;
-            player.Country = remote.BaseCountry;
-            player.City = remote.BaseCity;
-            player.LicenseNo = remote.LicenseNo;
-            player.LicenseValidUntil = remote.LicenseValidUntil;
-            player.AssociationName = remote.AssociationName;
             player.UpdatedAt = remote.UpdatedAt;
             player.IsSystem = remote.IsSystem == true;
             player.SystemSlot = remote.IsSystem == true ? remote.SystemSlot : null;
@@ -176,68 +182,57 @@ public partial class RemotePullService(
             player.PhotoPath = await SyncPhotoAsync(http, remote, player.PhotoPath, photoChanged, ct);
         }
 
-        var remoteIds = remotePlayers.Select(p => p.Id).ToHashSet();
-        var gone = local.Where(p => !p.IsPlaceholder && !p.IsSystem && (p.RemoteId is not int id || !remoteIds.Contains(id))).ToList();
+        var gone = local.Values.Where(p => !remoteIds.Contains(p.Id) && !p.IsLocalSeed).ToList();
         foreach (var player in gone)
         {
             DeletePhoto(player.PhotoPath);
         }
 
         db.PlayerSet.RemoveRange(gone);
-        await db.SaveChangesAsync(ct);
-
-        foreach (var player in gone.Where(p => p.Id > 0))
-        {
-            await db.ScoreboardStateSet.Where(s => s.Player1Id == player.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.Player1Id, 1), ct);
-            await db.ScoreboardStateSet.Where(s => s.Player2Id == player.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.Player2Id, 2), ct);
-        }
-
-        return byRemoteId.Where(kv => remoteIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value.Id);
-    }
-
-    private async Task MirrorTeamsAsync(
-        DataContext db, List<RemoteTeam> remoteTeams, Dictionary<int, int> clubIds, Dictionary<int, int> playerIds, CancellationToken ct)
-    {
-        var local = await db.TeamSet.ToListAsync(ct);
-        var byRemoteId = local.Where(t => t.RemoteId != null).ToDictionary(t => t.RemoteId!.Value);
-
-        foreach (var remote in remoteTeams)
-        {
-            if (!byRemoteId.TryGetValue(remote.Id, out var team))
-            {
-                team = new Team { RemoteId = remote.Id };
-                db.TeamSet.Add(team);
-                byRemoteId[remote.Id] = team;
-            }
-
-            team.Name = remote.Name;
-            team.ClubId = clubIds.TryGetValue(remote.ClubId, out var clubId) ? clubId : null;
-            team.UpdatedAt = remote.UpdatedAt;
-        }
-
-        var remoteIds = remoteTeams.Select(t => t.Id).ToHashSet();
-        db.TeamSet.RemoveRange(local.Where(t => t.RemoteId is not int id || !remoteIds.Contains(id)));
-        await db.SaveChangesAsync(ct);
 
         // Team membership. A player belongs to one team locally; when the server lists several the first wins.
         var teamOfPlayer = new Dictionary<int, int>();
-        foreach (var remote in remoteTeams)
+        foreach (var team in remoteTeams)
         {
-            foreach (var member in remote.Players)
+            foreach (var member in team.Players)
             {
-                if (playerIds.TryGetValue(member.Id, out var localPlayerId))
-                {
-                    teamOfPlayer.TryAdd(localPlayerId, byRemoteId[remote.Id].Id);
-                }
+                teamOfPlayer.TryAdd(member.Id, team.Id);
             }
         }
 
-        foreach (var player in await db.PlayerSet.Where(p => p.Id > 2).ToListAsync(ct))
+        foreach (var player in local.Values.Where(p => !p.IsLocalSeed && remoteIds.Contains(p.Id)))
         {
             player.TeamId = teamOfPlayer.TryGetValue(player.Id, out var teamId) ? teamId : null;
         }
 
         await db.SaveChangesAsync(ct);
+
+        // Re-point the board's selection and unsent results (one statement, so ids that swap places do not chain).
+        var moves = replacedSeeds.ToDictionary(s => s.Id, s => serverSlots[s.SystemSlot!.Value]);
+        if (moves.Count > 0)
+        {
+            var cases = string.Join(" ", moves.Select(m => $"WHEN {m.Key} THEN {m.Value}"));
+            foreach (var (table, column, filter) in new[]
+                     {
+                         ("scoreboard_state", "Player1Id", ""), ("scoreboard_state", "Player2Id", ""),
+                         ("match_result", "Player1Id", " WHERE SyncedAPI = 0"), ("match_result", "Player2Id", " WHERE SyncedAPI = 0")
+                     })
+            {
+#pragma warning disable EF1002 // identifiers are literals and the CASE arms are integer ids from our own tables
+                await db.Database.ExecuteSqlRawAsync($"UPDATE {table} SET {column} = CASE {column} {cases} ELSE {column} END{filter}", ct);
+#pragma warning restore EF1002
+            }
+        }
+
+        // A removed player on the board falls back to Player 1 / Player 2.
+        if (gone.Count > 0)
+        {
+            var goneIds = gone.Select(p => p.Id).ToList();
+            var default1 = serverSlots.GetValueOrDefault(1, 1);
+            var default2 = serverSlots.GetValueOrDefault(2, 2);
+            await db.ScoreboardStateSet.Where(s => goneIds.Contains(s.Player1Id)).ExecuteUpdateAsync(s => s.SetProperty(x => x.Player1Id, default1), ct);
+            await db.ScoreboardStateSet.Where(s => goneIds.Contains(s.Player2Id)).ExecuteUpdateAsync(s => s.SetProperty(x => x.Player2Id, default2), ct);
+        }
     }
 
     /// <summary>Downloads the player's photo when it is new or changed. Best effort: failures keep what is there.</summary>
@@ -302,12 +297,11 @@ public partial class RemotePullService(
     private record RemoteClub(int Id, string Name, string ShortName, string? City, string? PrimaryColor);
 
     private record RemotePlayer(
-        int Id, string? Nickname, string? Name, string? PhotoPath, int? AvatarId, int? Level,
-        string? BaseCountry, string? BaseCity, DateTimeOffset? UpdatedAt, int? ShortcutNumber,
-        string? LicenseNo, DateOnly? LicenseValidUntil, string? AssociationName,
+        int Id, string? Nickname, string? Name, string? PhotoPath, int? AvatarId,
+        DateTimeOffset? UpdatedAt, int? ShortcutNumber,
         bool? IsSystem = null, int? SystemSlot = null);
 
-    private record RemoteTeam(int Id, int ClubId, string Name, DateTimeOffset? UpdatedAt, List<RemoteTeamPlayer> Players);
+    private record RemoteTeam(int Id, int ClubId, string Name, DateTimeOffset? UpdatedAt, List<RemoteTeamPlayer> Players, int? AvatarId = null);
 
     private record RemoteTeamPlayer(int Id, string? Nickname, string? Name);
 

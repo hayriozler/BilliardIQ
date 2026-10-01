@@ -25,6 +25,40 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - webapp-players:/app/wwwroot/Players
+
+  # The table scoreboard (kiosk). It pulls clubs/teams/players from the panel and pushes finished match results back,
+  # identifying itself with the venue's client id (X-Client-Id) and its scoreboard number (X-Table-No) only.
+  # Sync with the panel is optional and off by default (SCOREBOARD_SYNC_ENABLED=false): the two apps do not depend on each
+  # other and only share data when it is configured. Set SCOREBOARD_CLIENT_ID / SCOREBOARD_TABLE_NO in .env (see .env.example): the client id is shown on the panel's
+  # "Bağlantı" page, the table number is the scoreboard number listed there.
+  zeymera.billardiq.scoreboard.client:
+    image: ${DOCKER_REGISTRY-}zeymerabillardiqscoreboardclient
+    build:
+      context: .
+      dockerfile: Scoreboard.Client/Dockerfile
+    # No restart policy here on purpose: Visual Studio stops and restarts this container while it attaches the debugger.
+    # Add `restart: unless-stopped` in a production compose file.
+    # No depends_on: the client serves its own UI and keeps its own SQLite data, so it starts and runs even when the
+    # panel is down. The panel is only contacted in the background to pull clubs/teams/players and push match results.
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+      RemoteSync__Enabled: ${SCOREBOARD_SYNC_ENABLED:-false}
+      RemoteSync__BaseUrl: http://zeymera.billardiq.webapp:8080/api/
+      RemoteSync__ClientId: ${SCOREBOARD_CLIENT_ID:-}
+      RemoteSync__TableNo: ${SCOREBOARD_TABLE_NO:-1}
+      RemoteSync__PollSeconds: ${SCOREBOARD_POLL_SECONDS:-15}
+    ports:
+      - "5288:8080"
+    volumes:
+      - scoreboard-db:/app/wwwroot/Db
+      - scoreboard-photos:/app/wwwroot/PlayerSet
+      - scoreboard-logs:/app/logs
 
 volumes:
   postgres-data:
+  webapp-players:
+  scoreboard-db:
+  scoreboard-photos:
+  scoreboard-logs:

@@ -4,6 +4,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
+      - Api__AllowHttp=true
       - ConnectionStrings__Default=Host=postgres;Port=5432;Database=billardIQ;Username=postgres;Password=postgres
     ports:
       - "8080:8080"
@@ -13,3 +14,9 @@ services:
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+
+  # Visual Studio runs this service in container fast mode (the project folder is mounted over /app). The static web
+  # assets (blazor.web.js, scoped CSS bundle) are only resolved in Development there, the same as the panel above.
+  zeymera.billardiq.scoreboard.client:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development

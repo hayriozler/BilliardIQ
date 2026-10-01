@@ -28,3 +28,6 @@ README.md
 !.git/config
 !.git/packed-refs
 !.git/refs/heads/**
+
+# photos uploaded while running on the host never belong in the image
+**/wwwroot/Players

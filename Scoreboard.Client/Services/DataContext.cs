@@ -21,15 +21,15 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
         modelBuilder.Entity<ScoreboardState>().ToTable("scoreboard_state");
 
         modelBuilder.Entity<Player>().HasKey(p => p.Id);
-        modelBuilder.Entity<Player>().Property(p => p.Id).UseAutoincrement();
+        modelBuilder.Entity<Player>().Property(p => p.Id).ValueGeneratedNever(); // the server's player id
         modelBuilder.Entity<Player>().ToTable("player");
 
         modelBuilder.Entity<Team>().HasKey(t => t.Id);
-        modelBuilder.Entity<Team>().Property(t => t.Id).UseAutoincrement();
+        modelBuilder.Entity<Team>().Property(t => t.Id).ValueGeneratedNever(); // the server's team id
         modelBuilder.Entity<Team>().ToTable("team");
 
         modelBuilder.Entity<Club>().HasKey(c => c.Id);
-        modelBuilder.Entity<Club>().Property(c => c.Id).UseAutoincrement();
+        modelBuilder.Entity<Club>().Property(c => c.Id).ValueGeneratedNever(); // the server's club id
         modelBuilder.Entity<Club>().ToTable("club");
 
         modelBuilder.Entity<MatchResult>().HasKey(m => m.Id);

@@ -38,7 +38,8 @@ public class Organization : BaseEntity
     public Address Address { get; set; } = new();       // owned
     public string TimeZone { get; set; } = "Europe/Istanbul";
     public List<OpeningHours> OpeningHours { get; set; } = []; // owned / JSON
-    public string Language { get; set; } = "tr";       // salon dili; sistem oyuncularının adlarını belirler
+    public string Language { get; set; } = "tr";       // salon dili; ülkeden türetilir, sistem oyuncularının adlarını belirler
+    public string? CountryCode { get; set; }           // kayıtta seçilen ülke (TR, NL, ...); dil, para birimi, saat dilimi ve bölgeler buna göre hazırlanır
     public string Currency { get; set; } = "TRY";
     public int BillingRoundingMinutes { get; set; } = 5;
     public int MinimumBillableMinutes { get; set; } = 30;

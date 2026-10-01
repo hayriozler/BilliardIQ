@@ -27,6 +27,10 @@ builder.Services.AddScoped<TableService>();
 builder.Services.AddScoped<PricingService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<AssociationService>();
+builder.Services.AddScoped<RegionService>();
+builder.Services.AddScoped<CountryService>();
+builder.Services.AddScoped<CityService>();
+builder.Services.AddScoped<GeoSeedService>();
 builder.Services.AddScoped<Scoreboard.WebApp.Services.Tournaments.CupService>();
 builder.Services.AddScoped<StatsService>();
 builder.Services.AddScoped<OrderService>();
@@ -88,6 +92,7 @@ using (var backfillScope = app.Services.CreateScope())
 {
     await backfillScope.ServiceProvider.GetRequiredService<ClientIdService>().EnsureAllAsync();
     await backfillScope.ServiceProvider.GetRequiredService<SystemPlayerService>().EnsureAllAsync();
+    await backfillScope.ServiceProvider.GetRequiredService<GeoSeedService>().EnsureAllAsync();
 }
 
 // Optional seed accounts (Seed:Accounts): each salon + owner is created if its e-mail is not registered yet.
@@ -102,7 +107,7 @@ foreach (var account in app.Configuration.GetSection("Seed:Accounts").GetChildre
     if (await scope.ServiceProvider.GetRequiredService<DataContext>().UserSet.AnyAsync(u => u.Email == normalized)) continue;
 
     await scope.ServiceProvider.GetRequiredService<AuthService>().RegisterOrganizationAsync(
-        account["OrganizationName"] ?? "Demo Salon", account["Name"] ?? "Admin", email, password, account["Language"]);
+        account["OrganizationName"] ?? "Demo Salon", account["Name"] ?? "Admin", email, password, account["Country"], account["Currency"], account["Language"]);
 }
 
 if (app.Environment.IsDevelopment())
@@ -110,7 +115,17 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// The kiosk clients call /api over plain HTTP inside the compose network; Api:AllowHttp keeps them from being redirected.
+if (app.Configuration.GetValue<bool>("Api:AllowHttp"))
+{
+    app.UseWhen(
+        context => !context.Request.Path.StartsWithSegments("/api") && !context.Request.Path.StartsWithSegments("/Players"),
+        branch => branch.UseHttpsRedirection());
+}
+else
+{
+    app.UseHttpsRedirection();
+}
 
 var cultures = Loc.Languages.Select(l => l.Code).ToArray();
 app.UseRequestLocalization(options => options

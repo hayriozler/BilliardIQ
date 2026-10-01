@@ -20,4 +20,8 @@ public record PlayerDto(
     string? AssociationName = null,
     bool IsSystem = false,
     int? SystemSlot = null,
-    int? AssociationId = null);
+    int? AssociationId = null,
+    int? RegionId = null,
+    string? RegionName = null,
+    int? CountryId = null,
+    int? CityId = null);

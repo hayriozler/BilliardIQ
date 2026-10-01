@@ -33,10 +33,10 @@
                 </select>
             </label>
             <label class="field">@L["Başlangıç tarihi"]
-                <input type="date" @bind="_form.StartDate" />
+                <DatePicker Value="_form.StartDate" ValueChanged="d => _form.StartDate = d ?? _form.StartDate" Clearable="false" />
             </label>
             <label class="field">@L["Bitiş tarihi (isteğe bağlı)"]
-                <input type="date" @bind="_form.EndDate" />
+                <DatePicker @bind-Value="_form.EndDate" Min="_form.StartDate" />
             </label>
             <label class="field">@L["Maç başına en fazla el (isteğe bağlı)"]
                 <input type="number" min="1" @bind="_form.MaxInnings" />

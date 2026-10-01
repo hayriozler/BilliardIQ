@@ -16,6 +16,9 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
     public DbSet<Player> PlayerSet => Set<Player>();
     public DbSet<Club> ClubSet => Set<Club>();
     public DbSet<Association> AssociationSet => Set<Association>();
+    public DbSet<Region> RegionSet => Set<Region>();
+    public DbSet<Country> CountrySet => Set<Country>();
+    public DbSet<City> CitySet => Set<City>();
     public DbSet<ClubMembership> ClubMembershipSet => Set<ClubMembership>();
     public DbSet<Team> TeamSet => Set<Team>();
     public DbSet<TeamMember> TeamMemberSet => Set<TeamMember>();
@@ -79,6 +82,7 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
             e.HasIndex(o => o.ClientId).IsUnique().HasFilter("\"ClientId\" IS NOT NULL");
             e.Property(o => o.ClientId).HasMaxLength(20);
             e.Property(o => o.Language).HasMaxLength(5);
+            e.Property(o => o.CountryCode).HasMaxLength(2);
             e.Property(o => o.Name).HasMaxLength(200);
             e.Property(o => o.Slug).HasMaxLength(100);
             e.Property(o => o.Code).HasMaxLength(10);
@@ -171,6 +175,25 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
             e.HasOne(m => m.Table).WithMany().HasForeignKey(m => m.TableId);
         });
 
+        modelBuilder.Entity<Country>(e =>
+        {
+            e.Property(c => c.Name).HasMaxLength(100);
+            e.HasIndex(c => new { c.OrganizationId, c.Name }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        });
+
+        modelBuilder.Entity<City>(e =>
+        {
+            e.Property(c => c.Name).HasMaxLength(100);
+            e.HasOne(c => c.Country).WithMany(c => c.Cities).HasForeignKey(c => c.CountryId);
+            e.HasIndex(c => new { c.OrganizationId, c.CountryId, c.Name }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        });
+
+        modelBuilder.Entity<Region>(e =>
+        {
+            e.Property(r => r.Name).HasMaxLength(150);
+            e.HasIndex(r => new { r.OrganizationId, r.Name }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        });
+
         modelBuilder.Entity<Association>(e =>
         {
             e.Property(a => a.Name).HasMaxLength(150);
@@ -187,6 +210,9 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
                 .IsUnique()
                 .HasFilter("\"SystemSlot\" IS NOT NULL");
             e.HasOne(p => p.Association).WithMany().HasForeignKey(p => p.AssociationId);
+            e.HasOne(p => p.Region).WithMany().HasForeignKey(p => p.RegionId);
+            e.HasOne(p => p.CountryRef).WithMany().HasForeignKey(p => p.CountryId);
+            e.HasOne(p => p.CityRef).WithMany().HasForeignKey(p => p.CityId);
             e.Property(p => p.DisplayName).HasMaxLength(100);
             e.Property(p => p.Email).HasMaxLength(200);
             e.Property(p => p.City).HasMaxLength(100);

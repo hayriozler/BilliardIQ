@@ -1,8 +1,11 @@
 @using Scoreboard.WebApp.Security
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IDisposable
 
 <aside class="sidebar">
     <div class="brand">
-        <span class="brand-mark">🎱</span>
+        <img class="brand-logo" src="images/zeymera-ram.png" alt="Zeymera" />
         <span>BillardIQ</span>
     </div>
 
@@ -14,28 +17,69 @@
             </div>
 
             <nav>
-                <NavLink href="/" Match="NavLinkMatch.All"><span class="nav-ico">📊</span>@L["Masalar"]</NavLink>
-                <NavLink href="/tables"><span class="nav-ico">🟩</span>@L["Masa yönetimi"]</NavLink>
-                <NavLink href="/pricing"><span class="nav-ico">💰</span>@L["Fiyatlandırma"]</NavLink>
-                <NavLink href="/products"><span class="nav-ico">🍹</span>@L["Ürünler"]</NavLink>
+                <div class="nav-group @(IsOpen("ops") ? "" : "collapsed")">
+                    <button type="button" class="nav-toggle" aria-expanded="@IsOpen("ops")" @onclick='() => ToggleAsync("ops")'><span>@L["İşletme"]</span><span class="chev">▾</span></button>
+                    @if (IsOpen("ops"))
+                    {
+                        <div class="nav-items">
+                            <NavLink href="/" Match="NavLinkMatch.All"><span class="nav-ico">📊</span>@L["Masalar"]</NavLink>
+                            <NavLink href="/tables"><span class="nav-ico">🟩</span>@L["Masa yönetimi"]</NavLink>
+                            <NavLink href="/pricing"><span class="nav-ico">💰</span>@L["Fiyatlandırma"]</NavLink>
+                            <NavLink href="/products"><span class="nav-ico">🍹</span>@L["Ürünler"]</NavLink>
+                        </div>
+                    }
+                </div>
 
-                <div class="nav-section">@L["Oyuncular"]</div>
-                <NavLink href="/players"><span class="nav-ico">🧑</span>@L["Oyuncular"]</NavLink>
-                <NavLink href="/associations"><span class="nav-ico">🏅</span>@L["Dernekler"]</NavLink>
-                <NavLink href="/clubs"><span class="nav-ico">🏛️</span>@L["Kulüpler"]</NavLink>
-                <NavLink href="/teams"><span class="nav-ico">👥</span>@L["Takımlar"]</NavLink>
-                <NavLink href="/tournaments"><span class="nav-ico">🏆</span>@L["Turnuvalar"]</NavLink>
+                <div class="nav-group @(IsOpen("people") ? "" : "collapsed")">
+                    <button type="button" class="nav-toggle" aria-expanded="@IsOpen("people")" @onclick='() => ToggleAsync("people")'><span>@L["Oyuncular"]</span><span class="chev">▾</span></button>
+                    @if (IsOpen("people"))
+                    {
+                        <div class="nav-items">
+                            <NavLink href="/players"><span class="nav-ico">🧑</span>@L["Oyuncular"]</NavLink>
+                            <NavLink href="/clubs"><span class="nav-ico">🏛️</span>@L["Kulüpler"]</NavLink>
+                            <NavLink href="/teams"><span class="nav-ico">👥</span>@L["Takımlar"]</NavLink>
+                            <NavLink href="/tournaments"><span class="nav-ico">🏆</span>@L["Turnuvalar"]</NavLink>
+                        </div>
+                    }
+                </div>
 
-                <div class="nav-section">@L["İstatistikler"]</div>
-                <NavLink href="/stats/players"><span class="nav-ico">📈</span>@L["Oyuncu istatistikleri"]</NavLink>
-                <NavLink href="/stats/teams"><span class="nav-ico">🛡️</span>@L["Takım istatistikleri"]</NavLink>
+                <div class="nav-group @(IsOpen("defs") ? "" : "collapsed")">
+                    <button type="button" class="nav-toggle" aria-expanded="@IsOpen("defs")" @onclick='() => ToggleAsync("defs")'><span>@L["Tanımlar"]</span><span class="chev">▾</span></button>
+                    @if (IsOpen("defs"))
+                    {
+                        <div class="nav-items">
+                            <NavLink href="/associations"><span class="nav-ico">🏅</span>@L["Dernekler"]</NavLink>
+                            <NavLink href="/regions"><span class="nav-ico">🗺️</span>@L["Bölgeler"]</NavLink>
+                            <NavLink href="/countries"><span class="nav-ico">🌍</span>@L["Ülkeler"]</NavLink>
+                            <NavLink href="/cities"><span class="nav-ico">🏙️</span>@L["Şehirler"]</NavLink>
+                        </div>
+                    }
+                </div>
 
-                <div class="nav-section">@L["Sistem"]</div>
-                <NavLink href="/devices"><span class="nav-ico">📟</span>@L["Bağlantı"]</NavLink>
-                @if (context.User.IsInRole(nameof(StaffRole.Owner)) || context.User.IsInRole(nameof(StaffRole.Manager)))
-                {
-                    <NavLink href="/staff"><span class="nav-ico">🔑</span>@L["Kullanıcılar"]</NavLink>
-                }
+                <div class="nav-group @(IsOpen("stats") ? "" : "collapsed")">
+                    <button type="button" class="nav-toggle" aria-expanded="@IsOpen("stats")" @onclick='() => ToggleAsync("stats")'><span>@L["İstatistikler"]</span><span class="chev">▾</span></button>
+                    @if (IsOpen("stats"))
+                    {
+                        <div class="nav-items">
+                            <NavLink href="/stats/players"><span class="nav-ico">📈</span>@L["Oyuncu istatistikleri"]</NavLink>
+                            <NavLink href="/stats/teams"><span class="nav-ico">🛡️</span>@L["Takım istatistikleri"]</NavLink>
+                        </div>
+                    }
+                </div>
+
+                <div class="nav-group @(IsOpen("system") ? "" : "collapsed")">
+                    <button type="button" class="nav-toggle" aria-expanded="@IsOpen("system")" @onclick='() => ToggleAsync("system")'><span>@L["Sistem"]</span><span class="chev">▾</span></button>
+                    @if (IsOpen("system"))
+                    {
+                        <div class="nav-items">
+                            <NavLink href="/devices"><span class="nav-ico">📟</span>@L["Bağlantı"]</NavLink>
+                            @if (context.User.IsInRole(nameof(StaffRole.Owner)) || context.User.IsInRole(nameof(StaffRole.Manager)))
+                            {
+                                <NavLink href="/staff"><span class="nav-ico">🔑</span>@L["Kullanıcılar"]</NavLink>
+                            }
+                        </div>
+                    }
+                </div>
             </nav>
 
             <LanguageSwitcher />
@@ -50,3 +94,99 @@
         </Authorized>
     </AuthorizeView>
 </aside>
+
+@code {
+    private const string StorageKey = "billardiq.nav.open";
+
+    // First URL segment of each page -> the menu group it belongs to.
+    private static readonly Dictionary<string, string> GroupOf = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [""] = "ops", ["tables"] = "ops", ["pricing"] = "ops", ["products"] = "ops",
+        ["players"] = "people", ["associations"] = "defs", ["regions"] = "defs", ["countries"] = "defs", ["cities"] = "defs", ["clubs"] = "people", ["teams"] = "people", ["tournaments"] = "people",
+        ["stats"] = "stats",
+        ["devices"] = "system", ["staff"] = "system"
+    };
+
+    private readonly HashSet<string> _open = ["ops"];
+
+    private bool IsOpen(string group) => _open.Contains(group);
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        OpenActiveGroup();
+    }
+
+    /// <summary>The group of the current page is always open; other groups keep the user's choice.</summary>
+    private bool OpenActiveGroup()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+        var end = path.IndexOfAny(['/', '?', '#']);
+        var segment = end < 0 ? path : path[..end];
+        return GroupOf.TryGetValue(segment, out var group) && _open.Add(group);
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        if (OpenActiveGroup())
+        {
+            _ = InvokeAsync(async () =>
+            {
+                StateHasChanged();
+                await SaveAsync();
+            });
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            var saved = await JS.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+            if (!string.IsNullOrEmpty(saved))
+            {
+                _open.Clear();
+                foreach (var key in saved.Split(',', StringSplitOptions.RemoveEmptyEntries).Where(k => GroupOf.ContainsValue(k)))
+                {
+                    _open.Add(key);
+                }
+
+                OpenActiveGroup();
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            // storage unavailable (private window, prerender, blocked): the menu just keeps its default state
+        }
+    }
+
+    private async Task ToggleAsync(string group)
+    {
+        if (!_open.Remove(group))
+        {
+            _open.Add(group);
+        }
+
+        await SaveAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, string.Join(',', _open));
+        }
+        catch (Exception)
+        {
+            // not persisted; nothing else depends on it
+        }
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

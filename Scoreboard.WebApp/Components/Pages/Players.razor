@@ -23,6 +23,19 @@
         <DataAnnotationsValidator />
         <div class="form-grid">
             <label class="field">@L["Takma ad"]<InputText @bind-Value="_form.Nickname" /></label>
+            <label class="field">@L["Bölge"]
+                <InputSelect @bind-Value="_form.RegionId">
+                    <option value="">@L["Seçilmedi"]</option>
+                    @foreach (var region in _regions)
+                    {
+                        <option value="@region.Id">@region.Name</option>
+                    }
+                </InputSelect>
+                @if (_regions.Count == 0)
+                {
+                    <span class="hint"><a href="/regions">@L["Bölge tanımlayın"]</a></span>
+                }
+            </label>
             <label class="field">@L["Bağlı dernek / federasyon"]
                 <InputSelect @bind-Value="_form.AssociationId">
                     <option value="">@L["Seçilmedi"]</option>
@@ -37,7 +50,7 @@
                 }
             </label>
             <label class="field">@L["Lisans no"]<InputText @bind-Value="_form.LicenseNo" maxlength="50" /></label>
-            <label class="field">@L["Lisans geçerlilik tarihi"]<InputDate @bind-Value="_form.LicenseValidUntil" /></label>
+            <label class="field">@L["Lisans geçerlilik tarihi"]<DatePicker @bind-Value="_form.LicenseValidUntil" /></label>
             <label class="field">@L["Kısayol numarası"]<InputNumber @bind-Value="_form.ShortcutNumber" min="1" max="9999" placeholder="@L["isteğe bağlı"]" /></label>
             <label class="field">@L["Ad soyad"]<InputText @bind-Value="_form.Name" /></label>
             <label class="field">@L["E-posta"]<InputText @bind-Value="_form.Email" /></label>
@@ -50,8 +63,32 @@
                     }
                 </InputSelect>
             </label>
-            <label class="field">@L["Ülke"]<InputText @bind-Value="_form.BaseCountry" /></label>
-            <label class="field">@L["Şehir"]<InputText @bind-Value="_form.BaseCity" /></label>
+            <label class="field">@L["Ülke"]
+                <InputSelect Value="_form.CountryId" ValueChanged="(string v) => OnCountryChanged(v)" ValueExpression="() => _form.CountryId">
+                    <option value="">@L["Seçilmedi"]</option>
+                    @foreach (var country in _countries)
+                    {
+                        <option value="@country.Id">@country.Name</option>
+                    }
+                </InputSelect>
+                @if (_countries.Count == 0)
+                {
+                    <span class="hint"><a href="/countries">@L["Ülke tanımlayın"]</a></span>
+                }
+            </label>
+            <label class="field">@L["Şehir"]
+                <InputSelect @bind-Value="_form.CityId" disabled="@(_form.CountryId == "")">
+                    <option value="">@L["Seçilmedi"]</option>
+                    @foreach (var city in CitiesOfSelectedCountry)
+                    {
+                        <option value="@city.Id">@city.Name</option>
+                    }
+                </InputSelect>
+                @if (_form.CountryId != "" && !CitiesOfSelectedCountry.Any())
+                {
+                    <span class="hint"><a href="/cities">@L["Şehir tanımlayın"]</a></span>
+                }
+            </label>
             <label class="field">@L["Fotoğraf"]<InputFile OnChange="OnPhotoSelectedAsync" accept="image/*" /></label>
             <div class="field">@L["Avatar"]<AvatarPicker @bind-Value="_form.AvatarId" /></div>
         </div>
@@ -112,6 +149,10 @@
                                 {
                                     <div class="muted">@player.Association.Name</div>
                                 }
+                                @if (player.Region is not null)
+                                {
+                                    <div class="muted">🗺️ @player.Region.Name</div>
+                                }
                                 @if (!string.IsNullOrEmpty(player.FederationLicenseNo))
                                 {
                                     <div>@player.FederationLicenseNo</div>
@@ -127,7 +168,7 @@
                                         <span class="muted">@Format.Date(validUntil)</span>
                                     </div>
                                 }
-                                else if (string.IsNullOrEmpty(player.FederationLicenseNo) && player.Association is null)
+                                else if (string.IsNullOrEmpty(player.FederationLicenseNo) && player.Association is null && player.Region is null)
                                 {
                                     <span class="muted">—</span>
                                 }
@@ -173,7 +214,20 @@
     private bool _busy;
     private int? _confirmDelete;
     private List<Association> _associations = [];
+    private List<Region> _regions = [];
+    private List<Country> _countries = [];
+    private List<City> _cities = [];
+
+    private IEnumerable<City> CitiesOfSelectedCountry =>
+        int.TryParse(_form.CountryId, out var countryId) ? _cities.Where(c => c.CountryId == countryId) : [];
+
+    private void OnCountryChanged(string value)
+    {
+        _form.CountryId = value;
+        _form.CityId = "";
+    }
     private PlayerFormModel _form = new();
+    private string _homeCountryId = "";
     private string? _pendingPhotoBase64;
     private string? _pendingPhotoExtension;
 
@@ -188,6 +242,15 @@
         var orgId = _tenant!.OrganizationId;
         _players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId));
         _associations = await Db.RunAsync((AssociationService s) => s.ListAsync(orgId));
+        _regions = await Db.RunAsync((RegionService s) => s.ListAsync(orgId));
+        _countries = await Db.RunAsync((CountryService s) => s.ListAsync(orgId));
+        _cities = await Db.RunAsync((CityService s) => s.ListAsync(orgId));
+        var org = await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId));
+        _homeCountryId = _countries.FirstOrDefault(c => CountryCatalog.Find(org.CountryCode)?.HasName(c.Name) == true)?.Id.ToString() ?? "";
+        if (_form.Id == 0 && _form.CountryId == "")
+        {
+            _form.CountryId = _homeCountryId;
+        }
     }
 
     private static string LevelName(Level level) => level switch
@@ -215,6 +278,9 @@
             AvatarId = player.AvatarId,
             LicenseNo = player.FederationLicenseNo ?? string.Empty,
             AssociationId = player.AssociationId?.ToString() ?? string.Empty,
+            RegionId = player.RegionId?.ToString() ?? string.Empty,
+            CountryId = player.CountryId?.ToString() ?? string.Empty,
+            CityId = player.CityId?.ToString() ?? string.Empty,
             LicenseValidUntil = player.LicenseValidUntil,
             Name = $"{player.FirstName} {player.LastName}".Trim(),
             Email = player.Email ?? string.Empty,
@@ -228,7 +294,7 @@
 
     private void ResetForm()
     {
-        _form = new PlayerFormModel();
+        _form = new PlayerFormModel { CountryId = _homeCountryId };
         _pendingPhotoBase64 = null;
         _pendingPhotoExtension = null;
     }
@@ -253,7 +319,10 @@
                 _tenant!.OrganizationId, _form.Id, _form.Nickname, _form.Name, _form.AvatarId,
                 _form.Email, _form.Level, _form.BaseCountry, _form.BaseCity,
                 _pendingPhotoBase64, _pendingPhotoExtension, _form.ShortcutNumber, _form.LicenseNo, _form.LicenseValidUntil,
-                int.TryParse(_form.AssociationId, out var associationId) ? associationId : null));
+                int.TryParse(_form.AssociationId, out var associationId) ? associationId : null,
+                int.TryParse(_form.RegionId, out var regionId) ? regionId : null,
+                int.TryParse(_form.CountryId, out var countryId) ? countryId : null,
+                int.TryParse(_form.CityId, out var cityId) ? cityId : null));
             ResetForm();
         }
         catch (Exception ex) when (ex is ArgumentException or IOException)
@@ -297,6 +366,12 @@
         public string LicenseNo { get; set; } = string.Empty;
 
         public string AssociationId { get; set; } = string.Empty;
+
+        public string RegionId { get; set; } = string.Empty;
+
+        public string CountryId { get; set; } = string.Empty;
+
+        public string CityId { get; set; } = string.Empty;
 
         public DateOnly? LicenseValidUntil { get; set; }
 

@@ -11,7 +11,7 @@ public static class Format
 
     public static string Money(decimal amount, string currency = "TRY")
     {
-        var symbol = currency switch { "TRY" => "₺", "EUR" => "€", "USD" => "$", _ => currency };
+        var symbol = currency switch { "TRY" => "₺", "EUR" => "€", "USD" => "$", "GBP" => "£", _ => currency };
         return $"{amount.ToString("N2", Culture)} {symbol}";
     }
 

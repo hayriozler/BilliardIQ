@@ -1,0 +1,116 @@
+@using System.Globalization
+
+<div class="dp">
+    <button type="button" class="dp-input" disabled="@Disabled" @onclick="Toggle">
+        <span class="@(Value is null ? "dp-placeholder" : "")">@(Value is { } chosen ? Format.Date(chosen) : (Placeholder ?? L["Tarih seçin"]))</span>
+        <span class="dp-ico" aria-hidden="true">📅</span>
+    </button>
+
+    @if (_open)
+    {
+        <div class="dp-backdrop" @onclick="Close"></div>
+        <div class="dp-pop">
+            <div class="dp-head">
+                <button type="button" class="dp-nav" @onclick="() => Shift(-12)" title="-1">«</button>
+                <button type="button" class="dp-nav" @onclick="() => Shift(-1)" title="-1">‹</button>
+                <strong>@MonthTitle</strong>
+                <button type="button" class="dp-nav" @onclick="() => Shift(1)" title="+1">›</button>
+                <button type="button" class="dp-nav" @onclick="() => Shift(12)" title="+1">»</button>
+            </div>
+            <div class="dp-grid dp-week">
+                @foreach (var day in WeekOrder)
+                {
+                    <span>@Format.Day(day)</span>
+                }
+            </div>
+            <div class="dp-grid">
+                @for (var i = 0; i < LeadingBlanks; i++)
+                {
+                    <span></span>
+                }
+                @for (var d = 1; d <= DateTime.DaysInMonth(_view.Year, _view.Month); d++)
+                {
+                    var date = new DateOnly(_view.Year, _view.Month, d);
+                    var css = "dp-day" + (date == Value ? " selected" : "") + (date == Today ? " today" : "");
+                    <button type="button" class="@css" disabled="@IsOutOfRange(date)" @onclick="() => Pick(date)">@d</button>
+                }
+            </div>
+            <div class="dp-foot">
+                <button type="button" class="small ghost" @onclick="() => Pick(Today)">@L["Bugün"]</button>
+                @if (Clearable && Value is not null)
+                {
+                    <button type="button" class="small ghost" @onclick="ClearAsync">@L["Temizle"]</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly DayOfWeek[] WeekOrder =
+    [
+        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday,
+        DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday
+    ];
+
+    private bool _open;
+    private DateOnly _view = DateOnly.FromDateTime(DateTime.Today);
+
+    [Parameter] public DateOnly? Value { get; set; }
+
+    [Parameter] public EventCallback<DateOnly?> ValueChanged { get; set; }
+
+    /// <summary>Shows a "clear" button; turn off for required dates.</summary>
+    [Parameter] public bool Clearable { get; set; } = true;
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public string? Placeholder { get; set; }
+
+    [Parameter] public DateOnly? Min { get; set; }
+
+    [Parameter] public DateOnly? Max { get; set; }
+
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+
+    private int LeadingBlanks => ((int)new DateOnly(_view.Year, _view.Month, 1).DayOfWeek + 6) % 7; // Monday first
+
+    private string MonthTitle
+    {
+        get
+        {
+            var text = new DateTime(_view.Year, _view.Month, 1).ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+            return text.Length == 0 ? text : char.ToUpper(text[0], CultureInfo.CurrentCulture) + text[1..];
+        }
+    }
+
+    private bool IsOutOfRange(DateOnly date) => (Min is { } min && date < min) || (Max is { } max && date > max);
+
+    private void Toggle()
+    {
+        _open = !_open;
+        if (_open)
+        {
+            var anchor = Value ?? Today;
+            _view = new DateOnly(anchor.Year, anchor.Month, 1);
+        }
+    }
+
+    private void Close() => _open = false;
+
+    private void Shift(int months) => _view = _view.AddMonths(months);
+
+    private async Task Pick(DateOnly date)
+    {
+        _open = false;
+        Value = date;
+        await ValueChanged.InvokeAsync(date);
+    }
+
+    private async Task ClearAsync()
+    {
+        _open = false;
+        Value = null;
+        await ValueChanged.InvokeAsync(null);
+    }
+}

@@ -14,4 +14,7 @@ public record UpsertPlayerRequest(
     int? ShortcutNumber = null,
     string? LicenseNo = null,
     DateOnly? LicenseValidUntil = null,
-    int? AssociationId = null);
+    int? AssociationId = null,
+    int? RegionId = null,
+    int? CountryId = null,
+    int? CityId = null);

@@ -76,7 +76,7 @@ public partial class SystemPowerService(IDbContextFactory<DataContext> dbFactory
 
         await CheckpointDatabaseAsync(label);
 
-        if (!OperatingSystem.IsLinux())
+        if (!OperatingSystem.IsLinux() || Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
         {
             LogPowerActionSkipped(label);
             return;

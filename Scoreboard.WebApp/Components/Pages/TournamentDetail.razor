@@ -139,20 +139,91 @@
                 }
                 else
                 {
-                    <div class="team-players">
-                        @foreach (var player in _available)
-                        {
-                            var playerId = player.Id;
-                            <label class="player-toggle">
-                                <input type="checkbox" checked="@_selectedPlayers.Contains(playerId)" @onchange="e => TogglePlayer(playerId, (bool)e.Value!)" />
-                                @player.DisplayName
-                                @if (player.DefaultTargetPoints is { } target)
+                    <div class="form-row">
+                        <label class="field">@L["Oyuncu ara"]
+                            <input type="text" @bind="_pickSearch" @bind:event="oninput" />
+                        </label>
+                        <label class="field">@L["Takım"]
+                            <select @bind="_pickTeam">
+                                <option value="">@L["Tümü"]</option>
+                                @foreach (var option in _available.SelectMany(p => p.TeamMemberships).Select(m => m.Team).DistinctBy(t => t.Id).OrderBy(t => t.Name))
                                 {
-                                    <span class="muted">(@target)</span>
+                                    <option value="@option.Id">@option.Name</option>
                                 }
-                            </label>
-                        }
+                            </select>
+                        </label>
+                        <label class="field">@L["Dernek"]
+                            <select @bind="_pickAssociation">
+                                <option value="">@L["Tümü"]</option>
+                                @foreach (var option in _available.Where(p => p.Association != null).Select(p => p.Association!).DistinctBy(a => a.Id).OrderBy(a => a.Name))
+                                {
+                                    <option value="@option.Id">@option.Name</option>
+                                }
+                            </select>
+                        </label>
+                        <label class="field">@L["Bölge"]
+                            <select @bind="_pickRegion">
+                                <option value="">@L["Tümü"]</option>
+                                @foreach (var option in _available.Where(p => p.Region != null).Select(p => p.Region!).DistinctBy(r => r.Id).OrderBy(r => r.Name))
+                                {
+                                    <option value="@option.Id">@option.Name</option>
+                                }
+                            </select>
+                        </label>
+                        <label class="field">@L["Şehir"]
+                            <select @bind="_pickCity">
+                                <option value="">@L["Tümü"]</option>
+                                @foreach (var option in _available.Where(p => p.CityRef != null).Select(p => p.CityRef!).DistinctBy(c => c.Id).OrderBy(c => c.Name))
+                                {
+                                    <option value="@option.Id">@option.Name</option>
+                                }
+                            </select>
+                        </label>
                     </div>
+
+                    var filtered = FilteredPlayers;
+                    var shown = filtered.Take(PickerLimit).ToList();
+                    <div class="picker-bar">
+                        <span class="muted">@L["Listelenen: {0} / {1}", filtered.Count, _available.Count] • @L["Seçili: {0}", _selectedPlayers.Count]</span>
+                        <div class="row-actions">
+                            <button type="button" class="small" @onclick="SelectFiltered">@L["Filtredekilerin hepsini seç"]</button>
+                            <button type="button" class="small ghost" disabled="@(_selectedPlayers.Count == 0)" @onclick="() => _selectedPlayers.Clear()">@L["Seçimi temizle"]</button>
+                        </div>
+                    </div>
+
+                    @if (shown.Count == 0)
+                    {
+                        <div class="empty">@L["Filtreye uyan oyuncu yok."]</div>
+                    }
+                    else
+                    {
+                        <div class="picker-list">
+                            <table>
+                                <tbody>
+                                    @foreach (var player in shown)
+                                    {
+                                        var playerId = player.Id;
+                                        <tr class="@(_selectedPlayers.Contains(playerId) ? "picked" : "")" @onclick="() => TogglePlayer(playerId, !_selectedPlayers.Contains(playerId))">
+                                            <td class="pick-check"><input type="checkbox" checked="@_selectedPlayers.Contains(playerId)" @onclick:stopPropagation="true" @onchange="e => TogglePlayer(playerId, (bool)e.Value!)" /></td>
+                                            <td><PlayerAvatar Player="player" Size="28" /></td>
+                                            <td>
+                                                <strong>@(player.Nickname ?? player.DisplayName)</strong>
+                                                <div class="muted">@($"{player.FirstName} {player.LastName}".Trim())</div>
+                                            </td>
+                                            <td class="muted">
+                                                @string.Join(" • ", new[] { player.Association?.Name, player.Region?.Name, player.CityRef?.Name ?? player.City }.Where(x => !string.IsNullOrWhiteSpace(x)))
+                                            </td>
+                                            <td class="num">@(player.DefaultTargetPoints is { } target ? target.ToString() : "—")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (filtered.Count > shown.Count)
+                        {
+                            <p class="hint">@L["İlk {0} oyuncu gösteriliyor; aramayı veya filtreleri daraltın.", PickerLimit]</p>
+                        }
+                    }
                     <div class="form-actions">
                         <button class="primary" disabled="@(_busy || _selectedPlayers.Count == 0)" @onclick="AddParticipantsAsync">@L["Seçilenleri ekle"] (@_selectedPlayers.Count)</button>
                     </div>
@@ -481,6 +552,24 @@ else
     private Dictionary<int, string> _names = [];
     private Dictionary<int, ParticipantEdit> _pedit = [];
     private HashSet<int> _selectedPlayers = [];
+    private string _pickSearch = "", _pickTeam = "", _pickAssociation = "", _pickRegion = "", _pickCity = "";
+    private const int PickerLimit = 300;
+
+    private List<Player> FilteredPlayers => _available.Where(p =>
+        (string.IsNullOrWhiteSpace(_pickSearch) ||
+         $"{p.Nickname} {p.DisplayName} {p.FirstName} {p.LastName}".Contains(_pickSearch.Trim(), StringComparison.CurrentCultureIgnoreCase)) &&
+        (_pickTeam == "" || p.TeamMemberships.Any(m => m.TeamId.ToString() == _pickTeam)) &&
+        (_pickAssociation == "" || p.AssociationId.ToString() == _pickAssociation) &&
+        (_pickRegion == "" || p.RegionId.ToString() == _pickRegion) &&
+        (_pickCity == "" || p.CityId.ToString() == _pickCity)).ToList();
+
+    private void SelectFiltered()
+    {
+        foreach (var player in FilteredPlayers)
+        {
+            _selectedPlayers.Add(player.Id);
+        }
+    }
     private List<RuleRow> _rules = [];
     private List<int> _uncovered = [];
     private List<int> _overlapping = [];

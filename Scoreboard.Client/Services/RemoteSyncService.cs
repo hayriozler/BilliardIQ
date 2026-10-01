@@ -1,15 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using System.Net.Http.Json;
 
 namespace Scoreboard.Client.Services;
 
-/// <summary>
-/// Sends finished match results (and their score distribution statistics) to the server API.
-/// Nothing else is pushed: clubs, players and teams are only pulled (<see cref="RemotePullService"/>).
-/// Requests carry no credentials, only the organization's client id and this table's number in the
-/// <c>X-Client-Id</c> and <c>X-Table-No</c> headers.
-/// </summary>
 public partial class RemoteSyncService(
     IDbContextFactory<DataContext> dbFactory,
     IHttpClientFactory httpClientFactory,
@@ -17,10 +10,9 @@ public partial class RemoteSyncService(
     SystemPowerService systemPower,
     ILogger<RemoteSyncService> logger) : BackgroundService
 {
-    private const int ScoreDistributionBucketMinutes = 5;
+    private const int _scoreDistributionBucketMinutes = 5;
 
-    /// <summary>Most unsent matches kept locally while the server cannot be reached (or sync is off).</summary>
-    private const int MaxUnsentMatches = 200;
+    private const int _maxUnsentMatches = 200;
 
     private readonly RemoteSyncOptions _options = options.Value;
 
@@ -49,7 +41,6 @@ public partial class RemoteSyncService(
                 http.DefaultRequestHeaders.Add("X-Table-No", _options.TableNo.ToString());
             }
 
-            // Without a working server connection the loop still runs, only to keep the local match backlog bounded.
             var interval = TimeSpan.FromSeconds(Math.Max(5, http is null ? 300 : _options.PollSeconds));
             using var timer = new PeriodicTimer(interval);
             do
@@ -95,11 +86,12 @@ public partial class RemoteSyncService(
         var pending = await db.MatchResultSet.Where(m => !m.SyncedAPI).OrderBy(m => m.Id).ToListAsync(ct);
         foreach (var match in pending)
         {
-            // The server knows players by its own ids; local ids only mean something on this machine.
             var playerIds = new[] { match.Player1Id, match.Player2Id };
-            var remoteIds = await db.PlayerSet
-                .Where(p => playerIds.Contains(p.Id))
-                .ToDictionaryAsync(p => p.Id, p => p.RemoteId, ct);
+            var seedIds = await db.PlayerSet
+                .Where(p => playerIds.Contains(p.Id) && p.IsSystem && p.UpdatedAt == null)
+                .Select(p => p.Id)
+                .ToListAsync(ct);
+            int? ServerId(int id) => id > 0 && !seedIds.Contains(id) ? id : null;
 
             var scoreDistribution = await db.MatchScoreStatSet
                 .Where(s => s.MatchResultId == match.Id)
@@ -109,12 +101,12 @@ public partial class RemoteSyncService(
 
             var payload = new
             {
-                player1Id = remoteIds.GetValueOrDefault(match.Player1Id),
+                player1Id = ServerId(match.Player1Id),
                 player1Name = match.Player1Name,
                 player1Score = match.Player1Score,
                 player1Avg = match.Player1Avg,
                 player1HighRun = match.Player1HighRun,
-                player2Id = remoteIds.GetValueOrDefault(match.Player2Id),
+                player2Id = ServerId(match.Player2Id),
                 player2Name = match.Player2Name,
                 player2Score = match.Player2Score,
                 player2Avg = match.Player2Avg,
@@ -125,7 +117,7 @@ public partial class RemoteSyncService(
                 playedAt = match.PlayedAt,
                 startedAt = match.StartedAt,
                 endedAt = match.EndedAt,
-                scoreDistributionBucketMinutes = ScoreDistributionBucketMinutes,
+                scoreDistributionBucketMinutes = _scoreDistributionBucketMinutes,
                 scoreDistribution
             };
 
@@ -145,19 +137,15 @@ public partial class RemoteSyncService(
         }
     }
 
-    /// <summary>
-    /// A match is dropped locally as soon as the server has it. Unsent matches are capped at
-    /// <see cref="MaxUnsentMatches"/> (oldest dropped first) so the database cannot grow forever.
-    /// </summary>
     private async Task CleanupMatchesAsync(DataContext db, CancellationToken ct)
     {
         var doomedIds = await db.MatchResultSet.Where(m => m.SyncedAPI).Select(m => m.Id).ToListAsync(ct);
 
         var unsentCount = await db.MatchResultSet.CountAsync(m => !m.SyncedAPI, ct);
-        if (unsentCount > MaxUnsentMatches)
+        if (unsentCount > _maxUnsentMatches)
         {
             var excess = await db.MatchResultSet.Where(m => !m.SyncedAPI)
-                .OrderBy(m => m.Id).Take(unsentCount - MaxUnsentMatches).Select(m => m.Id).ToListAsync(ct);
+                .OrderBy(m => m.Id).Take(unsentCount - _maxUnsentMatches).Select(m => m.Id).ToListAsync(ct);
             LogDroppedUnsentMatches(excess.Count);
             doomedIds.AddRange(excess);
         }

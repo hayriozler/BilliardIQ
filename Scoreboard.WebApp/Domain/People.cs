@@ -9,6 +9,36 @@ public class Association : BaseEntity, ITenantScoped
     public Organization Organization { get; set; } = default!;
 }
 
+/// <summary>Salonun tanımladığı ülke. Oyuncular listeden seçer.</summary>
+public class Country : BaseEntity, ITenantScoped
+{
+    public int OrganizationId { get; set; }
+    public string Name { get; set; } = default!;
+
+    public Organization Organization { get; set; } = default!;
+    public ICollection<City> Cities { get; set; } = [];
+}
+
+/// <summary>Salonun tanımladığı şehir; bir ülkeye bağlıdır.</summary>
+public class City : BaseEntity, ITenantScoped
+{
+    public int OrganizationId { get; set; }
+    public int CountryId { get; set; }
+    public string Name { get; set; } = default!;
+
+    public Organization Organization { get; set; } = default!;
+    public Country Country { get; set; } = default!;
+}
+
+/// <summary>Salonun tanımladığı bölge (ör. federasyon bölgesi). Oyuncular listeden seçer.</summary>
+public class Region : BaseEntity, ITenantScoped
+{
+    public int OrganizationId { get; set; }
+    public string Name { get; set; } = default!;
+
+    public Organization Organization { get; set; } = default!;
+}
+
 /// <summary>Oyuncu profili. Global — salonlar arası taşınır.</summary>
 public class Player : BaseEntity
 {
@@ -26,6 +56,9 @@ public class Player : BaseEntity
     public string? FederationLicenseNo { get; set; } // TBF lisans no
     public DateOnly? LicenseValidUntil { get; set; } // lisans geçerlilik bitiş tarihi
     public int? AssociationId { get; set; }          // bağlı dernek / federasyon (salonun tanımladığı listeden)
+    public int? RegionId { get; set; }               // bağlı bölge (salonun tanımladığı listeden)
+    public int? CountryId { get; set; }              // ülke (listeden); Nationality adını taşır
+    public int? CityId { get; set; }                 // şehir (listeden); City adını taşır
     public bool IsSystem { get; set; }               // salon açılırken otomatik oluşan 'Oyuncu 1/2'; değiştirilemez, silinemez
     public int? SystemSlot { get; set; }             // 1 veya 2 (yalnızca sistem oyuncularında)
     public string? UmbPlayerId { get; set; }
@@ -40,6 +73,9 @@ public class Player : BaseEntity
 
     public User? User { get; set; }
     public Association? Association { get; set; }
+    public Region? Region { get; set; }
+    public Country? CountryRef { get; set; }
+    public City? CityRef { get; set; }
     public ICollection<ClubMembership> ClubMemberships { get; set; } = [];
     public ICollection<TeamMember> TeamMemberships { get; set; } = [];
     public ICollection<CustomerMembership> CustomerMemberships { get; set; } = [];
