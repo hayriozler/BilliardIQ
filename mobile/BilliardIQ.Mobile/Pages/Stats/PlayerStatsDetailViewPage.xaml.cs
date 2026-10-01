@@ -1,6 +1,6 @@
-using BillardIQ.Mobile.PageModels.Stats;
+using BilliardIQ.Mobile.PageModels.Stats;
 
-namespace BillardIQ.Mobile.Pages.Stats;
+namespace BilliardIQ.Mobile.Pages.Stats;
 
 public partial class PlayerStatsDetailViewPage : BasePage
 {

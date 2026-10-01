@@ -105,21 +105,22 @@ jobs:
 
       - name: Sync files
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "mkdir -p /opt/billardiq"
-          scp -o StrictHostKeyChecking=no docker-compose.prod.yml ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/opt/billardiq/docker-compose.yml
-          scp -o StrictHostKeyChecking=no .env ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/opt/billardiq/.env
+          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "mkdir -p /opt/billiardiq"
+          scp -o StrictHostKeyChecking=no docker-compose.prod.yml ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/opt/billiardiq/docker-compose.yml
+          scp -o StrictHostKeyChecking=no .env ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/opt/billiardiq/.env
 
       - name: Deploy container
         run: |
             ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} << 'SSH'
               set -e
-              cd /opt/billardiq
+              cd /opt/billiardiq
 
               DOCKER_CONFIG=$(mktemp -d)
               export DOCKER_CONFIG
               echo "${{ secrets.GITHUB_TOKEN }}" | \
                 docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+              docker rm -f billardiq-webapp 2>/dev/null || true
               docker compose pull webapp
               docker compose up -d --no-deps webapp
 
@@ -128,10 +129,10 @@ jobs:
 
               echo "Waiting for the webapp to start..."
               sleep 15
-              state=$(docker inspect --format='{{.State.Status}}' billardiq-webapp)
-              echo "billardiq-webapp: $state"
+              state=$(docker inspect --format='{{.State.Status}}' billiardiq-webapp)
+              echo "billiardiq-webapp: $state"
               if [ "$state" != "running" ]; then
-                docker logs --tail 80 billardiq-webapp
+                docker logs --tail 80 billiardiq-webapp
                 exit 1
               fi
 

@@ -1,6 +1,6 @@
-using BillardIQ.Mobile.PageModels.Admin;
+using BilliardIQ.Mobile.PageModels.Admin;
 
-namespace BillardIQ.Mobile.Pages.Admin;
+namespace BilliardIQ.Mobile.Pages.Admin;
 
 public partial class TeamListViewPage : BasePage
 {

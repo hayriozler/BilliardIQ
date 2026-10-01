@@ -1,7 +1,7 @@
-﻿using BillardIQ.Mobile.Utilities;
+﻿using BilliardIQ.Mobile.Utilities;
 using System.ComponentModel.DataAnnotations;
 
-namespace BillardIQ.Mobile.Models;
+namespace BilliardIQ.Mobile.Models;
 
 
 public class Game

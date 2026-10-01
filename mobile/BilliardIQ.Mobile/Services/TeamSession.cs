@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
-using BillardIQ.Mobile.Models;
+using BilliardIQ.Mobile.Models;
 
-namespace BillardIQ.Mobile.Services;
+namespace BilliardIQ.Mobile.Services;
 
 public class TeamSession
 {

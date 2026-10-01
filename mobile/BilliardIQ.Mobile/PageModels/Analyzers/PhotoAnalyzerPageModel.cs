@@ -2,7 +2,7 @@ using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace BillardIQ.Mobile.PageModels.Analyzers;
+namespace BilliardIQ.Mobile.PageModels.Analyzers;
 
 public partial class PhotoAnalyzerPageModel : BasePageModel
 {

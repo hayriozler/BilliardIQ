@@ -1,13 +1,13 @@
-using BillardIQ.Mobile.Data;
-using BillardIQ.Mobile.Models;
-using BillardIQ.Mobile.Pages.Players;
-using BillardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Data;
+using BilliardIQ.Mobile.Models;
+using BilliardIQ.Mobile.Pages.Players;
+using BilliardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 
-namespace BillardIQ.Mobile.PageModels.PlayerPageModels;
+namespace BilliardIQ.Mobile.PageModels.PlayerPageModels;
 
 public partial class PlayerProfilePageModel(PlayerRepository PlayerRepo, LocationRepository LocationRepo, IServiceProvider Services) : BasePageModel
 {

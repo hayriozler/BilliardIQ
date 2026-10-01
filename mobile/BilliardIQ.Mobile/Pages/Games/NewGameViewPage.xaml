@@ -2,12 +2,12 @@
 <basePages:BasePage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:basePages="clr-namespace:BillardIQ.Mobile.Pages.BasePages"
-    xmlns:images="clr-namespace:BillardIQ.Mobile.Models"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:images="clr-namespace:BilliardIQ.Mobile.Models"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-    xmlns:pagemodels="clr-namespace:BillardIQ.Mobile.PageModels.GamePageModels"
+    xmlns:pagemodels="clr-namespace:BilliardIQ.Mobile.PageModels.GamePageModels"
     x:DataType="pagemodels:NewGamePageModel"
-    x:Class="BillardIQ.Mobile.Pages.Games.NewGameViewPage"
+    x:Class="BilliardIQ.Mobile.Pages.Games.NewGameViewPage"
     x:Name="NewGame"
     Title="{Binding PageTitle}">
 

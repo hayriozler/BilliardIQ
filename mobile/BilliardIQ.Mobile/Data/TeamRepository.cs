@@ -1,9 +1,9 @@
-using BillardIQ.Mobile.Models;
-using BillardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Models;
+using BilliardIQ.Mobile.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
-namespace BillardIQ.Mobile.Data;
+namespace BilliardIQ.Mobile.Data;
 
 // See ScoreboardPlayerRepository for why RemoteId is read as a plain int (0 = none) here.
 internal class TeamRow

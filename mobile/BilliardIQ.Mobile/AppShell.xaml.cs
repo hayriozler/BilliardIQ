@@ -1,8 +1,8 @@
-﻿using BillardIQ.Mobile.Pages.Debug;
-using BillardIQ.Mobile.PageModels.Debug;
+﻿using BilliardIQ.Mobile.Pages.Debug;
+using BilliardIQ.Mobile.PageModels.Debug;
 using CommunityToolkit.Maui.Alerts;
 
-namespace BillardIQ.Mobile;
+namespace BilliardIQ.Mobile;
 
 public partial class AppShell : Shell
 {

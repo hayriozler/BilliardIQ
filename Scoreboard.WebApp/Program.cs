@@ -56,7 +56,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     .AddCookie(options =>
     {
         options.LoginPath = "/login";
-        options.Cookie.Name = "BillardIQAuth";
+        options.Cookie.Name = "BilliardIQAuth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
@@ -90,7 +90,7 @@ if (!string.IsNullOrWhiteSpace(keysPath))
 {
     builder.Services.AddDataProtection()
         .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
-        .SetApplicationName("BillardIQ");
+        .SetApplicationName("BilliardIQ");
 }
 
 var app = builder.Build();

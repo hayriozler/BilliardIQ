@@ -1,7 +1,7 @@
 services:
   webapp:
     image: ghcr.io/${GITHUB_REPOSITORY}/webapp:${IMAGE_TAG}
-    container_name: billardiq-webapp
+    container_name: billiardiq-webapp
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Production

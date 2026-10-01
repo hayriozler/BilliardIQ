@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 
-namespace BillardIQ.Mobile.Services;
+namespace BilliardIQ.Mobile.Services;
 
 
 internal sealed class DatabaseMigrationService(DatabaseExecutor dbExecutor)

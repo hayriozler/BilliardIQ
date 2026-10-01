@@ -1,6 +1,6 @@
-using BillardIQ.Mobile.Utilities;
+using BilliardIQ.Mobile.Utilities;
 
-namespace BillardIQ.Mobile.Services;
+namespace BilliardIQ.Mobile.Services;
 
 public class ModalErrorHandler : IErrorHandler
 {

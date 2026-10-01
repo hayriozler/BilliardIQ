@@ -1,4 +1,4 @@
-namespace BillardIQ.Mobile.Utilities;
+namespace BilliardIQ.Mobile.Utilities;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
 public sealed class DbFieldNameAttribute(string fieldName) : Attribute

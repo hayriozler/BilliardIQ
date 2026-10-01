@@ -1,9 +1,9 @@
-using BillardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Plugin.Maui.OCR;
 
-namespace BillardIQ.Mobile.PageModels.Debug;
+namespace BilliardIQ.Mobile.PageModels.Debug;
 
 public partial class DebugOcrPageModel(
     IOcrService rawOcr,

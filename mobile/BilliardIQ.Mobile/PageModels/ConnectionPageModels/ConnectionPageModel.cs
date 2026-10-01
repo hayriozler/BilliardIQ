@@ -1,9 +1,9 @@
-using BillardIQ.Mobile.Models;
-using BillardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Models;
+using BilliardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace BillardIQ.Mobile.PageModels.ConnectionPageModels;
+namespace BilliardIQ.Mobile.PageModels.ConnectionPageModels;
 
 public partial class ConnectionPageModel : BasePageModel, IDisposable
 {

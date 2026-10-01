@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 
-namespace BillardIQ.Mobile.Data;
+namespace BilliardIQ.Mobile.Data;
 
 public abstract class BaseRepo
 {
