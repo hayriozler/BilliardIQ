@@ -1,0 +1,14 @@
+{
+  "Bölge": "Region",
+  "Bölgeler": "Regions",
+  "Bölge tanımlayın": "Define a region",
+  "Oyuncuların bağlı olduğu bölgeleri bir kez tanımlayın; oyuncu formunda listeden seçilir.": "Define the regions your players belong to once; they are picked from a list in the player form.",
+  "Yeni bölge": "New region",
+  "Bölgeyi düzenle": "Edit region",
+  "Henüz bölge yok.": "No regions yet.",
+  "Bölge adı gerekli.": "Region name is required.",
+  "Bölge adı en fazla 150 karakter olabilir.": "Region name can be at most 150 characters.",
+  "Bölge bulunamadı.": "Region not found.",
+  "Bu isimde bir bölge zaten var.": "A region with this name already exists.",
+  "Oyuncusu olan bölge silinemez. Önce oyuncuların bölgesini değiştirin.": "A region with players cannot be deleted. Change the players' region first."
+}

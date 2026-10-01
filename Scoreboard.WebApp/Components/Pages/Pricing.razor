@@ -1,0 +1,272 @@
+@page "/pricing"
+@attribute [Authorize]
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>@L["Fiyatlandırma"] • BillardIQ</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>@L["Fiyatlandırma"]</h1>
+        <div class="subtitle">@L["Saatlik ücretleri ve saat/gün bazlı tarifeleri tanımlayın. Masa açıldığı anki fiyat oturuma kaydedilir."]</div>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert error">@_error</div>
+}
+@if (_message is not null)
+{
+    <div class="alert success">@_message</div>
+}
+
+@if (_tenant is { CanManage: false })
+{
+    <div class="alert info">@L["Fiyatları yalnızca sahip veya yönetici düzenleyebilir."]</div>
+}
+
+<div class="split">
+    <div>
+        @foreach (var rule in _rules)
+        {
+            <div class="team-card">
+                <div class="team-header">
+                    <div>
+                        <strong>@rule.Name</strong>
+                        @if (rule.IsDefault)
+                        {
+                            <span class="pill available">@L["Varsayılan"]</span>
+                        }
+                        <div class="muted">@Format.Money(rule.DefaultHourlyRate, _org?.Currency ?? "TRY") / @L["saat"] • @L["{0} özel tarife", rule.TimeSlots.Count]</div>
+                    </div>
+                    @if (_tenant is { CanManage: true })
+                    {
+                        <div class="row-actions">
+                            <button class="small" @onclick="() => Edit(rule)">@L["Düzenle"]</button>
+                            @if (!rule.IsDefault)
+                            {
+                                <button class="small ghost" disabled="@_busy" @onclick="() => DeleteAsync(rule.Id)">@L["Sil"]</button>
+                            }
+                        </div>
+                    }
+                </div>
+                @foreach (var slot in rule.TimeSlots)
+                {
+                    <div class="muted" style="margin-top:0.35rem">
+                        @string.Join(" ", slot.DaysOfWeek.OrderBy(DayOrder).Select(Format.Day)) •
+                        @slot.From.ToString("HH:mm")–@slot.To.ToString("HH:mm") •
+                        @Format.Money(slot.HourlyRate, _org?.Currency ?? "TRY")/@L["saat"]
+                    </div>
+                }
+            </div>
+        }
+        @if (_rules.Count == 0)
+        {
+            <div class="card empty">@L["Henüz fiyat listesi yok."]</div>
+        }
+    </div>
+
+    <div>
+        @if (_tenant is { CanManage: true })
+        {
+            <div class="card">
+                <h2>@(_form.Id == 0 ? L["Yeni fiyat listesi"] : L["Fiyat listesini düzenle"])</h2>
+                <div class="form-grid">
+                    <label class="field">@L["Ad"]
+                        <input type="text" @bind="_form.Name" />
+                    </label>
+                    <label class="field">@L["Varsayılan saatlik ücret"]
+                        <input type="number" step="0.01" min="0" @bind="_form.HourlyRate" />
+                    </label>
+                </div>
+                <label class="player-toggle" style="margin-top:0.75rem;display:inline-flex">
+                    <input type="checkbox" @bind="_form.IsDefault" /> @L["Varsayılan liste yap"]
+                </label>
+
+                <h2 style="margin-top:1.1rem">@L["Özel tarifeler"]
+                    <button class="small" @onclick="AddSlot">@L["+ Saat aralığı"]</button>
+                </h2>
+                <p class="hint">@L["Aralık dışındaki saatlerde varsayılan ücret uygulanır. Bitiş, başlangıçtan önceyse gece yarısını geçen aralık sayılır (ör. 22:00–02:00)."]</p>
+
+                @foreach (var slot in _form.Slots)
+                {
+                    <div class="slot-row">
+                        <div class="day-picker">
+                            @foreach (var day in Days)
+                            {
+                                <label>
+                                    <input type="checkbox" checked="@slot.Days.Contains(day)" @onchange="e => ToggleDay(slot, day, (bool)e.Value!)" />
+                                    @Format.Day(day)
+                                </label>
+                            }
+                        </div>
+                        <label class="field">@L["Başlangıç"]
+                            <TimePicker @bind-Value="slot.From" />
+                        </label>
+                        <label class="field">@L["Bitiş"]
+                            <TimePicker @bind-Value="slot.To" />
+                        </label>
+                        <label class="field">@L["Saatlik ücret"]
+                            <input type="number" step="0.01" min="0" @bind="slot.Rate" />
+                        </label>
+                        <button class="small ghost" @onclick="() => _form.Slots.Remove(slot)">@L["Kaldır"]</button>
+                    </div>
+                }
+
+                <div class="form-actions">
+                    <button class="primary" disabled="@_busy" @onclick="SaveAsync">@L["Kaydet"]</button>
+                    @if (_form.Id != 0)
+                    {
+                        <button @onclick="ResetForm">@L["Vazgeç"]</button>
+                    }
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>@L["Faturalama ayarları"]</h2>
+                <div class="form-grid">
+                    <label class="field">@L["Yuvarlama (dakika)"]
+                        <input type="number" min="1" max="60" @bind="_rounding" />
+                    </label>
+                    <label class="field">@L["Minimum süre (dakika)"]
+                        <input type="number" min="0" max="600" @bind="_minimum" />
+                    </label>
+                </div>
+                <p class="hint">@L["Süre, yuvarlama aralığına yukarı doğru tamamlanır ve minimum süreden az faturalanmaz."]</p>
+                <div class="form-actions">
+                    <button disabled="@_busy" @onclick="SaveSettingsAsync">@L["Ayarları kaydet"]</button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly DayOfWeek[] Days =
+    [
+        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday,
+        DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday
+    ];
+
+    private Tenant? _tenant;
+    private Organization? _org;
+    private List<PricingRule> _rules = [];
+    private RuleForm _form = new();
+    private int _rounding = 5;
+    private int _minimum = 30;
+    private string? _error;
+    private string? _message;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenant = await TenantContext.GetAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var orgId = _tenant!.OrganizationId;
+        _org = await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId));
+        _rules = await Db.RunAsync((PricingService s) => s.ListAsync(orgId));
+        _rounding = _org.BillingRoundingMinutes;
+        _minimum = _org.MinimumBillableMinutes;
+    }
+
+    private static int DayOrder(DayOfWeek day) => day == DayOfWeek.Sunday ? 7 : (int)day;
+
+    private void ResetForm() => _form = new RuleForm();
+
+    private void Edit(PricingRule rule) =>
+        _form = new RuleForm
+        {
+            Id = rule.Id,
+            Name = rule.Name,
+            HourlyRate = rule.DefaultHourlyRate,
+            IsDefault = rule.IsDefault,
+            Slots = rule.TimeSlots
+                .Select(s => new SlotForm { Days = [.. s.DaysOfWeek], From = s.From, To = s.To, Rate = s.HourlyRate })
+                .ToList()
+        };
+
+    private void AddSlot() =>
+        _form.Slots.Add(new SlotForm
+        {
+            Days = [DayOfWeek.Friday, DayOfWeek.Saturday],
+            From = new TimeOnly(18, 0),
+            To = new TimeOnly(23, 0),
+            Rate = _form.HourlyRate
+        });
+
+    private static void ToggleDay(SlotForm slot, DayOfWeek day, bool on)
+    {
+        if (on)
+        {
+            if (!slot.Days.Contains(day)) slot.Days.Add(day);
+        }
+        else
+        {
+            slot.Days.Remove(day);
+        }
+    }
+
+    private Task SaveAsync() => RunAsync(async () =>
+    {
+        var slots = _form.Slots.Select(s => new PricingTimeSlot { DaysOfWeek = [.. s.Days], From = s.From, To = s.To, HourlyRate = s.Rate }).ToList();
+        await Db.RunAsync((PricingService s) =>
+            s.UpsertAsync(_tenant!.OrganizationId, _form.Id, _form.Name, _form.HourlyRate, slots, _form.IsDefault));
+        ResetForm();
+        _message = L["Fiyat listesi kaydedildi."];
+    });
+
+    private Task DeleteAsync(int id) => RunAsync(async () =>
+    {
+        await Db.RunAsync((PricingService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+        _message = L["Fiyat listesi silindi."];
+    });
+
+    private Task SaveSettingsAsync() => RunAsync(async () =>
+    {
+        await Db.RunAsync((PricingService s) => s.UpdateBillingSettingsAsync(_tenant!.OrganizationId, _rounding, _minimum));
+        _message = L["Faturalama ayarları kaydedildi."];
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _error = null;
+        _message = null;
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            _error = L.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+    }
+
+    private class RuleForm
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public decimal HourlyRate { get; set; }
+        public bool IsDefault { get; set; }
+        public List<SlotForm> Slots { get; set; } = [];
+    }
+
+    private class SlotForm
+    {
+        public List<DayOfWeek> Days { get; set; } = [];
+        public TimeOnly From { get; set; }
+        public TimeOnly To { get; set; }
+        public decimal Rate { get; set; }
+    }
+}

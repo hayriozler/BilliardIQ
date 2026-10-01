@@ -1,7 +1,7 @@
 using SkiaSharp;
 using Svg.Skia;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 
 public static class AvatarRenderer
 {

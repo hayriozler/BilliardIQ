@@ -7,6 +7,19 @@
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
   </PropertyGroup>
 
+  <!-- publish-pi/ is git-ignored publish output (it can hold stray source copies); never compile it -->
+  <ItemGroup>
+    <Compile Remove="publish-pi/**" />
+    <Content Remove="publish-pi/**" />
+    <EmbeddedResource Remove="publish-pi/**" />
+    <None Remove="publish-pi/**" />
+  </ItemGroup>
+
+  <!-- The avatar artwork is shared with the panel (Scoreboard.WebApp) so both draw the same picture for an avatar id -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\Scoreboard.WebApp\Avatars\animals.json" LogicalName="Avatars.animals.json" Link="Avatars\animals.json" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Blazor.LocalStorage" Version="10.1.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />

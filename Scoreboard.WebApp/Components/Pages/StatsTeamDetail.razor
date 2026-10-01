@@ -1,0 +1,147 @@
+@page "/stats/teams/{Id:int}"
+@attribute [Authorize]
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>@(_detail?.Team.Name ?? L["Takım istatistikleri"]) • BillardIQ</PageTitle>
+
+@if (_loaded && _detail is null)
+{
+    <div class="page-head"><div><h1>@L["Takım istatistikleri"]</h1></div></div>
+    <div class="card empty">@L["Takım bulunamadı."] <a href="/stats/teams">@L["Takım istatistikleri"]</a></div>
+}
+else if (_detail is not null)
+{
+    var team = _detail.Team;
+    var s = _detail.Summary;
+    <div class="page-head">
+        <div class="team-title">
+            @if (team.AvatarId is int avatarId) { <img src="@AvatarGenerator.ToDataUri(avatarId, 64)" class="thumb" style="width:64px;height:64px" alt="" /> }
+            <div>
+                <h1>@team.Name</h1>
+                <div class="subtitle">@team.Club.Name • @L["{0} oyuncu", _detail.Members.Count]</div>
+            </div>
+        </div>
+        <div class="row-actions">
+            <StatsRangeSelect Value="@_range" ValueChanged="OnRangeChangedAsync" />
+            <a class="small-link" href="/stats/teams">← @L["Takım istatistikleri"]</a>
+        </div>
+    </div>
+
+    <div class="stat-grid">
+        <div class="stat info"><div class="label">@L["Maçlar"]</div><div class="value">@s.Matches</div></div>
+        <div class="stat ok"><div class="label">@L["Galibiyet"]</div><div class="value">@s.Wins</div><div class="sub">@(s.Matches == 0 ? "" : s.WinPercent.ToString("0") + " %")</div></div>
+        <div class="stat warn"><div class="label">@L["Mağlubiyet"]</div><div class="value">@s.Losses</div></div>
+        <div class="stat"><div class="label">@L["Ort. El"]</div><div class="value">@(s.Matches == 0 ? "—" : s.AverageInnings.ToString("0.0"))</div></div>
+        <div class="stat"><div class="label">@L["Ort. / El"]</div><div class="value">@(s.Matches == 0 ? "—" : s.AveragePerInning.ToString("0.000"))</div></div>
+        <div class="stat"><div class="label">@L["En yüksek seri"]</div><div class="value">@(s.Matches == 0 ? "—" : s.BestHighRun.ToString())</div></div>
+    </div>
+
+    @if (_detail.Members.Count > 0)
+    {
+        <div class="split" style="margin-top:1rem">
+            <div class="card">
+                <h2>@L["Üyelere göre galibiyet"]</h2>
+                <BarChart Values="@_detail.Members.Select(m => (double)m.Summary.Wins).ToList()"
+                          Labels="@_detail.Members.Select(m => m.Player.Nickname ?? m.Player.DisplayName).ToList()"
+                          EmptyText="@L["Henüz maç sonucu yok."]" />
+            </div>
+            <div class="card">
+                <h2>@L["Üyelere göre ort. / el"]</h2>
+                <BarChart Values="@_detail.Members.Select(m => m.Summary.AveragePerInning).ToList()"
+                          Labels="@_detail.Members.Select(m => m.Player.Nickname ?? m.Player.DisplayName).ToList()"
+                          EmptyText="@L["Henüz maç sonucu yok."]" />
+            </div>
+        </div>
+    }
+
+    <div class="card">
+        <h2>@L["Üyeler"] (@_detail.Members.Count)</h2>
+        @if (_detail.Members.Count == 0)
+        {
+            <div class="empty">@L["Bu takımda oyuncu yok."] <a href="/teams">@L["Takımlar"]</a></div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th></th><th>@L["Takma ad"]</th><th class="num">@L["Maçlar"]</th><th class="num">@L["Galibiyet"]</th><th class="num">@L["Mağlubiyet"]</th><th class="num">@L["Kazanma %"]</th><th class="num">@L["Ort. El"]</th><th class="num">@L["Ort. / El"]</th><th class="num">@L["En yüksek seri"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in _detail.Members)
+                        {
+                            var m = row.Summary;
+                            <tr>
+                                <td><PlayerAvatar Player="row.Player" Size="36" /></td>
+                                <td><a href="/stats/players/@row.Player.Id"><strong>@(row.Player.Nickname ?? row.Player.DisplayName)</strong></a></td>
+                                <td class="num">@m.Matches</td>
+                                <td class="num win">@m.Wins</td>
+                                <td class="num loss">@m.Losses</td>
+                                <td class="num">@(m.Matches == 0 ? "—" : m.WinPercent.ToString("0") + " %")</td>
+                                <td class="num">@(m.Matches == 0 ? "—" : m.AverageInnings.ToString("0.0"))</td>
+                                <td class="num">@(m.Matches == 0 ? "—" : m.AveragePerInning.ToString("0.000"))</td>
+                                <td class="num">@(m.Matches == 0 ? "—" : m.BestHighRun.ToString())</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    @if (_detail.RecentMatches.Count > 0)
+    {
+        <div class="card">
+            <h2>@L["Son maçlar"]</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th></th><th>@L["Oyuncu"]</th><th>@L["Rakip"]</th><th>@L["Tarih"]</th><th class="num">@L["Skor"]</th><th class="num">@L["El"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var (player, match) in _detail.RecentMatches)
+                        {
+                            <tr>
+                                <td><span class="pill @(match.Won ? "available" : "off")">@(match.Won ? L["G"] : L["M"])</span></td>
+                                <td>@(player.Nickname ?? player.DisplayName)</td>
+                                <td>@match.OpponentName</td>
+                                <td>@Format.DateTime(match.PlayedAt, _zone)</td>
+                                <td class="num"><strong>@match.PlayerScore – @match.OpponentScore</strong></td>
+                                <td class="num">@match.Inning</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Tenant? _tenant;
+    private TeamStatDetail? _detail;
+    private TimeZoneInfo _zone = TimeZoneInfo.Utc;
+    private string _range = "all";
+    private bool _loaded;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _tenant ??= await TenantContext.GetAsync();
+        await LoadAsync();
+    }
+
+    private async Task OnRangeChangedAsync(string range)
+    {
+        _range = range;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var orgId = _tenant!.OrganizationId;
+        var since = StatsRangeSelect.Since(_range);
+        var id = Id;
+        _zone = PricingCalculator.ResolveTimeZone((await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId))).TimeZone);
+        _detail = await Db.RunAsync((StatsService s) => s.TeamAsync(orgId, id, since));
+        _loaded = true;
+    }
+}

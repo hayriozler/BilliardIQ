@@ -17,9 +17,7 @@ public class MatchResult
     public int Player2Score { get; set; }
     public double Player2Avg { get; set; }
     public int Player2HighRun { get; set; }
-
     public int Inning { get; set; }
     public int MatchTarget { get; set; }
-
     public int Winner { get; set; }
 }

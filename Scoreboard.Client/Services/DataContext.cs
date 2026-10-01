@@ -9,23 +9,27 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
     public DbSet<Player> PlayerSet { get; set; }
     public DbSet<MatchResult> MatchResultSet { get; set; }
     public DbSet<Team> TeamSet { get; set; }
+    public DbSet<Club> ClubSet { get; set; }
     public DbSet<ScoreEvent> ScoreEventSet { get; set; }
     public DbSet<Setting> SettingsSet { get; set; }
     public DbSet<MatchScoreStat> MatchScoreStatSet { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-
         modelBuilder.Entity<ScoreboardState>().HasKey(p => p.Id);
         modelBuilder.Entity<ScoreboardState>().Property(e => e.Id).UseAutoincrement();
         modelBuilder.Entity<ScoreboardState>().ToTable("scoreboard_state");
 
         modelBuilder.Entity<Player>().HasKey(p => p.Id);
-        modelBuilder.Entity<Player>().Property(p => p.Id).UseAutoincrement();
+        modelBuilder.Entity<Player>().Property(p => p.Id).ValueGeneratedNever();
         modelBuilder.Entity<Player>().ToTable("player");
 
         modelBuilder.Entity<Team>().HasKey(t => t.Id);
-        modelBuilder.Entity<Team>().Property(t => t.Id).UseAutoincrement();
+        modelBuilder.Entity<Team>().Property(t => t.Id).ValueGeneratedNever();
         modelBuilder.Entity<Team>().ToTable("team");
+
+        modelBuilder.Entity<Club>().HasKey(c => c.Id);
+        modelBuilder.Entity<Club>().Property(c => c.Id).ValueGeneratedNever();
+        modelBuilder.Entity<Club>().ToTable("club");
 
         modelBuilder.Entity<MatchResult>().HasKey(m => m.Id);
         modelBuilder.Entity<MatchResult>().Property(m => m.Id).UseAutoincrement();

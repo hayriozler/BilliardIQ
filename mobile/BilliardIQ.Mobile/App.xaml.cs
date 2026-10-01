@@ -1,4 +1,4 @@
-﻿namespace BilliardIQ.Mobile;
+﻿namespace BillardIQ.Mobile;
 
 public partial class App : Application
 {

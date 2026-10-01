@@ -1,0 +1,117 @@
+@page "/devices"
+@attribute [Authorize]
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>@L["Scoreboard bağlantısı"] • BillardIQ</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>@L["Scoreboard bağlantısı"]</h1>
+        <div class="subtitle">@L["Her masanın scoreboard'una salonun Client ID'sini ve masa numarasını girin. Scoreboard yalnızca maç sonuçlarını gönderir; oyuncu ve takımları bu salondan çeker."]</div>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert error">@_error</div>
+}
+
+<div class="card">
+    <h2>Client ID</h2>
+    @if (_clientId is null)
+    {
+        <p class="muted">@L["Yükleniyor..."]</p>
+    }
+    else
+    {
+        <p><span class="code-box">@_clientId</span></p>
+        <p class="hint">
+            @L["Scoreboard her istekte bu değeri X-Client-Id, masa numarasını X-Table-No başlığında gönderir. Başka bir doğrulama yoktur; Client ID'yi yalnızca kendi scoreboard'larınızla paylaşın."]
+        </p>
+
+        @if (_tenant is { CanManage: true })
+        {
+            <div class="form-actions">
+                @if (_confirmRegenerate)
+                {
+                    <span class="hint">@L["Yenilenirse tüm scoreboard'ların yeni değerle güncellenmesi gerekir."]</span>
+                    <button class="small danger" disabled="@_busy" @onclick="RegenerateAsync">@L["Yenilemeyi onayla"]</button>
+                    <button class="small ghost" @onclick="() => _confirmRegenerate = false">@L["Vazgeç"]</button>
+                }
+                else
+                {
+                    <button class="small ghost" @onclick="() => _confirmRegenerate = true">@L["Client ID'yi yenile"]</button>
+                }
+            </div>
+        }
+    }
+</div>
+
+<div class="card">
+    <h2>@L["Scoreboard kullanan masalar"] (@_scoreboardTables.Count)</h2>
+    @if (_scoreboardTables.Count == 0)
+    {
+        <div class="empty">@L["Scoreboard kullanan masa yok. Masa eklerken veya düzenlerken scoreboard seçeneğini işaretleyin."] <a href="/tables">@L["Masa yönetimi"]</a></div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>X-Table-No</th><th>@L["Masa"]</th><th>@L["Etiket"]</th><th>@L["Tip"]</th><th>@L["Durum"]</th></tr></thead>
+                <tbody>
+                    @foreach (var view in _scoreboardTables)
+                    {
+                        <tr>
+                            <td><span class="code-box">@view.Table.ScoreboardNo</span></td>
+                            <td>@view.Table.Number</td>
+                            <td>@view.Table.Label</td>
+                            <td>@Format.TableType(view.Table.Type)</td>
+                            <td>@Format.TableStatus(view.Table.Status)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private Tenant? _tenant;
+    private string? _clientId;
+    private List<TableView> _scoreboardTables = [];
+    private string? _error;
+    private bool _busy;
+    private bool _confirmRegenerate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenant = await TenantContext.GetAsync();
+        var orgId = _tenant!.OrganizationId;
+        _clientId = await Db.RunAsync((ClientIdService s) => s.GetAsync(orgId));
+        _scoreboardTables = (await Db.RunAsync((TableService s) => s.ListAsync(orgId)))
+            .Where(v => v.Table.ScoreboardNo is not null)
+            .OrderBy(v => v.Table.ScoreboardNo)
+            .ToList();
+    }
+
+    private async Task RegenerateAsync()
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            var orgId = _tenant!.OrganizationId;
+            _clientId = await Db.RunAsync((ClientIdService s) => s.RegenerateAsync(orgId));
+            _confirmRegenerate = false;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            _error = L.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

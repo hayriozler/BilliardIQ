@@ -1,0 +1,62 @@
+<div class="avatar-picker">
+    <div class="avatar-current">
+        @if (Value is int current)
+        {
+            <img class="avatar-img" src="@AvatarGenerator.ToDataUri(current, 48)" alt="" />
+        }
+        else
+        {
+            <span class="avatar-img avatar-empty">—</span>
+        }
+        <button type="button" class="small" @onclick="() => _open = true">@L["Avatar seç"]</button>
+        @if (Value is not null)
+        {
+            <button type="button" class="small ghost" @onclick="() => SelectAsync(null)">@L["Kaldır"]</button>
+        }
+    </div>
+</div>
+
+@if (_open)
+{
+    <div class="modal-backdrop" @onclick="Close">
+        <div class="modal avatar-modal" @onclick:stopPropagation="true" role="dialog" aria-modal="true" aria-label="@L["Avatar seç"]">
+            <div class="avatar-modal-head">
+                <h2>@L["Avatar seç"]</h2>
+                <button type="button" class="small ghost" aria-label="@L["Kapat"]" @onclick="Close">✕</button>
+            </div>
+            <div class="avatar-grid avatar-grid-lg">
+                @for (var i = 0; i < AvatarGenerator.Count; i++)
+                {
+                    var id = i;
+                    <button type="button" class="avatar-cell @(Value == id ? "active" : "")" @onclick="() => SelectAsync(id)">
+                        <img src="@AvatarGenerator.ToDataUri(id, 64)" alt="" />
+                    </button>
+                }
+            </div>
+            <div class="form-actions">
+                @if (Value is not null)
+                {
+                    <button type="button" class="ghost" @onclick="() => SelectAsync(null)">@L["Kaldır"]</button>
+                }
+                <button type="button" @onclick="Close">@L["Vazgeç"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _open;
+
+    [Parameter] public int? Value { get; set; }
+
+    [Parameter] public EventCallback<int?> ValueChanged { get; set; }
+
+    private void Close() => _open = false;
+
+    private async Task SelectAsync(int? id)
+    {
+        _open = false;
+        Value = id;
+        await ValueChanged.InvokeAsync(id);
+    }
+}

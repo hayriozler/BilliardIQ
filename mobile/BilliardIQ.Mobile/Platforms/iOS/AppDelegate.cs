@@ -1,6 +1,6 @@
 ﻿using Foundation;
 
-namespace BilliardIQ.Mobile;
+namespace BillardIQ.Mobile;
 
 [Register("AppDelegate")]
 public class AppDelegate : MauiUIApplicationDelegate

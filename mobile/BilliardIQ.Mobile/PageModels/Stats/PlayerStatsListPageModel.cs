@@ -1,11 +1,11 @@
-using BilliardIQ.Mobile.Data;
-using BilliardIQ.Mobile.Models;
-using BilliardIQ.Mobile.Services;
+using BillardIQ.Mobile.Data;
+using BillardIQ.Mobile.Models;
+using BillardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 
-namespace BilliardIQ.Mobile.PageModels.Stats;
+namespace BillardIQ.Mobile.PageModels.Stats;
 
 public partial class PlayerStatsListPageModel : BasePageModel
 {

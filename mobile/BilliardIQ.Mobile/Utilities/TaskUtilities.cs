@@ -1,6 +1,6 @@
-using BilliardIQ.Mobile.Services;
+using BillardIQ.Mobile.Services;
 
-namespace BilliardIQ.Mobile.Utilities;
+namespace BillardIQ.Mobile.Utilities;
 
 public static class TaskUtilities
 {

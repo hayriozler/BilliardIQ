@@ -1,9 +1,9 @@
-﻿using BilliardIQ.Mobile.Utilities;
+﻿using BillardIQ.Mobile.Utilities;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 public class DatabaseExecutor(ILogger<DatabaseExecutor> Logger)
 {
     internal static SqliteConnection GetNewDbConnection() =>new(Constants.DatabasePath);

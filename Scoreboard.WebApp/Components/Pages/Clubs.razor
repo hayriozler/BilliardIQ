@@ -1,50 +1,176 @@
 @page "/clubs"
-@inject ClubService ClubService
+@attribute [Authorize]
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
 
-<h1>Register a Club</h1>
+<PageTitle>@L["Kulüpler"] • BillardIQ</PageTitle>
 
-<EditForm Model="_newClub" OnValidSubmit="CreateAsync" FormName="create-club">
-    <DataAnnotationsValidator />
-    <div class="form-row">
-        <InputText @bind-Value="_newClub.Name" placeholder="Club name" />
-        <button type="submit">Create Club</button>
+<div class="page-head">
+    <div>
+        <h1>@L["Kulüpler"]</h1>
+        <div class="subtitle">@L["Bir salon birden fazla kulüp barındırabilir. Takımlar kulüplere bağlıdır."]</div>
     </div>
-    <ValidationSummary />
-</EditForm>
+</div>
 
 @if (_error is not null)
 {
-    <p class="error">@_error</p>
+    <div class="alert error">@_error</div>
 }
 
-@if (_createdCode is not null)
-{
-    <p>Club created. Your login code is <strong>@_createdCode</strong> — save it, you'll need it to <a href="/login">log in</a>.</p>
-}
+<div class="card">
+    <h2>@(_form.Id == 0 ? L["Yeni kulüp"] : L["Kulübü düzenle"])</h2>
+    <EditForm Model="_form" OnValidSubmit="SaveAsync" FormName="club-form">
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            <label class="field">@L["Kulüp adı"]<InputText @bind-Value="_form.Name" /></label>
+            <label class="field">@L["Kısa ad"]<InputText @bind-Value="_form.ShortName" placeholder="KBSK" maxlength="20" /></label>
+            <label class="field">@L["Şehir"]<InputText @bind-Value="_form.City" /></label>
+            <label class="field">@L["Renk"]<InputText @bind-Value="_form.PrimaryColor" placeholder="#C8102E" /></label>
+        </div>
+        <LocalizedValidationSummary />
+        <div class="form-actions">
+            <button type="submit" class="primary" disabled="@_busy">@(_form.Id == 0 ? L["Kulüp ekle"] : L["Kaydet"])</button>
+            @if (_form.Id != 0)
+            {
+                <button type="button" @onclick="ResetForm">@L["Vazgeç"]</button>
+            }
+        </div>
+    </EditForm>
+</div>
+
+<div class="card">
+    <h2>@L["Kulüpler"] (@(_clubs?.Count ?? 0))</h2>
+    @if (_clubs is null)
+    {
+        <p class="muted">@L["Yükleniyor..."]</p>
+    }
+    else if (_clubs.Count == 0)
+    {
+        <div class="empty">@L["Henüz kulüp yok."]</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>@L["Ad"]</th><th>@L["Kısa ad"]</th><th>@L["Şehir"]</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var club in _clubs)
+                    {
+                        <tr>
+                            <td>
+                                <span class="color-dot" style="background:@(string.IsNullOrWhiteSpace(club.PrimaryColor) ? "#94a3b8" : club.PrimaryColor)"></span>
+                                <strong>@club.Name</strong>
+                            </td>
+                            <td><span class="code-box">@club.ShortName</span></td>
+                            <td>@club.City</td>
+                            <td>
+                                <div class="row-actions">
+                                    <button class="small" @onclick="() => Edit(club)">@L["Düzenle"]</button>
+                                    @if (_confirmDelete == club.Id)
+                                    {
+                                        <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(club.Id)">@L["Silmeyi onayla"]</button>
+                                        <button class="small ghost" @onclick="() => _confirmDelete = null">@L["Vazgeç"]</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="small ghost" @onclick="() => _confirmDelete = club.Id">@L["Sil"]</button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
 
 @code {
+    private Tenant? _tenant;
+    private List<Club>? _clubs;
+    private ClubFormModel _form = new();
     private string? _error;
-    private string? _createdCode;
-    private NewClubModel _newClub = new();
+    private bool _busy;
+    private int? _confirmDelete;
 
-    private async Task CreateAsync()
+    protected override async Task OnInitializedAsync()
     {
-        _error = null;
-        try
-        {
-            var club = await ClubService.CreateAsync(_newClub.Name);
-            _createdCode = club.Code;
-            _newClub = new();
-        }
-        catch (Exception ex)
-        {
-            _error = ex.Message;
-        }
+        _tenant = await TenantContext.GetAsync();
+        await LoadAsync();
     }
 
-    private class NewClubModel
+    private async Task LoadAsync()
     {
-        [Required]
+        var orgId = _tenant!.OrganizationId;
+        _clubs = await Db.RunAsync((ClubService s) => s.ListAsync(orgId));
+    }
+
+    private void Edit(Club club) =>
+        _form = new ClubFormModel
+        {
+            Id = club.Id,
+            Name = club.Name,
+            ShortName = club.ShortName,
+            City = club.City,
+            PrimaryColor = club.PrimaryColor
+        };
+
+    private void ResetForm() => _form = new ClubFormModel();
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            await Db.RunAsync((ClubService s) =>
+                s.UpsertAsync(_tenant!.OrganizationId, _form.Id, _form.Name, _form.ShortName, _form.City, _form.PrimaryColor));
+            ResetForm();
+        }
+        catch (ArgumentException ex)
+        {
+            _error = L.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            await Db.RunAsync((ClubService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+            _confirmDelete = null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = L.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+    }
+
+    private class ClubFormModel
+    {
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "Kulüp adı gerekli.")]
         public string Name { get; set; } = string.Empty;
+
+        public string? ShortName { get; set; }
+
+        public string? City { get; set; }
+
+        public string? PrimaryColor { get; set; }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 
-namespace BilliardIQ.Mobile.Utilities;
+namespace BillardIQ.Mobile.Utilities;
 
 internal static class Disposer
 {

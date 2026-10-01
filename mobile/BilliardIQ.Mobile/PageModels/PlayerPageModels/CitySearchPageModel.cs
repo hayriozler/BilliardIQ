@@ -1,9 +1,9 @@
-using BilliardIQ.Mobile.Models;
+using BillardIQ.Mobile.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 
-namespace BilliardIQ.Mobile.PageModels.PlayerPageModels;
+namespace BillardIQ.Mobile.PageModels.PlayerPageModels;
 
 public partial class CitySearchPageModel(PlayerProfilePageModel ProfileModel) : BasePageModel
 {

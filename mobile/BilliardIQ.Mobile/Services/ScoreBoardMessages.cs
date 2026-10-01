@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 
 public sealed class ScoreBoardRequest
 {

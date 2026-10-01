@@ -1,5 +1,3 @@
-using Scoreboard.WebApp.Models;
-
 namespace Scoreboard.WebApp.Requests;
 
 public record UpsertPlayerRequest(
@@ -12,4 +10,11 @@ public record UpsertPlayerRequest(
     string Email,
     Level Level,
     string BaseCountry,
-    string BaseCity);
+    string BaseCity,
+    int? ShortcutNumber = null,
+    string? LicenseNo = null,
+    DateOnly? LicenseValidUntil = null,
+    int? AssociationId = null,
+    int? RegionId = null,
+    int? CountryId = null,
+    int? CityId = null);

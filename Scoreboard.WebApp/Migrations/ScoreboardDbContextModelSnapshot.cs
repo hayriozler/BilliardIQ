@@ -10,7 +10,7 @@ using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Migrations
 {
-    [DbContext(typeof(ScoreboardDbContext))]
+    [DbContext(typeof(DataContext))]
     partial class ScoreboardDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

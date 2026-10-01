@@ -32,3 +32,6 @@ logs/
 ## OS
 .DS_Store
 Thumbs.db
+
+# local docker-compose settings (client id etc.)
+.env

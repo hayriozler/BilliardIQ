@@ -1,4 +1,4 @@
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 
 public interface IPiTransport : IDisposable
 {

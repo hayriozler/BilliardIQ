@@ -1,6 +1,6 @@
-using BilliardIQ.Mobile.Data;
-using BilliardIQ.Mobile.Models;
-using BilliardIQ.Mobile.Services;
+using BillardIQ.Mobile.Data;
+using BillardIQ.Mobile.Models;
+using BillardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -8,7 +8,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace BilliardIQ.Mobile.PageModels.Admin;
+namespace BillardIQ.Mobile.PageModels.Admin;
 
 public partial class TeamListPageModel : BasePageModel
 {

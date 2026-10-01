@@ -1,8 +1,8 @@
 using UIKit;
 using System.Text.Json;
-using BilliardIQ.Mobile.Services;
+using BillardIQ.Mobile.Services;
 
-namespace BilliardIQ.Mobile.Platforms.iOS;
+namespace BillardIQ.Mobile.Platforms.iOS;
 
 // iOS UaaL entegrasyonu için:
 // Unity → File → Build Settings → iOS → Export → Xcode projesi oluştur

@@ -2,7 +2,7 @@ using Android.App;
 using Android.Content;
 using Android.Content.PM;
 
-namespace BilliardIQ.Mobile.Platforms.Android;
+namespace BillardIQ.Mobile.Platforms.Android;
 
 [Activity(
     Theme = "@style/Maui.SplashTheme",

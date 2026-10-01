@@ -1,7 +1,7 @@
-using BilliardIQ.Mobile.Models;
+using BillardIQ.Mobile.Models;
 using System.Collections.ObjectModel;
 
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 
 public class ScoreboardPlayerSession
 {

@@ -4,7 +4,7 @@ namespace Scoreboard.WebApp.Responses;
 
 public record PlayerDto(
     int Id,
-    int ClubId,
+    int? ClubId,
     string Nickname,
     string Name,
     string? PhotoPath,
@@ -13,4 +13,15 @@ public record PlayerDto(
     Level Level,
     string BaseCountry,
     string BaseCity,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    int? ShortcutNumber = null,
+    string? LicenseNo = null,
+    DateOnly? LicenseValidUntil = null,
+    string? AssociationName = null,
+    bool IsSystem = false,
+    int? SystemSlot = null,
+    int? AssociationId = null,
+    int? RegionId = null,
+    string? RegionName = null,
+    int? CountryId = null,
+    int? CityId = null);

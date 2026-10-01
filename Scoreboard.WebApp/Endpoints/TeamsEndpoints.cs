@@ -1,5 +1,4 @@
 using Scoreboard.WebApp.Middlewares;
-using Scoreboard.WebApp.Models;
 using Scoreboard.WebApp.Requests;
 using Scoreboard.WebApp.Responses;
 using Scoreboard.WebApp.Services;
@@ -10,53 +9,32 @@ public static class TeamsEndpoints
 {
     public static RouteGroupBuilder MapTeamsEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/teams").WithTags("Teams");
+        var group = app.MapGroup("/api/teams").WithTags("Teams").RequireAuthorization();
 
-        group.MapGet("/", async (TeamService teams, HttpContext context) =>
-        {
-            var clubId = context.GetClubId();
-            if (clubId is null)
-            {
-                return Results.BadRequest("Client is not linked to a club.");
-            }
-
-            return Results.Ok((await teams.ListForClubAsync(clubId.Value)).Select(ToDto).ToList());
-        });
+        group.MapGet("/", (ScoreboardDataService data) =>
+            data.ListTeamsAsync());
 
         group.MapPost("/", async (UpsertTeamRequest request, TeamService teams, HttpContext context) =>
         {
-            var clubId = context.GetClubId();
-            if (clubId is null)
+            try
             {
-                return Results.BadRequest("Client is not linked to a club.");
+                var team = await teams.UpsertAsync(context.GetOrganizationId(), request.Id, request.Name, request.ClubId, request.AvatarId);
+                return Results.Ok(ToDto(team));
             }
-
-            var team = await teams.UpsertAsync(clubId.Value, request.Id, request.Name);
-            return Results.Ok(ToDto(team));
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(ex.Message);
+            }
         });
 
         group.MapDelete("/{id:int}", async (int id, TeamService teams, HttpContext context) =>
-        {
-            var clubId = context.GetClubId();
-            if (clubId is null)
-            {
-                return Results.BadRequest("Client is not linked to a club.");
-            }
-
-            return await teams.DeleteAsync(clubId.Value, id) ? Results.NoContent() : Results.NotFound();
-        });
+            await teams.DeleteAsync(context.GetOrganizationId(), id) ? Results.NoContent() : Results.NotFound());
 
         group.MapPut("/{id:int}/players", async (int id, SetTeamPlayersRequest request, TeamService teams, HttpContext context) =>
         {
-            var clubId = context.GetClubId();
-            if (clubId is null)
-            {
-                return Results.BadRequest("Client is not linked to a club.");
-            }
-
             try
             {
-                var team = await teams.SetPlayersAsync(clubId.Value, id, request.PlayerIds);
+                var team = await teams.SetPlayersAsync(context.GetOrganizationId(), id, request.PlayerIds);
                 return team is null ? Results.NotFound() : Results.Ok(ToDto(team));
             }
             catch (ArgumentException ex)
@@ -67,13 +45,7 @@ public static class TeamsEndpoints
 
         group.MapDelete("/{id:int}/players/{playerId:int}", async (int id, int playerId, TeamService teams, HttpContext context) =>
         {
-            var clubId = context.GetClubId();
-            if (clubId is null)
-            {
-                return Results.BadRequest("Client is not linked to a club.");
-            }
-
-            var team = await teams.RemovePlayerAsync(clubId.Value, id, playerId);
+            var team = await teams.RemovePlayerAsync(context.GetOrganizationId(), id, playerId);
             return team is null ? Results.NotFound() : Results.Ok(ToDto(team));
         });
 
@@ -82,5 +54,7 @@ public static class TeamsEndpoints
 
     private static TeamDto ToDto(Team team) => new(
         team.Id, team.ClubId, team.Name, team.UpdatedAt,
-        team.TeamPlayers.Select(tp => new TeamPlayerDto(tp.Player!.Id, tp.Player.Nickname, tp.Player.Name)).ToList());
+        team.Members.Select(m => new TeamPlayerDto(
+            m.Player.Id, m.Player.Nickname ?? m.Player.DisplayName, $"{m.Player.FirstName} {m.Player.LastName}".Trim())).ToList(),
+        team.AvatarId);
 }

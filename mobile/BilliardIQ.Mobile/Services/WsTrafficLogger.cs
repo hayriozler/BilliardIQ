@@ -1,4 +1,4 @@
-namespace BilliardIQ.Mobile.Services;
+namespace BillardIQ.Mobile.Services;
 
 // Rolling debug log of raw WS send/receive traffic (plus, from ScoreboardPageModel, matchResult
 // validation/insert outcomes), written next to the SQLite DB so it can be pulled off-device the

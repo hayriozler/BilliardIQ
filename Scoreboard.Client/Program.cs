@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Scoreboard.Client.Components;
+using Microsoft.AspNetCore.Components.Server.Circuits;
+using Scoreboard.Client.Services;
 using Serilog;
 using Serilog.Events;
-using Scoreboard.Client.Components;
-using Scoreboard.Client.Endpoints;
-using Scoreboard.Client.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,7 +44,7 @@ static LogEventLevel ParseLogLevel(string? value) => value?.ToLowerInvariant() s
 };
 
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents(options => options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromSeconds(30));
 
 string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Db");
 if (!Directory.Exists(folder))
@@ -54,20 +54,18 @@ var dbName = Path.Combine(folder, "scoreboard.db3");
 string playerPhotosFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "PlayerSet");
 if (!Directory.Exists(playerPhotosFolder))
     Directory.CreateDirectory(playerPhotosFolder);
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7153/";
 builder.Services.AddDbContextFactory<DataContext>(options => options.UseSqlite($"Data Source={dbName}"));
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiBaseUrl) });
 builder.Services.AddScoped<LocalizationService>();
-builder.Services.AddSingleton<WebSocketService>();
-builder.Services.AddSingleton<ScoreboardCommandHub>();
 builder.Services.AddSingleton<SystemPowerService>();
 builder.Services.AddSingleton<BoardSessionGuard>();
+builder.Services.AddSingleton<LanguageSync>();
+builder.Services.AddScoped<BoardSessionTracker>();
+builder.Services.AddScoped<CircuitHandler, BoardCircuitHandler>();
 builder.Services.Configure<RemoteSyncOptions>(builder.Configuration.GetSection("RemoteSync"));
 builder.Services.AddHttpClient(nameof(RemoteSyncService));
 builder.Services.AddHostedService<RemoteSyncService>();
 builder.Services.AddHttpClient(nameof(RemotePullService));
 builder.Services.AddHostedService<RemotePullService>();
-builder.Services.AddHostedService<RemoteWsPushService>();
 
 var app = builder.Build();
 app.UseAntiforgery();
@@ -76,8 +74,5 @@ app.UseStaticFiles();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
-app.UseWebSockets();
-app.MapScoreboardWebSocket();
 
 app.Run();

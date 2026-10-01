@@ -11,7 +11,7 @@ using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Migrations
 {
-    [DbContext(typeof(ScoreboardDbContext))]
+    [DbContext(typeof(DataContext))]
     [Migration("20260928171550_InitialCreate")]
     partial class InitialCreate
     {

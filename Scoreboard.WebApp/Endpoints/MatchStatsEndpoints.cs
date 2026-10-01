@@ -13,23 +13,42 @@ public static class MatchStatsEndpoints
     {
         var group = app.MapGroup("/api/stats").WithTags("MatchStats");
 
-        group.MapGet("/", async (ScoreboardDbContext db, HttpContext context) =>
+        group.MapGet("/", async (DataContext db, HttpContext context) =>
         {
-            var clientId = context.GetClientId()!;
-            return await db.MatchStatSet
-                .Where(s => s.ClientId == clientId)
+            var organizationId = context.GetOrganizationId();
+            var tableId = context.GetTableId();
+            var stats = await db.MatchStatSet
+                .Include(s => s.Buckets)
+                .Where(s => s.OrganizationId == organizationId && (tableId == null || s.TableId == tableId))
                 .OrderByDescending(s => s.PlayedAt)
-                .Select(s => ToDto(s))
+                .Take(200)
                 .ToListAsync();
+            return stats.Select(ToDto).ToList();
         });
 
-        group.MapPost("/", async (SubmitMatchStatRequest request, ScoreboardDbContext db, HttpContext context) =>
+        group.MapPost("/", async (SubmitMatchStatRequest request, DataContext db, HttpContext context) =>
         {
-            var clientId = context.GetClientId()!;
+            if (context.GetTableId() is not { } tableId)
+            {
+                return Results.BadRequest(new { error = $"'{ClientIdMiddleware.TableHeaderName}' header is required." });
+            }
+
+            var buckets = (request.ScoreDistribution ?? [])
+                .Where(b => b.PlayerSlot is 1 or 2 && b.BucketIndex >= 0)
+                .GroupBy(b => (b.PlayerSlot, b.BucketIndex))
+                .Select(g => new MatchStatBucket
+                {
+                    PlayerSlot = g.Key.PlayerSlot,
+                    BucketIndex = g.Key.BucketIndex,
+                    TotalPoints = g.Sum(b => b.TotalPoints)
+                })
+                .ToList();
 
             var stat = new MatchStat
             {
-                ClientId = clientId,
+                OrganizationId = context.GetOrganizationId(),
+                TableId = tableId,
+                TableNo = context.GetTableNo(),
                 Player1ExternalId = request.Player1Id,
                 Player1Name = request.Player1Name,
                 Player1Score = request.Player1Score,
@@ -43,7 +62,11 @@ public static class MatchStatsEndpoints
                 Inning = request.Inning,
                 MatchTarget = request.MatchTarget,
                 Winner = request.Winner,
-                PlayedAt = request.PlayedAt
+                PlayedAt = request.PlayedAt,
+                StartedAt = request.StartedAt,
+                EndedAt = request.EndedAt,
+                BucketMinutes = buckets.Count == 0 ? 0 : Math.Max(1, request.ScoreDistributionBucketMinutes),
+                Buckets = buckets
             };
 
             db.MatchStatSet.Add(stat);
@@ -52,15 +75,17 @@ public static class MatchStatsEndpoints
             return Results.Ok(ToDto(stat));
         });
 
-        group.MapDelete("/{id:int}", async (int id, ScoreboardDbContext db, HttpContext context) =>
+        group.MapDelete("/{id:int}", async (int id, DataContext db, HttpContext context) =>
         {
-            var clientId = context.GetClientId()!;
-            var stat = await db.MatchStatSet.FirstOrDefaultAsync(s => s.Id == id && s.ClientId == clientId);
+            var organizationId = context.GetOrganizationId();
+            var stat = await db.MatchStatSet.Include(s => s.Buckets)
+                .FirstOrDefaultAsync(s => s.Id == id && s.OrganizationId == organizationId);
             if (stat is null)
             {
                 return Results.NotFound();
             }
 
+            db.MatchStatBucketSet.RemoveRange(stat.Buckets);
             db.MatchStatSet.Remove(stat);
             await db.SaveChangesAsync();
             return Results.NoContent();
@@ -70,8 +95,11 @@ public static class MatchStatsEndpoints
     }
 
     private static MatchStatDto ToDto(MatchStat s) => new(
-        s.Id, s.ClientId,
+        s.Id, s.TableNo,
         s.Player1ExternalId, s.Player1Name, s.Player1Score, s.Player1Avg, s.Player1HighRun,
         s.Player2ExternalId, s.Player2Name, s.Player2Score, s.Player2Avg, s.Player2HighRun,
-        s.Inning, s.MatchTarget, s.Winner, s.PlayedAt, s.RecordedAt);
+        s.Inning, s.MatchTarget, s.Winner, s.PlayedAt, s.StartedAt, s.EndedAt, s.RecordedAt,
+        s.BucketMinutes,
+        s.Buckets.OrderBy(b => b.PlayerSlot).ThenBy(b => b.BucketIndex)
+            .Select(b => new ScoreBucketDto(b.PlayerSlot, b.BucketIndex, b.TotalPoints)).ToList());
 }

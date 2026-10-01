@@ -1,0 +1,202 @@
+@page "/tournaments"
+@attribute [Authorize]
+@using Scoreboard.WebApp.Services.Tournaments
+@inject ScopedRunner Db
+@inject TenantContext TenantContext
+
+<PageTitle>@L["Turnuvalar"] • BillardIQ</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>@L["Turnuvalar"]</h1>
+        <div class="subtitle">@L["Salonunuzda handikaplı, sabit hedefli veya tur aralığına göre değişen kurallarla turnuva düzenleyin."]</div>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert error">@_error</div>
+}
+
+@if (_tenant is { CanManage: true })
+{
+    <div class="card">
+        <h2>@(_form.Id == 0 ? L["Yeni turnuva"] : L["Turnuvayı düzenle"])</h2>
+        <div class="form-grid">
+            <label class="field">@L["Ad"]
+                <input type="text" @bind="_form.Name" maxlength="200" />
+            </label>
+            <label class="field">@L["Usul"]
+                <select @bind="_form.Format" disabled="@(_form.Id != 0 && !_form.CanChangeFormat)">
+                    <option value="@CupFormat.RoundRobin">@FormatName(CupFormat.RoundRobin)</option>
+                    <option value="@CupFormat.SingleElimination">@FormatName(CupFormat.SingleElimination)</option>
+                </select>
+            </label>
+            <label class="field">@L["Başlangıç tarihi"]
+                <DatePicker Value="_form.StartDate" ValueChanged="d => _form.StartDate = d ?? _form.StartDate" Clearable="false" />
+            </label>
+            <label class="field">@L["Bitiş tarihi (isteğe bağlı)"]
+                <DatePicker @bind-Value="_form.EndDate" Min="_form.StartDate" />
+            </label>
+            <label class="field">@L["Maç başına en fazla el (isteğe bağlı)"]
+                <input type="number" min="1" @bind="_form.MaxInnings" />
+            </label>
+            <label class="field">@L["Açıklama"]
+                <input type="text" @bind="_form.Description" maxlength="1000" />
+            </label>
+        </div>
+        <div class="form-actions">
+            <button class="primary" disabled="@_busy" @onclick="SaveAsync">@(_form.Id == 0 ? L["Turnuva oluştur"] : L["Kaydet"])</button>
+            @if (_form.Id != 0)
+            {
+                <button @onclick="ResetForm">@L["Vazgeç"]</button>
+            }
+        </div>
+    </div>
+}
+
+<div class="card">
+    <h2>@L["Turnuvalar"] (@_cups.Count)</h2>
+    @if (_cups.Count == 0)
+    {
+        <div class="empty">@L["Henüz turnuva yok."]</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>@L["Ad"]</th><th>@L["Usul"]</th><th>@L["Durum"]</th><th class="num">@L["Katılımcı"]</th><th class="num">@L["Tur"]</th><th>@L["Tarih"]</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var cup in _cups)
+                    {
+                        var rounds = cup.Status == CupStatus.Draft ? CupLogic.TotalRounds(cup.Format, cup.Participants.Count) : cup.TotalRounds;
+                        <tr>
+                            <td><a href="/tournaments/@cup.Id"><strong>@cup.Name</strong></a></td>
+                            <td>@FormatName(cup.Format)</td>
+                            <td><span class="pill @StatusCss(cup.Status)">@StatusName(cup.Status)</span></td>
+                            <td class="num">@cup.Participants.Count</td>
+                            <td class="num">@(rounds == 0 ? "—" : rounds.ToString())</td>
+                            <td>@Format.Date(cup.StartDate)@(cup.EndDate is { } end ? $" – {Format.Date(end)}" : "")</td>
+                            <td>
+                                <div class="row-actions">
+                                    <a class="small-link" href="/tournaments/@cup.Id">@L["Aç"]</a>
+                                    @if (_tenant is { CanManage: true })
+                                    {
+                                        <button class="small" @onclick="() => Edit(cup)">@L["Düzenle"]</button>
+                                        @if (_confirmDelete == cup.Id)
+                                        {
+                                            <button class="small danger" disabled="@_busy" @onclick="() => DeleteAsync(cup.Id)">@L["Silmeyi onayla"]</button>
+                                            <button class="small ghost" @onclick="() => _confirmDelete = null">@L["Vazgeç"]</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="small ghost" @onclick="() => _confirmDelete = cup.Id">@L["Sil"]</button>
+                                        }
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private Tenant? _tenant;
+    private List<Cup> _cups = [];
+    private FormModel _form = new();
+    private string? _error;
+    private bool _busy;
+    private int? _confirmDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenant = await TenantContext.GetAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var orgId = _tenant!.OrganizationId;
+        _cups = await Db.RunAsync((CupService s) => s.ListAsync(orgId));
+    }
+
+    private string FormatName(CupFormat format) =>
+        format == CupFormat.RoundRobin ? L["Lig usulü (herkes herkesle)"] : L["Eleme usulü"];
+
+    private string StatusName(CupStatus status) => status switch
+    {
+        CupStatus.Draft => L["Taslak"],
+        CupStatus.Running => L["Devam ediyor"],
+        _ => L["Bitti"]
+    };
+
+    private static string StatusCss(CupStatus status) => status switch
+    {
+        CupStatus.Draft => "reserved",
+        CupStatus.Running => "inuse",
+        _ => "available"
+    };
+
+    private void Edit(Cup cup) =>
+        _form = new FormModel
+        {
+            Id = cup.Id,
+            Name = cup.Name,
+            Description = cup.Description,
+            Format = cup.Format,
+            StartDate = cup.StartDate,
+            EndDate = cup.EndDate,
+            MaxInnings = cup.MaxInnings,
+            CanChangeFormat = cup.Status == CupStatus.Draft
+        };
+
+    private void ResetForm() => _form = new FormModel();
+
+    private Task SaveAsync() => RunAsync(async () =>
+    {
+        await Db.RunAsync((CupService s) => s.UpsertAsync(
+            _tenant!.OrganizationId, _form.Id, _form.Name, _form.Description, _form.StartDate, _form.EndDate, _form.Format, _form.MaxInnings));
+        ResetForm();
+    });
+
+    private Task DeleteAsync(int id) => RunAsync(async () =>
+    {
+        await Db.RunAsync((CupService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+        _confirmDelete = null;
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            _error = L.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+    }
+
+    private class FormModel
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+        public CupFormat Format { get; set; } = CupFormat.RoundRobin;
+        public DateOnly StartDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+        public DateOnly? EndDate { get; set; }
+        public int? MaxInnings { get; set; }
+        public bool CanChangeFormat { get; set; } = true;
+    }
+}

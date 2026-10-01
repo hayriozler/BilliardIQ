@@ -1,4 +1,4 @@
-namespace BilliardIQ.Mobile.Graphics;
+namespace BillardIQ.Mobile.Graphics;
 
 // Bar chart of points scored per fixed-width time bucket (e.g. every 5 minutes) within a single
 // match. Values must already be zero-filled/dense — match_score_stat rows are sparse (no row for

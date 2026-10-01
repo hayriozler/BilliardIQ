@@ -2,6 +2,7 @@
   <Project Path="docker-compose.dcproj">
     <Build />
   </Project>
-  <Project Path="Scoreboard.Client/Zeymera.BillardIQ.Client.csproj" />
-  <Project Path="Scoreboard.WebApp/Zeymera.BillardIQ.WebApp.csproj" />
+  <Project Path="Mobile/BilliardIQ.Mobile/BilliardIQ.Mobile.csproj" />
+  <Project Path="Scoreboard.Client/Scoreboard.Client.csproj" />
+  <Project Path="Scoreboard.WebApp/Scoreboard.WebApp.csproj" />
 </Solution>

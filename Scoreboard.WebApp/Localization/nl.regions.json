@@ -1,0 +1,14 @@
+{
+  "Bölge": "Regio",
+  "Bölgeler": "Regio's",
+  "Bölge tanımlayın": "Definieer een regio",
+  "Oyuncuların bağlı olduğu bölgeleri bir kez tanımlayın; oyuncu formunda listeden seçilir.": "Stel de regio's waartoe uw spelers behoren één keer in; in het spelersformulier kiest u ze uit een lijst.",
+  "Yeni bölge": "Nieuwe regio",
+  "Bölgeyi düzenle": "Regio bewerken",
+  "Henüz bölge yok.": "Nog geen regio's.",
+  "Bölge adı gerekli.": "De naam van de regio is verplicht.",
+  "Bölge adı en fazla 150 karakter olabilir.": "De naam van de regio mag maximaal 150 tekens bevatten.",
+  "Bölge bulunamadı.": "Regio niet gevonden.",
+  "Bu isimde bir bölge zaten var.": "Er bestaat al een regio met deze naam.",
+  "Oyuncusu olan bölge silinemez. Önce oyuncuların bölgesini değiştirin.": "Een regio met spelers kan niet worden verwijderd. Wijzig eerst de regio van de spelers."
+}

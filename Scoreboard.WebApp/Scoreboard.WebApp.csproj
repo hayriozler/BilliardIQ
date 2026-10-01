@@ -11,6 +11,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="Scoreboard.WebApp.Domain" />
+  </ItemGroup>
+
+  <!-- Legacy int-keyed models + old migration, superseded by Domain/ (kept on disk, excluded from the build) -->
+  <ItemGroup>
+    <Compile Remove="Models\Club.cs;Models\Player.cs;Models\Team.cs;Models\TeamPlayer.cs;Models\ScoreboardClient.cs;Models\MatchResult.cs;Models\ScoreEvent.cs;Migrations\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Localization/*.json" LogicalName="Localization.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Avatars/animals.json" LogicalName="Avatars.animals.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

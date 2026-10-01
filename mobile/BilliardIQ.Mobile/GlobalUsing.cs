@@ -1,3 +1,3 @@
 ﻿global using Fonts;
-global using BilliardIQ.Mobile.Pages.BasePages;
-global using BilliardIQ.Mobile.PageModels.BasePageModels;
+global using BillardIQ.Mobile.Pages.BasePages;
+global using BillardIQ.Mobile.PageModels.BasePageModels;

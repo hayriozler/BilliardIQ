@@ -1,4 +1,4 @@
-namespace BilliardIQ.Mobile.Models;
+namespace Mobile.Models;
 
 public enum ConnectionType
 {

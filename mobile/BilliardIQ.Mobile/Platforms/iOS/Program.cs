@@ -1,7 +1,7 @@
 ﻿using ObjCRuntime;
 using UIKit;
 
-namespace BilliardIQ.Mobile.Platforms.iOS;
+namespace BillardIQ.Mobile.Platforms.iOS;
 
 public class Program
 {

@@ -39,6 +39,23 @@
     font-family: "Segoe UI", Roboto, Arial, sans-serif;
 }
 
+.board-takeover {
+    margin-left: 2vw;
+    padding: 0.8vh 2vw;
+    font-size: clamp(1rem, 2vw, 1.6rem);
+    font-weight: 700;
+    border-radius: 0.5rem;
+    border: 2px solid #f2f2f2;
+    background: transparent;
+    color: #f2f2f2;
+    cursor: pointer;
+}
+
+.board-takeover:hover {
+    background: #f2f2f2;
+    color: #000;
+}
+
 .board-occupied-message {
     font-size: clamp(1.2rem, 3vw, 2.4rem);
     font-weight: 800;
@@ -46,8 +63,6 @@
     text-align: center;
     padding: 0 4vw;
 }
-
-/* ---------- Header ---------- */
 
 .board-header {
     display: flex;
@@ -89,6 +104,15 @@
     flex: 0 0 auto;
 }
 
+.header-org {
+    font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--label-gray);
+    white-space: nowrap;
+}
+
 .title {
     margin: 0;
     font-size: clamp(1.6rem, 3.8vw, 3rem);
@@ -123,8 +147,6 @@
     background: var(--red);
 }
 
-/* ---------- Shot clock ---------- */
-
 .shot-clock {
     position: fixed;
     left: 0;
@@ -153,8 +175,6 @@
 .shot-clock.urgent .shot-clock-value {
     color: var(--red);
 }
-
-/* ---------- Scores ---------- */
 
 .scores {
     flex: 1;
@@ -200,7 +220,44 @@
     gap: 0.5em;
 }
 
+.team-avatar {
+    width: clamp(1.4rem, 2.4vw, 2.2rem);
+    height: clamp(1.4rem, 2.4vw, 2.2rem);
+    border-radius: 22%;
+    object-fit: cover;
+}
+
+.picker-row:disabled,
+.picker-row.taken {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.picker-taken-note {
+    margin-left: auto;
+    font-size: 0.75em;
+    opacity: 0.8;
+}
+
+.notice-toast {
+    position: fixed;
+    top: 1.2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    padding: 0.7rem 1.4rem;
+    border-radius: 0.6rem;
+    background: #b91c1c;
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
 .player-team {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
     text-align: center;
     padding: 0.5vh 0;
     font-size: clamp(0.8rem, 1.5vw, 1.1rem);
@@ -342,8 +399,6 @@
     background: var(--red-dark);
 }
 
-/* ---------- Stat bar ---------- */
-
 .stat-bar {
     display: grid;
     grid-template-columns: 1fr minmax(180px, 0.6fr) 1fr;
@@ -386,27 +441,6 @@
 
 .stat-value.current {
     color: var(--red);
-}
-
-/* ---------- Status + controls ---------- */
-
-.sync-dot {
-    position: fixed;
-    right: 1.2vw;
-    bottom: 1.2vh;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    opacity: 0.55;
-    background: #666;
-}
-
-.sync-dot.online {
-    background: #2ecc71;
-}
-
-.sync-dot.offline {
-    background: #666;
 }
 
 .controls-overlay {

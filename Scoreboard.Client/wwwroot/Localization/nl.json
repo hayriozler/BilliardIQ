@@ -26,5 +26,8 @@
   "NoPlayersInRoster": "Nog geen spelers in de kaartenbak - voeg er een toe op de Spelers-pagina.",
   "UseManualNameInstead": "Gebruik in plaats daarvan een handmatige naam",
   "Close": "Sluiten",
-  "BoardOccupiedElsewhere": "Dit bord is al open in een ander venster."
+  "BoardOccupiedElsewhere": "Dit bord is al open in een ander venster.",
+  "PlayerAlreadySelected": "Deze speler is al aan de andere kant gekozen.",
+  "OtherSide": "andere kant",
+  "TakeOverBoard": "Hier openen"
 }

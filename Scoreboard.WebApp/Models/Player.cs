@@ -4,7 +4,7 @@ public class Player
 {
     public int Id { get; set; }
 
-    public int ClubId { get; set; }
+    public int? ClubId { get; set; }
 
     public Club? Club { get; set; }
 

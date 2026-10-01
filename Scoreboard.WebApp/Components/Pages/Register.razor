@@ -1,0 +1,134 @@
+@page "/register"
+
+<PageTitle>@L["Salon kaydı"] • BillardIQ</PageTitle>
+
+<div class="auth-card">
+    <div class="brand-row">
+        <img class="brand-logo" src="images/zeymera-ram.png" alt="Zeymera" />
+        <span>BillardIQ</span>
+    </div>
+
+    <h1>@L["Salonunuzu kaydedin"]</h1>
+    <p class="muted">@L["Salon ve yönetici hesabı birkaç saniyede hazır olur. Masaları ve fiyatları kayıttan sonra tanımlarsınız."]</p>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert error">@Error</div>
+    }
+
+    <form method="post" action="/register">
+        <label class="field">@L["Salon adı"]
+            <input type="text" name="organization" value="@Organization" required autofocus />
+        </label>
+        <label class="field">@L["Ad soyad"]
+            <input type="text" name="name" value="@Name" autocomplete="name" required />
+        </label>
+        <label class="field">@L["E-posta"]
+            <input type="email" name="email" value="@Email" autocomplete="username" required />
+        </label>
+        <label class="field">@L["Şifre (en az {0} karakter)", AuthService.MinPasswordLength]
+            <input type="password" name="password" autocomplete="new-password" required minlength="@AuthService.MinPasswordLength" />
+        </label>
+        <div class="form-row">
+            <label class="field">@L["Ülke"]
+                <select name="country" @onchange="OnCountryChanged">
+                    @foreach (var entry in CountryCatalog.All)
+                    {
+                        <option value="@entry.Code" selected="@(entry.Code == _country)">@entry.NameIn(Loc.Current)</option>
+                    }
+                </select>
+            </label>
+            <label class="field">@L["Para birimi"]
+                <select name="currency">
+                    @foreach (var cur in CountryCatalog.Currencies)
+                    {
+                        <option value="@cur" selected="@(cur == _currency)">@cur</option>
+                    }
+                </select>
+            </label>
+        </div>
+        <label class="field">@L["Salon dili"]
+            <select name="language" @onchange="OnLanguageChanged">
+                @foreach (var (lang, label) in Loc.Languages)
+                {
+                    <option value="@lang" selected="@(lang == _language)">@label</option>
+                }
+            </select>
+        </label>
+        <p class="hint">@L["Dil varsayılan olarak ülkeye göre seçilir, isterseniz değiştirebilirsiniz. Şehirler ve bölgeler seçilen ülkeye göre hazırlanır."]</p>
+        <button type="submit" class="primary">@L["Salonu oluştur"]</button>
+    </form>
+
+    <div class="switch">@L["Zaten hesabınız var mı?"] <a href="/login">@L["Giriş yapın"]</a></div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    [SupplyParameterFromQuery(Name = "organization")]
+    public string? Organization { get; set; }
+
+    [SupplyParameterFromQuery(Name = "name")]
+    public string? Name { get; set; }
+
+    [SupplyParameterFromQuery(Name = "email")]
+    public string? Email { get; set; }
+
+    [SupplyParameterFromQuery(Name = "country")]
+    public string? Country { get; set; }
+
+    [SupplyParameterFromQuery(Name = "currency")]
+    public string? Currency { get; set; }
+
+    private string _country = "TR";
+    private string _currency = "TRY";
+    private bool _initialized;
+
+    [SupplyParameterFromQuery(Name = "language")]
+    public string? Language { get; set; }
+
+    private string _language = "tr";
+    private bool _languageChosen;
+
+    protected override void OnParametersSet()
+    {
+        if (_initialized)
+        {
+            return;
+        }
+
+        _initialized = true;
+        var entry = CountryCatalog.Find(Country) ?? CountryCatalog.Find(CountryCatalog.DefaultFor(Loc.Current))!;
+        _country = entry.Code;
+        _currency = CountryCatalog.IsCurrency(Currency) ? Currency!.ToUpperInvariant() : entry.Currency;
+        _languageChosen = Loc.IsSupported(Language);
+        _language = _languageChosen ? Language! : entry.Language;
+    }
+
+    private void OnCountryChanged(ChangeEventArgs e)
+    {
+        var entry = CountryCatalog.Find(e.Value?.ToString());
+        if (entry is null)
+        {
+            return;
+        }
+
+        _country = entry.Code;
+        _currency = entry.Currency;
+        if (!_languageChosen)
+        {
+            _language = entry.Language;
+        }
+    }
+
+    private void OnLanguageChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (Loc.IsSupported(value))
+        {
+            _language = value!;
+            _languageChosen = true;
+        }
+    }
+}

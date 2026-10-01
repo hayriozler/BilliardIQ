@@ -1,6 +1,6 @@
-using BilliardIQ.Mobile.PageModels.PlayerPageModels;
+using BillardIQ.Mobile.PageModels.PlayerPageModels;
 
-namespace BilliardIQ.Mobile.Pages.Players;
+namespace BillardIQ.Mobile.Pages.Players;
 
 public partial class PlayerProfileViewPage : BasePage
 {

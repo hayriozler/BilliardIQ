@@ -1,4 +1,4 @@
-namespace BilliardIQ.Mobile.Models;
+namespace BillardIQ.Mobile.Models;
 
 public class MatchResult
 {

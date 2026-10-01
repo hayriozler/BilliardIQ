@@ -26,5 +26,8 @@
   "NoPlayersInRoster": "No players in the roster yet - add some on the Players page.",
   "UseManualNameInstead": "Use manual name instead",
   "Close": "Close",
-  "BoardOccupiedElsewhere": "This board is already open in another window."
+  "BoardOccupiedElsewhere": "This board is already open in another window.",
+  "PlayerAlreadySelected": "This player is already selected on the other side.",
+  "OtherSide": "other side",
+  "TakeOverBoard": "Open here"
 }

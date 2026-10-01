@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace Scoreboard.Client.Services;
 
@@ -12,12 +13,26 @@ public class LocalizationService(DataContext db)
         SetLang(language);
         LanguageChanged?.Invoke();
     }
-    public string GetLang => db.SettingsSet.First(p => p.Id == "Lang").Value;
+    public string GetLang => db.SettingsSet.AsNoTracking().First(p => p.Id == "Lang").Value;
     private void SetLang(string language)
     {
         var setting = db.SettingsSet.First(p => p.Id == "Lang");
         setting.Value = language;
         db.SaveChanges();
+        RenameSystemPlayers(db, language);
+    }
+
+    public static void RenameSystemPlayers(DataContext db, string language)
+    {
+        foreach (var slot in new[] { 1, 2 })
+        {
+            if (Values.TryGetValue(language, out var labels) && labels.TryGetValue($"Player{slot}Label", out var label))
+            {
+                db.PlayerSet
+                    .Where(p => p.IsSystem && p.SystemSlot == slot)
+                    .ExecuteUpdate(s => s.SetProperty(p => p.Name, label).SetProperty(p => p.Nickname, label));
+            }
+        }
     }
     public string T(string key) => Get(GetLang, key);
     private static Dictionary<string, Dictionary<string, string>> Load()

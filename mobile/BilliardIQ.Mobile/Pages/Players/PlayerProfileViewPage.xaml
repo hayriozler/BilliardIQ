@@ -2,11 +2,11 @@
 <basePage:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-             xmlns:basePage="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
-             xmlns:pages="clr-namespace:BilliardIQ.Mobile.Pages.Players"
-             xmlns:pagemodels="clr-namespace:BilliardIQ.Mobile.PageModels.PlayerPageModels"
+             xmlns:basePage="clr-namespace:BillardIQ.Mobile.Pages.BasePages"
+             xmlns:pages="clr-namespace:BillardIQ.Mobile.Pages.Players"
+             xmlns:pagemodels="clr-namespace:BillardIQ.Mobile.PageModels.PlayerPageModels"
              x:DataType="pagemodels:PlayerProfilePageModel"
-             x:Class="BilliardIQ.Mobile.Pages.Players.PlayerProfileViewPage"
+             x:Class="BillardIQ.Mobile.Pages.Players.PlayerProfileViewPage"
              x:Name="PlayerProfilePage"
              Title="{Binding L[Profile_Title]}">
 

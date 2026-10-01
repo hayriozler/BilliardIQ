@@ -1,4 +1,4 @@
-using Scoreboard.WebApp.Models;
+using Scoreboard.WebApp.Middlewares;
 using Scoreboard.WebApp.Requests;
 using Scoreboard.WebApp.Responses;
 using Scoreboard.WebApp.Services;
@@ -9,20 +9,18 @@ public static class ClubsEndpoints
 {
     public static RouteGroupBuilder MapClubsEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/clubs").WithTags("Clubs");
+        var group = app.MapGroup("/api/clubs").WithTags("Clubs").RequireAuthorization();
 
-        group.MapGet("/", async (ClubService clubs) =>
-            (await clubs.ListAsync()).Select(ToDto).ToList());
+        group.MapGet("/", (ScoreboardDataService data) =>
+            data.ListClubsAsync());
 
-        group.MapGet("/{id:int}", async (int id, ClubService clubs) =>
-            await clubs.GetAsync(id) is { } club ? Results.Ok(ToDto(club)) : Results.NotFound());
-
-        group.MapPost("/", async (CreateClubRequest request, ClubService clubs) =>
+        group.MapPost("/", async (UpsertClubRequest request, ClubService clubs, HttpContext context) =>
         {
             try
             {
-                var club = await clubs.CreateAsync(request.Name);
-                return Results.Created($"/api/clubs/{club.Id}", ToDto(club));
+                var club = await clubs.UpsertAsync(
+                    context.GetOrganizationId(), request.Id, request.Name, request.ShortName, request.City, request.PrimaryColor);
+                return Results.Ok(ToDto(club));
             }
             catch (ArgumentException ex)
             {
@@ -30,11 +28,20 @@ public static class ClubsEndpoints
             }
         });
 
-        group.MapDelete("/{id:int}", async (int id, ClubService clubs) =>
-            await clubs.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
+        group.MapDelete("/{id:int}", async (int id, ClubService clubs, HttpContext context) =>
+        {
+            try
+            {
+                return await clubs.DeleteAsync(context.GetOrganizationId(), id) ? Results.NoContent() : Results.NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(ex.Message);
+            }
+        });
 
         return group;
     }
 
-    private static ClubDto ToDto(Club club) => new(club.Id, club.Code, club.Name, club.CreatedAt);
+    private static ClubDto ToDto(Club club) => ScoreboardDataService.ToDto(club);
 }

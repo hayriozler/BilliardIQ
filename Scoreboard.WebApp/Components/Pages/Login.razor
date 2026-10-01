@@ -1,24 +1,42 @@
 @page "/login"
 
-<h1>Club Login</h1>
+<PageTitle>@L["Giriş"] • BillardIQ</PageTitle>
 
-@if (ShowError)
-{
-    <p class="error">Invalid club code.</p>
-}
-
-<form method="post" action="/login">
-    <div class="form-row">
-        <input type="text" name="code" placeholder="Club code" autocomplete="off" />
-        <button type="submit">Log in</button>
+<div class="auth-card">
+    <div class="brand-row">
+        <img class="brand-logo" src="images/zeymera-ram.png" alt="Zeymera" />
+        <span>BillardIQ</span>
     </div>
-</form>
 
-<p class="hint">No club yet? <a href="/clubs">Register one</a>.</p>
+    <h1>@L["Hoş geldiniz"]</h1>
+    <p class="muted">@L["Salon yönetim paneline giriş yapın."]</p>
+
+    @if (Error == "1")
+    {
+        <div class="alert error">@L["E-posta veya şifre hatalı."]</div>
+    }
+
+    <form method="post" action="/login">
+        <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+        <label class="field">@L["E-posta"]
+            <input type="email" name="email" value="@Email" autocomplete="username" required autofocus />
+        </label>
+        <label class="field">@L["Şifre"]
+            <input type="password" name="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit" class="primary">@L["Giriş yap"]</button>
+    </form>
+
+    <div class="switch">@L["Salonunuz henüz kayıtlı değil mi?"] <a href="/register">@L["Salon kaydı oluşturun"]</a></div>
+</div>
 
 @code {
     [SupplyParameterFromQuery(Name = "error")]
     public string? Error { get; set; }
 
-    private bool ShowError => Error == "1";
+    [SupplyParameterFromQuery(Name = "email")]
+    public string? Email { get; set; }
+
+    [SupplyParameterFromQuery(Name = "ReturnUrl")]
+    public string? ReturnUrl { get; set; }
 }
