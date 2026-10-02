@@ -145,11 +145,6 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         player.RegionId = regionId;
         player.CountryId = country?.Id;
         player.CityId = city?.Id;
-        if (country is not null)
-        {
-            player.Nationality = country.Name;
-            player.City = city?.Name;
-        }
         player.AvatarId = avatarId;
         player.Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
         player.Level = level;

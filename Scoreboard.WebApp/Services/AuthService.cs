@@ -1,8 +1,8 @@
-using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
 using Scoreboard.WebApp.Security;
+using System.Text;
 
 namespace Scoreboard.WebApp.Services;
 
@@ -13,12 +13,6 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
     private static readonly PasswordHasher<User> _hasher = new();
 
     public const int MinPasswordLength = 6;
-
-    public async Task<LoginResult?> LoginAsync(string email, string password)
-    {
-        var user = await VerifyAsync(email, password);
-        return user is null ? null : await LoginToAsync(user.Id, null);
-    }
 
     public async Task<User?> VerifyAsync(string email, string password)
     {

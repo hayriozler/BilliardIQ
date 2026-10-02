@@ -70,16 +70,6 @@ public static class Format
         _ => role.ToString()
     });
 
-    public static string PaymentMethod(PaymentMethod method) => Loc.Translate(method switch
-    {
-        Domain.PaymentMethod.Cash => "Nakit",
-        Domain.PaymentMethod.Card => "Kart",
-        Domain.PaymentMethod.Transfer => "Havale",
-        Domain.PaymentMethod.PrepaidBalance => "Bakiye",
-        Domain.PaymentMethod.Complimentary => "İkram",
-        _ => method.ToString()
-    });
-
     public static string Day(DayOfWeek day) => Loc.Translate(day switch
     {
         DayOfWeek.Monday => "Pzt",

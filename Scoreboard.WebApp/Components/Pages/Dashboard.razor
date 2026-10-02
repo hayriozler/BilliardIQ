@@ -428,7 +428,6 @@ else
 
     private async Task LoadAsync()
     {
-        var orgId = _tenant!.OrganizationId;
         _org = await Db.RunAsync((TableService s) => s.GetOrganizationAsync());
         _zone = PricingCalculator.ResolveTimeZone(_org.TimeZone);
         _views = await Db.RunAsync((TableService s) => s.ListAsync());
@@ -476,7 +475,6 @@ else
 
     private Task OpenOrderAsync(TableView view) => RunAsync(async () =>
     {
-        var orgId = _tenant!.OrganizationId;
         _menu = await Db.RunAsync((ProductService s) => s.ListProductsAsync());
         _menuCategories = (await Db.RunAsync((ProductService s) => s.ListCategoriesAsync()))
             .Where(c => _menu.Any(p => p.IsActive && p.CategoryId == c.Id)).ToList();
