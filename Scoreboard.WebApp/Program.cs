@@ -108,6 +108,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthentication().AddJwtBearer(JwtSettings.Scheme, options =>
 {
     options.MapInboundClaims = false;
+    options.Events = new JwtBearerEvents { OnTokenValidated = JwtSessionValidation.ValidateAsync };
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
