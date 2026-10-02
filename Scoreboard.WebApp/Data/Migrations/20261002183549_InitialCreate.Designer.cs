@@ -13,7 +13,7 @@ using Scoreboard.WebApp.Data;
 namespace Scoreboard.WebApp.Data.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20261001145526_InitialCreate")]
+    [Migration("20261002183549_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -25,6 +25,8 @@ namespace Scoreboard.WebApp.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.HasSequence("EntityChangeSeq");
 
             modelBuilder.Entity("Scoreboard.WebApp.Domain.Association", b =>
                 {
@@ -58,51 +60,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                         .HasFilter("\"DeletedAt\" IS NULL");
 
                     b.ToTable("Association");
-                });
-
-            modelBuilder.Entity("Scoreboard.WebApp.Domain.AuditLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int?>("ActorDeviceId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("ActorUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("AfterJson")
-                        .HasColumnType("text");
-
-                    b.Property<string>("BeforeJson")
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("EntityId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("EntityType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Ip")
-                        .HasColumnType("text");
-
-                    b.Property<int>("OrganizationId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AuditLog");
                 });
 
             modelBuilder.Entity("Scoreboard.WebApp.Domain.BilliardTable", b =>
@@ -273,6 +230,37 @@ namespace Scoreboard.WebApp.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("City");
+                });
+
+            modelBuilder.Entity("Scoreboard.WebApp.Domain.ClientSync", b =>
+                {
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TableId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("InstanceId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("LastFullSyncAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("LastSyncAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("PendingFull")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PendingKeys")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("OrganizationId", "TableId");
+
+                    b.ToTable("ClientSync");
                 });
 
             modelBuilder.Entity("Scoreboard.WebApp.Domain.Club", b =>
@@ -751,6 +739,37 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.ToTable("Device");
                 });
 
+            modelBuilder.Entity("Scoreboard.WebApp.Domain.EntityChange", b =>
+                {
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TableId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EntityName")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("Seq")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("nextval('\"EntityChangeSeq\"')");
+
+                    b.HasKey("OrganizationId", "TableId", "EntityName", "EntityId");
+
+                    b.ToTable("EntityChange");
+                });
+
             modelBuilder.Entity("Scoreboard.WebApp.Domain.Inning", b =>
                 {
                     b.Property<int>("Id")
@@ -1182,8 +1201,8 @@ namespace Scoreboard.WebApp.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<decimal>("UnitPriceSnapshot")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1217,11 +1236,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.Property<string>("ClientId")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)
@@ -1297,9 +1311,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.HasIndex("ClientId")
                         .IsUnique()
                         .HasFilter("\"ClientId\" IS NOT NULL");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
 
                     b.HasIndex("DefaultRuleSetId");
 
@@ -1617,6 +1628,50 @@ namespace Scoreboard.WebApp.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Scoreboard.WebApp.Domain.PlayerInvite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("PlayerId");
+
+                    b.ToTable("PlayerInvite");
+                });
+
             modelBuilder.Entity("Scoreboard.WebApp.Domain.PlayerOrganizationStats", b =>
                 {
                     b.Property<int>("PlayerId")
@@ -1815,8 +1870,8 @@ namespace Scoreboard.WebApp.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
 
                     b.Property<string>("Sku")
                         .HasColumnType("text");
@@ -1920,6 +1975,60 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.HasIndex("PlayerId");
 
                     b.ToTable("RatingHistory");
+                });
+
+            modelBuilder.Entity("Scoreboard.WebApp.Domain.RefreshToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("OrganizationId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("RotatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshToken");
                 });
 
             modelBuilder.Entity("Scoreboard.WebApp.Domain.Region", b =>
@@ -2912,6 +3021,9 @@ namespace Scoreboard.WebApp.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("OrganizationId")
                         .HasColumnType("integer");
 
@@ -2920,6 +3032,11 @@ namespace Scoreboard.WebApp.Data.Migrations
 
                     b.Property<string>("Phone")
                         .HasColumnType("text");
+
+                    b.Property<string>("SecurityStamp")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -3641,6 +3758,17 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Scoreboard.WebApp.Domain.PlayerInvite", b =>
+                {
+                    b.HasOne("Scoreboard.WebApp.Domain.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Player");
+                });
+
             modelBuilder.Entity("Scoreboard.WebApp.Domain.PlayerOrganizationStats", b =>
                 {
                     b.HasOne("Scoreboard.WebApp.Domain.Organization", "Organization")
@@ -3759,6 +3887,17 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.Navigation("Match");
 
                     b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Scoreboard.WebApp.Domain.RefreshToken", b =>
+                {
+                    b.HasOne("Scoreboard.WebApp.Domain.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Scoreboard.WebApp.Domain.Region", b =>

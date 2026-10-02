@@ -13,26 +13,24 @@ namespace Scoreboard.WebApp.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateSequence(
+                name: "EntityChangeSeq");
+
             migrationBuilder.CreateTable(
-                name: "AuditLog",
+                name: "ClientSync",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     OrganizationId = table.Column<int>(type: "integer", nullable: false),
-                    ActorUserId = table.Column<int>(type: "integer", nullable: true),
-                    ActorDeviceId = table.Column<int>(type: "integer", nullable: true),
-                    EntityType = table.Column<string>(type: "text", nullable: false),
-                    EntityId = table.Column<int>(type: "integer", nullable: false),
-                    Action = table.Column<string>(type: "text", nullable: false),
-                    BeforeJson = table.Column<string>(type: "text", nullable: true),
-                    AfterJson = table.Column<string>(type: "text", nullable: true),
-                    Ip = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    TableId = table.Column<int>(type: "integer", nullable: false),
+                    InstanceId = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    PendingFull = table.Column<bool>(type: "boolean", nullable: false),
+                    PendingKeys = table.Column<string>(type: "text", nullable: false),
+                    LastSyncAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    LastFullSyncAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AuditLog", x => x.Id);
+                    table.PrimaryKey("PK_ClientSync", x => new { x.OrganizationId, x.TableId });
                 });
 
             migrationBuilder.CreateTable(
@@ -50,6 +48,23 @@ namespace Scoreboard.WebApp.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Country", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EntityChange",
+                columns: table => new
+                {
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    TableId = table.Column<int>(type: "integer", nullable: false),
+                    EntityName = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    EntityId = table.Column<int>(type: "integer", nullable: false),
+                    Seq = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('\"EntityChangeSeq\"')"),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    ChangedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EntityChange", x => new { x.OrganizationId, x.TableId, x.EntityName, x.EntityId });
                 });
 
             migrationBuilder.CreateTable(
@@ -156,7 +171,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Slug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
                     ClientId = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     LegalName = table.Column<string>(type: "text", nullable: true),
                     TaxNumber = table.Column<string>(type: "text", nullable: true),
@@ -536,12 +550,14 @@ namespace Scoreboard.WebApp.Data.Migrations
                     Email = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     Phone = table.Column<string>(type: "text", nullable: true),
                     PasswordHash = table.Column<string>(type: "text", nullable: true),
+                    SecurityStamp = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     DisplayName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     AvatarUrl = table.Column<string>(type: "text", nullable: true),
                     Locale = table.Column<string>(type: "text", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     LastLoginAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     IsPlatformAdmin = table.Column<bool>(type: "boolean", nullable: false),
+                    MustChangePassword = table.Column<bool>(type: "boolean", nullable: false),
                     OrganizationId = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -634,7 +650,7 @@ namespace Scoreboard.WebApp.Data.Migrations
                     CategoryId = table.Column<int>(type: "integer", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Sku = table.Column<string>(type: "text", nullable: true),
-                    Price = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    Price = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
                     VatRate = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     TrackStock = table.Column<bool>(type: "boolean", nullable: false),
                     StockQuantity = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: true),
@@ -764,6 +780,35 @@ namespace Scoreboard.WebApp.Data.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Player_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RefreshToken",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: true),
+                    TokenHash = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    DeviceName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    ExpiresAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    RevokedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    RotatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    LastUsedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RefreshToken", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RefreshToken_User_UserId",
                         column: x => x.UserId,
                         principalTable: "User",
                         principalColumn: "Id",
@@ -1021,6 +1066,32 @@ namespace Scoreboard.WebApp.Data.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_CustomerMembership_Player_PlayerId",
+                        column: x => x.PlayerId,
+                        principalTable: "Player",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PlayerInvite",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrganizationId = table.Column<int>(type: "integer", nullable: false),
+                    PlayerId = table.Column<int>(type: "integer", nullable: false),
+                    Code = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    ExpiresAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UsedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PlayerInvite", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PlayerInvite_Player_PlayerId",
                         column: x => x.PlayerId,
                         principalTable: "Player",
                         principalColumn: "Id",
@@ -1680,7 +1751,7 @@ namespace Scoreboard.WebApp.Data.Migrations
                     SessionId = table.Column<int>(type: "integer", nullable: true),
                     ProductId = table.Column<int>(type: "integer", nullable: false),
                     ProductNameSnapshot = table.Column<string>(type: "text", nullable: false),
-                    UnitPriceSnapshot = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    UnitPriceSnapshot = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
                     VatRateSnapshot = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     Quantity = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
                     DiscountAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
@@ -2138,12 +2209,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                 filter: "\"ClientId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Organization_Code",
-                table: "Organization",
-                column: "Code",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Organization_DefaultRuleSetId",
                 table: "Organization",
                 column: "DefaultRuleSetId");
@@ -2256,6 +2321,17 @@ namespace Scoreboard.WebApp.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_PlayerInvite_Code",
+                table: "PlayerInvite",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PlayerInvite_PlayerId",
+                table: "PlayerInvite",
+                column: "PlayerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PlayerOrganizationStats_OrganizationId",
                 table: "PlayerOrganizationStats",
                 column: "OrganizationId");
@@ -2289,6 +2365,17 @@ namespace Scoreboard.WebApp.Data.Migrations
                 name: "IX_RatingHistory_PlayerId",
                 table: "RatingHistory",
                 column: "PlayerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RefreshToken_TokenHash",
+                table: "RefreshToken",
+                column: "TokenHash",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RefreshToken_UserId",
+                table: "RefreshToken",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Region_CountryId_Name",
@@ -2621,7 +2708,7 @@ namespace Scoreboard.WebApp.Data.Migrations
                 table: "Reservation");
 
             migrationBuilder.DropTable(
-                name: "AuditLog");
+                name: "ClientSync");
 
             migrationBuilder.DropTable(
                 name: "ClubMembership");
@@ -2631,6 +2718,9 @@ namespace Scoreboard.WebApp.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "CupRuleBlock");
+
+            migrationBuilder.DropTable(
+                name: "EntityChange");
 
             migrationBuilder.DropTable(
                 name: "Inning");
@@ -2663,6 +2753,9 @@ namespace Scoreboard.WebApp.Data.Migrations
                 name: "Payment");
 
             migrationBuilder.DropTable(
+                name: "PlayerInvite");
+
+            migrationBuilder.DropTable(
                 name: "PlayerOrganizationStats");
 
             migrationBuilder.DropTable(
@@ -2670,6 +2763,9 @@ namespace Scoreboard.WebApp.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "RatingHistory");
+
+            migrationBuilder.DropTable(
+                name: "RefreshToken");
 
             migrationBuilder.DropTable(
                 name: "SeasonTeam");
@@ -2775,6 +2871,9 @@ namespace Scoreboard.WebApp.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "Country");
+
+            migrationBuilder.DropSequence(
+                name: "EntityChangeSeq");
         }
     }
 }
