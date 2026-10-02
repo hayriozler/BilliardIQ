@@ -11,11 +11,11 @@ set -euo pipefail
 # ~/.config/labwc/autostart) were both tried first and silently did not fire - don't revert
 # to those without re-verifying on the actual target image.
 #
-# Run this ON the Pi as the app's service user (e.g. `admin`), after zeymera-scoreboard is
+# Run this ON the Pi as the app's service user (e.g. `admin`), after billiardiq-scoreboard is
 # deployed to APP_DIR below:
 #   bash setup-autostart.sh
 
-APP_DIR="/home/admin/zeymera-scoreboard"
+APP_DIR="/home/admin/billiardiq-scoreboard"
 AUTOSTART_FILE="/etc/xdg/labwc/autostart"
 
 # Output redirected to a log file - boot-time autostart failures are otherwise completely

@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Localization;
@@ -27,6 +30,21 @@ builder.Services.AddDbContext<DataContext>(options =>
 
 builder.Services.AddSingleton<Loc>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<MobileAuthService>();
+
+var jwt = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
+if (string.IsNullOrWhiteSpace(jwt.Key) && builder.Environment.IsDevelopment())
+{
+    jwt.Key = "development-only-signing-key-change-me-0123456789";
+}
+
+if (jwt.Key.Length < 32)
+{
+    throw new InvalidOperationException("Jwt:Key must be configured with at least 32 characters.");
+}
+
+builder.Services.AddSingleton(jwt);
+builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddScoped<ClubService>();
 builder.Services.AddScoped<TeamService>();
 builder.Services.AddScoped<PlayerService>();
@@ -85,7 +103,41 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             return Task.CompletedTask;
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthentication().AddJwtBearer(JwtSettings.Scheme, options =>
+{
+    options.MapInboundClaims = false;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = jwt.Issuer,
+        ValidateAudience = true,
+        ValidAudience = jwt.Audience,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = jwt.SigningKey,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromMinutes(1),
+        NameClaimType = ClaimTypes.Name,
+        RoleClaimType = ClaimTypes.Role
+    };
+});
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(JwtSettings.MobileAnyPolicy, policy => policy
+        .AddAuthenticationSchemes(JwtSettings.Scheme)
+        .RequireAuthenticatedUser())
+    .AddPolicy(JwtSettings.MobilePolicy, policy => policy
+        .AddAuthenticationSchemes(JwtSettings.Scheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.HasOrganization() && c.User.FindFirst(MobileClaims.MustChangePassword) is null))
+    .AddPolicy(JwtSettings.MobileManagerPolicy, policy => policy
+        .AddAuthenticationSchemes(JwtSettings.Scheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.HasOrganization() && c.User.FindFirst(MobileClaims.MustChangePassword) is null
+            && (c.User.IsInRole(MobileClaims.Admin) || c.User.IsInRole(MobileClaims.Manager))))
+    .AddPolicy(JwtSettings.MobilePlayerPolicy, policy => policy
+        .AddAuthenticationSchemes(JwtSettings.Scheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.HasOrganization() && c.User.FindFirst(MobileClaims.MustChangePassword) is null
+            && c.User.IsInRole(MobileClaims.Player)));
 builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddRazorComponents()
@@ -189,6 +241,7 @@ app.MapTeamsEndpoints();
 app.MapAuthEndpoints();
 app.MapOrganizationEndpoints();
 app.MapScoreboardEndpoints();
+app.MapMobileEndpoints();
 
 app.MapPost("/culture", async (HttpContext context, DataContext db, SystemPlayerService systemPlayers, [FromForm] string lang, [FromForm] string? returnUrl) =>
 {

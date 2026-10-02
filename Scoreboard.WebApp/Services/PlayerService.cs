@@ -11,6 +11,7 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             .Include(p => p.Region)
             .Include(p => p.CountryRef)
             .Include(p => p.CityRef)
+            .Include(p => p.User)
             .Where(p => p.DeletedAt == null)
             .OrderBy(p => p.DisplayName)
             .ToListAsync();
@@ -152,29 +153,61 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
 
         await db.SaveChangesAsync();
 
-        if (!string.IsNullOrEmpty(photoBase64))
-        {
-            byte[] bytes;
-            try
-            {
-                bytes = Convert.FromBase64String(photoBase64);
-            }
-            catch (FormatException)
-            {
-                throw new ArgumentException("Geçersiz fotoğraf verisi.");
-            }
-
-            var extension = string.IsNullOrWhiteSpace(photoExtension) ? "jpg" : photoExtension.TrimStart('.');
-            var folder = Path.Combine(env.WebRootPath, "Players", db.CurrentOrganizationId.ToString());
-            Directory.CreateDirectory(folder);
-            var fileName = $"{player.Id}.{extension}";
-            await File.WriteAllBytesAsync(Path.Combine(folder, fileName), bytes);
-            player.PhotoUrl = $"Players/{db.CurrentOrganizationId}/{fileName}";
-
-            await db.SaveChangesAsync();
-        }
+        await SavePhotoAsync(player, photoBase64, photoExtension);
 
         return player;
+    }
+
+    public async Task<Player> UpdateOwnProfileAsync(int playerId, string name, string? nickname, int? avatarId, string? photoBase64, string? photoExtension)
+    {
+        if (avatarId is < 0 || avatarId >= AvatarGenerator.Count)
+        {
+            throw new ArgumentException("Geçersiz avatar.");
+        }
+
+        name = name.Trim();
+        if (name.Length == 0 && string.IsNullOrWhiteSpace(nickname))
+        {
+            throw new ArgumentException("Ad veya takma ad gerekli.");
+        }
+
+        var player = await GetAsync(playerId) ?? throw new ArgumentException("Oyuncu bulunamadı.");
+        var (first, last) = SplitName(name);
+        player.FirstName = first;
+        player.LastName = last;
+        player.Nickname = string.IsNullOrWhiteSpace(nickname) ? null : nickname.Trim();
+        player.DisplayName = player.Nickname ?? name;
+        player.AvatarId = avatarId;
+        await db.SaveChangesAsync();
+        await SavePhotoAsync(player, photoBase64, photoExtension);
+        return player;
+    }
+
+    private async Task SavePhotoAsync(Player player, string? photoBase64, string? photoExtension)
+    {
+        if (string.IsNullOrEmpty(photoBase64))
+        {
+            return;
+        }
+
+        byte[] bytes;
+        try
+        {
+            bytes = Convert.FromBase64String(photoBase64);
+        }
+        catch (FormatException)
+        {
+            throw new ArgumentException("Geçersiz fotoğraf verisi.");
+        }
+
+        var extension = string.IsNullOrWhiteSpace(photoExtension) ? "jpg" : photoExtension.TrimStart('.');
+        var folder = Path.Combine(env.WebRootPath, "Players", db.CurrentOrganizationId.ToString());
+        Directory.CreateDirectory(folder);
+        var fileName = $"{player.Id}.{extension}";
+        await File.WriteAllBytesAsync(Path.Combine(folder, fileName), bytes);
+        player.PhotoUrl = $"Players/{db.CurrentOrganizationId}/{fileName}";
+
+        await db.SaveChangesAsync();
     }
 
     public async Task<bool> DeleteAsync(int id)

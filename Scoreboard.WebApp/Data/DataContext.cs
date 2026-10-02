@@ -22,6 +22,8 @@ public class DataContext : DbContext
     public DbSet<Device> DeviceSet => Set<Device>();
 
     public DbSet<Player> PlayerSet => Set<Player>();
+    public DbSet<RefreshToken> RefreshTokenSet => Set<RefreshToken>();
+    public DbSet<PlayerInvite> PlayerInviteSet => Set<PlayerInvite>();
     public DbSet<Club> ClubSet => Set<Club>();
     public DbSet<Association> AssociationSet => Set<Association>();
     public DbSet<Region> RegionSet => Set<Region>();
@@ -123,6 +125,21 @@ public class DataContext : DbContext
             e.HasOne(u => u.Organization).WithMany().HasForeignKey(u => u.OrganizationId);
             e.Property(u => u.DisplayName).HasMaxLength(200);
             e.HasOne(u => u.Player).WithOne(p => p.User).HasForeignKey<Player>(p => p.UserId);
+        });
+
+        modelBuilder.Entity<RefreshToken>(e =>
+        {
+            e.HasIndex(t => t.TokenHash).IsUnique();
+            e.Property(t => t.TokenHash).HasMaxLength(100);
+            e.Property(t => t.DeviceName).HasMaxLength(100);
+            e.HasOne(t => t.User).WithMany().HasForeignKey(t => t.UserId);
+        });
+
+        modelBuilder.Entity<PlayerInvite>(e =>
+        {
+            e.HasIndex(i => i.Code).IsUnique();
+            e.Property(i => i.Code).HasMaxLength(20);
+            e.HasOne(i => i.Player).WithMany().HasForeignKey(i => i.PlayerId);
         });
 
         modelBuilder.Entity<StaffMember>(e =>
@@ -342,6 +359,7 @@ public class DataContext : DbContext
         modelBuilder.Entity<BilliardTable>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<Device>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<Association>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<PlayerInvite>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<EntityChange>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<ClientSync>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<OrganizationCountry>().HasQueryFilter(e => e.OrganizationId == _organizationId);

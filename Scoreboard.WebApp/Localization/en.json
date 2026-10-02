@@ -358,5 +358,17 @@
   "Sistem oyuncusu değiştirilemez ve silinemez.": "System players cannot be edited or deleted.",
   "Sistem oyuncuları değiştirilemez.": "System players cannot be edited.",
   "Sistem oyuncuları silinemez.": "System players cannot be deleted.",
-  "Oyuncu {0}": "Player {0}"
+  "Oyuncu {0}": "Player {0}",
+  "Giriş hesabı": "Login account",
+  "Hesap": "Account",
+  "Hesap oluştur": "Create account",
+  "Davet kodu üret": "Generate invite code",
+  "Parolayı sıfırla": "Reset password",
+  "Geçici parola": "Temporary password",
+  "Davet kodu": "Invite code",
+  "Bu bilgiyi oyuncuya iletin. Geçici parola bir daha gösterilmez; oyuncu ilk girişte parolasını değiştirecek.": "Give this to the player. The temporary password is not shown again; the player will change it on first login.",
+  "Davet kodu {0} tarihine kadar geçerli. Oyuncu mobil uygulamada bu kodla kendi hesabını açar.": "The invite code is valid until {0}. The player creates their own account in the mobile app with this code.",
+  "Bu oyuncunun zaten bir hesabı var.": "This player already has an account.",
+  "Bu oyuncunun hesabı yok.": "This player has no account.",
+  "Davet kodu geçersiz veya süresi dolmuş.": "The invite code is invalid or has expired."
 }

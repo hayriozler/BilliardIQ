@@ -11,6 +11,7 @@ public class User : BaseEntity
     public UserStatus Status { get; set; }
     public DateTimeOffset? LastLoginAt { get; set; }
     public bool IsPlatformAdmin { get; set; }
+    public bool MustChangePassword { get; set; }
     public int? OrganizationId { get; set; }
 
     public Organization? Organization { get; set; }

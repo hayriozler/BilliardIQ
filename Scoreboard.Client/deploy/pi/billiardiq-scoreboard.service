@@ -1,0 +1,27 @@
+# systemd unit for the BilliardIQ Scoreboard kiosk app.
+#
+# publish-and-deploy.ps1 installs this file to /etc/systemd/system/ whenever it changed,
+# reloads systemd, enables the service, and starts it after copying the new binaries.
+#
+# WorkingDirectory matters at runtime, not just for finding the .dll: Program.cs creates
+# wwwroot/Db and wwwroot/Players relative to Directory.GetCurrentDirectory(), not relative
+# to the .dll's own location.
+
+[Unit]
+Description=BilliardIQ Scoreboard
+After=network.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/home/admin/billiardiq-scoreboard
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5288
+Environment=DOTNET_ROOT=/home/admin/.dotnet
+ExecStart=/home/admin/.dotnet/dotnet /home/admin/billiardiq-scoreboard/Scoreboard.Client.dll
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
