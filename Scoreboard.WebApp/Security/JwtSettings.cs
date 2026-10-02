@@ -19,7 +19,9 @@ public class JwtSettings
     public int AccessMinutes { get; set; } = 30;
     public int RefreshDays { get; set; } = 90;
 
-    public SymmetricSecurityKey SigningKey => new(Encoding.UTF8.GetBytes(Key));
+    private SymmetricSecurityKey? _signingKey;
+
+    public SymmetricSecurityKey SigningKey => _signingKey ??= new(Encoding.UTF8.GetBytes(Key));
 }
 
 public class JwtTokenService(JwtSettings settings)
