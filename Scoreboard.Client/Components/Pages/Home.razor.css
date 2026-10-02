@@ -506,6 +506,7 @@
 }
 
 .control-group select,
+.control-group input[type="number"],
 .control-group input[type="text"] {
     background: var(--red-dark);
     color: var(--white);
@@ -517,6 +518,14 @@
 
 .control-group input[type="text"] {
     width: 8rem;
+}
+
+.control-group input[type="number"] {
+    width: 3.4rem;
+    height: 1.5rem;
+    padding: 0 0.3rem;
+    font-size: 0.8rem;
+    text-align: center;
 }
 
 .control-group input[type="text"]::placeholder {

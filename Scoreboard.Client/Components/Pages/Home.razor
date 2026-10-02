@@ -213,7 +213,8 @@ else
             </div>
             <div class="control-group">
                 <span>@L.T("Match")</span>
-                <input type="number" min="1" value="@Current.MatchTarget"
+                <input type="number" class="match-target" min="@MinMatchTarget" max="@MaxMatchTarget" step="1" inputmode="numeric"
+                       @key="_matchInputKey" value="@Current.MatchTarget"
                        @onchange="e => SetMatchTargetFromInputAsync(e.Value?.ToString())" />
             </div>
             <div class="control-group">
@@ -729,7 +730,11 @@ else
         }
     }
 
-    private void SetMatchTarget(int target) => Current.MatchTarget = Math.Max(1, target);
+    private const int MinMatchTarget = 10;
+    private const int MaxMatchTarget = 100;
+    private int _matchInputKey;
+
+    private void SetMatchTarget(int target) => Current.MatchTarget = Math.Clamp(target, MinMatchTarget, MaxMatchTarget);
 
     private bool _showMatchEnd;
 
@@ -1116,8 +1121,15 @@ else
     private Task DispatchAsync(ScoreboardCommand command, object? payload = null) =>
         ApplyCommandsAsync([new ScoreboardCommandMessage(command, payload is null ? null : JsonSerializer.SerializeToElement(payload))]);
 
-    private Task SetMatchTargetFromInputAsync(string? value) =>
-        int.TryParse(value, out var target) ? DispatchAsync(ScoreboardCommand.SetMatchTarget, target) : Task.CompletedTask;
+    private async Task SetMatchTargetFromInputAsync(string? value)
+    {
+        if (int.TryParse(value, out var target))
+        {
+            await DispatchAsync(ScoreboardCommand.SetMatchTarget, target);
+        }
+
+        _matchInputKey++;
+    }
 
     private void ChangeActivePlayer(int player) => Current.ActivePlayer = player;
 
