@@ -5,7 +5,7 @@ namespace Scoreboard.Client.Services;
 
 public static class DbInitializerExtension
 {
-    public static IServiceProvider InitializeDbAsync(this IServiceProvider sp)
+    public static IServiceProvider InitializeDb(this IServiceProvider sp)
     {
         using var scope = sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<DataContext>();

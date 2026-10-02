@@ -5,10 +5,6 @@ export function requestFullscreen() {
     }
 }
 
-export function isFullscreen() {
-    return !!document.fullscreenElement;
-}
-
 let fireworksState = null;
 
 const fireworkPalettes = {

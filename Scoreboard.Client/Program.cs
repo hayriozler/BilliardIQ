@@ -72,7 +72,7 @@ builder.Services.AddHostedService<RemotePullService>();
 
 var app = builder.Build();
 app.UseAntiforgery();
-app.Services.InitializeDbAsync();
+app.Services.InitializeDb();
 app.UseStaticFiles();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

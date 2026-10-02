@@ -1,18 +1,13 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Scoreboard.Client.Services;
 
 public class LocalizationService(DataContext db)
 {
     public static readonly Dictionary<string, Dictionary<string, string>> Values = Load();
-    public event Action? LanguageChanged;
 
-    public void SetLanguage(string language)
-    {
-        SetLang(language);
-        LanguageChanged?.Invoke();
-    }
+    public void SetLanguage(string language) => SetLang(language);
     private static volatile string? _cachedLang;
 
     public static void InvalidateLanguage() => _cachedLang = null;
