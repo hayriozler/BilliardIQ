@@ -251,7 +251,7 @@ app.MapPost("/culture", async (HttpContext context, DataContext db, SystemPlayer
         {
             var organizationId = context.User.GetOrganizationId();
             await db.OrganizationSet.Where(o => o.Id == organizationId).ExecuteUpdateAsync(o => o.SetProperty(x => x.Language, lang));
-            await systemPlayers.RenameAsync(lang);
+            await systemPlayers.NotifyLanguageChangedAsync(organizationId);
         }
 
         context.Response.Cookies.Append(

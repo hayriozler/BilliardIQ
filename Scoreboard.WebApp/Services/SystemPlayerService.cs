@@ -9,21 +9,11 @@ public class SystemPlayerService(DataContext db)
 
     public static string NameFor(int slot, string language) => Loc.TranslateTo(language, NameKey, slot);
 
-    public async Task RenameAsync(string language)
+    public async Task NotifyLanguageChangedAsync(int organizationId)
     {
         foreach (var slot in new[] { 1, 2 })
         {
-            var name = NameFor(slot, language);
-            await db.PlayerSet
-                .Where(p => p.IsSystem && p.SystemSlot == slot)
-                .ExecuteUpdateAsync(s => s
-                    .SetProperty(p => p.FirstName, name)
-                    .SetProperty(p => p.DisplayName, name)
-                    .SetProperty(p => p.UpdatedAt, DateTimeOffset.UtcNow));
-            foreach (var organizationId in await db.OrganizationSet.AsNoTracking().Select(o => o.Id).ToListAsync())
-            {
-                await db.Database.ExecuteSqlInterpolatedAsync(EntityChangeSql.Upsert(organizationId, nameof(Player), slot, false));
-            }
+            await db.Database.ExecuteSqlInterpolatedAsync(EntityChangeSql.Upsert(organizationId, nameof(Player), slot, false));
         }
     }
 
