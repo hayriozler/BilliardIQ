@@ -471,6 +471,21 @@ else
             .ToList();
 
     private void TakeOverBoard() => Nav.NavigateTo("/?takeover=1", forceLoad: true);
+
+    private void OnBoardSessionReplaced(Guid replacedSessionId)
+    {
+        if (replacedSessionId != _sessionId)
+        {
+            return;
+        }
+
+        _ = InvokeAsync(() =>
+        {
+            _shotClockCts.Cancel();
+            _boardOccupiedElsewhere = true;
+            StateHasChanged();
+        });
+    }
     private Guid _sessionId;
 
     protected override async Task OnInitializedAsync()
@@ -488,6 +503,7 @@ else
 
         BoardTracker.SessionId = _sessionId;
         LanguageSync.Changed += OnServerLanguageChanged;
+        BoardSession.SessionReplaced += OnBoardSessionReplaced;
         UpdateDefaultPlayers();
         _ = RunShotClockAsync(_shotClockCts.Token);
         var game = await DbContext.ScoreboardStateSet.Where(p => p.Id == 1).FirstOrDefaultAsync();
@@ -1178,6 +1194,7 @@ else
     public async ValueTask DisposeAsync()
     {
         LanguageSync.Changed -= OnServerLanguageChanged;
+        BoardSession.SessionReplaced -= OnBoardSessionReplaced;
         BoardSession.Release(_sessionId);
         if (_boardOccupiedElsewhere)
         {
