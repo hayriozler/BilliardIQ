@@ -41,10 +41,12 @@ public record TeamStatDetail(Team Team, StatSummary Summary, IReadOnlyList<Playe
 
 public class StatsService(DataContext db)
 {
-    public async Task<List<PlayerStatRow>> PlayersAsync(DateTimeOffset? since = null)
+    public const int MaxBucketIndex = 35;
+
+    public async Task<List<PlayerStatRow>> PlayersAsync(DateTimeOffset? since = null, DateTimeOffset? until = null)
     {
         var players = await RosterPlayersAsync();
-        var entries = await EntriesByPlayerAsync(since, includeBuckets: false);
+        var entries = await EntriesByPlayerAsync(since, until, includeBuckets: false);
         return players
             .Select(p => new PlayerStatRow(p, Summarize(entries.GetValueOrDefault(p.Id) ?? [])))
             .OrderByDescending(r => r.Summary.Wins).ThenByDescending(r => r.Summary.Matches)
@@ -52,7 +54,7 @@ public class StatsService(DataContext db)
             .ToList();
     }
 
-    public async Task<PlayerStatDetail?> PlayerAsync(int playerId, DateTimeOffset? since = null)
+    public async Task<PlayerStatDetail?> PlayerAsync(int playerId, DateTimeOffset? since = null, DateTimeOffset? until = null)
     {
         var player = await db.PlayerSet.AsNoTracking()
             .Include(p => p.Association)
@@ -71,15 +73,15 @@ public class StatsService(DataContext db)
             player.Nickname = name;
         }
 
-        var entries = (await EntriesByPlayerAsync(since, includeBuckets: true, onlyPlayerId: playerId))
+        var entries = (await EntriesByPlayerAsync(since, until, includeBuckets: true, onlyPlayerId: playerId))
             .GetValueOrDefault(playerId) ?? [];
         return new PlayerStatDetail(player, Summarize(entries), entries);
     }
 
-    public async Task<List<TeamStatRow>> TeamsAsync(DateTimeOffset? since = null)
+    public async Task<List<TeamStatRow>> TeamsAsync(DateTimeOffset? since = null, DateTimeOffset? until = null)
     {
         var teams = await TeamsWithMembersAsync();
-        var entries = await EntriesByPlayerAsync(since, includeBuckets: false);
+        var entries = await EntriesByPlayerAsync(since, until, includeBuckets: false);
         return teams
             .Select(t =>
             {
@@ -91,7 +93,7 @@ public class StatsService(DataContext db)
             .ToList();
     }
 
-    public async Task<TeamStatDetail?> TeamAsync(int teamId, DateTimeOffset? since = null)
+    public async Task<TeamStatDetail?> TeamAsync(int teamId, DateTimeOffset? since = null, DateTimeOffset? until = null)
     {
         var team = (await TeamsWithMembersAsync()).FirstOrDefault(t => t.Id == teamId);
         if (team is null)
@@ -99,7 +101,7 @@ public class StatsService(DataContext db)
             return null;
         }
 
-        var entries = await EntriesByPlayerAsync(since, includeBuckets: false);
+        var entries = await EntriesByPlayerAsync(since, until, includeBuckets: false);
         var members = team.Members.Select(m => m.Player).DistinctBy(p => p.Id).ToList();
         var memberRows = members
             .Select(p => new PlayerStatRow(p, Summarize(entries.GetValueOrDefault(p.Id) ?? [])))
@@ -139,12 +141,17 @@ public class StatsService(DataContext db)
             .OrderBy(t => t.Name)
             .ToListAsync();
 
-    private async Task<Dictionary<int, List<PlayerMatchEntry>>> EntriesByPlayerAsync(DateTimeOffset? since, bool includeBuckets, int? onlyPlayerId = null)
+    private async Task<Dictionary<int, List<PlayerMatchEntry>>> EntriesByPlayerAsync(DateTimeOffset? since, DateTimeOffset? until, bool includeBuckets, int? onlyPlayerId = null)
     {
         var query = db.MatchStatSet.AsNoTracking();
         if (since is not null)
         {
             query = query.Where(s => s.PlayedAt >= since);
+        }
+
+        if (until is not null)
+        {
+            query = query.Where(s => s.PlayedAt < until);
         }
 
         if (onlyPlayerId is int only)
@@ -184,7 +191,7 @@ public class StatsService(DataContext db)
         var buckets = Array.Empty<int>();
         if (s.Buckets.Count > 0)
         {
-            var mine = s.Buckets.Where(b => b.PlayerSlot == slot).ToList();
+            var mine = s.Buckets.Where(b => b.PlayerSlot == slot && b.BucketIndex <= MaxBucketIndex).ToList();
             if (mine.Count > 0)
             {
                 buckets = new int[mine.Max(b => b.BucketIndex) + 1];

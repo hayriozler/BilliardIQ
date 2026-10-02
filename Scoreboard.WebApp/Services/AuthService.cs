@@ -1,28 +1,23 @@
-using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
+using Scoreboard.WebApp.Security;
+using System.Text;
 
 namespace Scoreboard.WebApp.Services;
 
 public record LoginResult(User User, StaffMember Staff, Organization Organization);
 
-public class AuthService(DataContext db, ClientIdService clientIds, OrganizationRunner runner)
+public class AuthService(DataContext db, ClientIdService clientIds, OrganizationRunner runner, LoginThrottle throttle, SessionRevalidator sessions)
 {
     private static readonly PasswordHasher<User> _hasher = new();
 
     public const int MinPasswordLength = 6;
 
-    public async Task<LoginResult?> LoginAsync(string email, string password)
-    {
-        var user = await VerifyAsync(email, password);
-        return user is null ? null : await LoginToAsync(user.Id, null);
-    }
-
     public async Task<User?> VerifyAsync(string email, string password)
     {
         email = NormalizeEmail(email);
-        if (email.Length == 0 || string.IsNullOrEmpty(password))
+        if (email.Length == 0 || string.IsNullOrEmpty(password) || throttle.IsLocked(email))
         {
             return null;
         }
@@ -30,14 +25,18 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         var user = await db.UserSet.FirstOrDefaultAsync(u => u.Email == email);
         if (user?.PasswordHash is null || user.Status != UserStatus.Active)
         {
+            throttle.RecordFailure(email);
             return null;
         }
 
         var verification = _hasher.VerifyHashedPassword(user, user.PasswordHash, password);
         if (verification == PasswordVerificationResult.Failed)
         {
+            throttle.RecordFailure(email);
             return null;
         }
+
+        throttle.Reset(email);
 
         if (verification == PasswordVerificationResult.SuccessRehashNeeded)
         {
@@ -128,7 +127,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         var staff = new StaffMember { Organization = organization, User = user, Roles = [StaffRole.Owner] };
 
         db.StaffMemberSet.Add(staff);
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Email", "Bu e-posta ile zaten bir hesap var.");
         await runner.RunAsync<GeoSeedService>(organization.Id, seed => seed.EnsureAsync(organization.Id));
         return new LoginResult(user, staff, organization);
     }
@@ -157,22 +156,28 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
 
         var staff = new StaffMember { OrganizationId = organizationId, User = user, Roles = [role] };
         db.StaffMemberSet.Add(staff);
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Email", "Bu e-posta zaten kullanılıyor.");
         return staff;
     }
 
-    public async Task SetStaffActiveAsync(int organizationId, int staffId, bool active)
+    public async Task SetStaffActiveAsync(int organizationId, int staffId, bool active, bool actorIsOwner)
     {
         var staff = await db.StaffMemberSet.FirstOrDefaultAsync(s => s.Id == staffId && s.OrganizationId == organizationId)
             ?? throw new ArgumentException("Personel bulunamadı.");
-        if (!active && staff.Roles.Contains(StaffRole.Owner) &&
-            await db.StaffMemberSet.CountAsync(s => s.OrganizationId == organizationId && s.IsActive && s.Id != staffId) == 0)
+        if (!actorIsOwner && (staff.Roles.Contains(StaffRole.Owner) || staff.Roles.Contains(StaffRole.Manager)))
         {
-            throw new ArgumentException("Son aktif kullanıcı devre dışı bırakılamaz.");
+            throw new ArgumentException("Yönetici ve sahip hesaplarını yalnızca bir sahip değiştirebilir.");
+        }
+
+        if (!active && staff.Roles.Contains(StaffRole.Owner) &&
+            await db.StaffMemberSet.CountAsync(s => s.OrganizationId == organizationId && s.IsActive && s.Id != staffId && s.Roles.Contains(StaffRole.Owner)) == 0)
+        {
+            throw new ArgumentException("Son aktif sahip devre dışı bırakılamaz.");
         }
 
         staff.IsActive = active;
         await db.SaveChangesAsync();
+        sessions.Invalidate(staff.UserId);
     }
 
     public async Task ChangePasswordAsync(int userId, string currentPassword, string newPassword)
@@ -186,7 +191,9 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         }
 
         user.PasswordHash = _hasher.HashPassword(user, newPassword);
+        user.RotateSecurityStamp();
         await db.SaveChangesAsync();
+        sessions.Invalidate(userId);
     }
 
     private static void ValidatePassword(string password)

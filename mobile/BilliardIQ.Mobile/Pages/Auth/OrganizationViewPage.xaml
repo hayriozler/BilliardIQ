@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Auth"
+    xmlns:api="clr-namespace:BilliardIQ.Mobile.Services.Api"
+    x:DataType="pageModels:OrganizationPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Auth.OrganizationViewPage"
+    x:Name="OrganizationPage"
+    Shell.FlyoutBehavior="Disabled"
+    Title="{Binding L[Org_Title]}">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=OrganizationPage}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </ContentPage.Behaviors>
+
+    <Grid RowDefinitions="Auto, Auto, *" Padding="16" RowSpacing="10">
+        <Label Grid.Row="0" Text="{Binding L[Org_Subtitle]}" FontSize="16" TextColor="Gray" />
+        <Label Grid.Row="1" Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13"
+               IsVisible="{Binding HasError}" />
+
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Organizations}" SelectionMode="None">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="api:ApiOrganization">
+                    <Border Stroke="LightGray" StrokeThickness="1" Padding="16">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectCommand}"
+                                CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" />
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</basePages:BasePage>

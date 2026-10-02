@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Scoreboard.WebApp.Services;
 using Scoreboard.WebApp.Models;
+using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Data;
 
@@ -19,8 +19,6 @@ public class DataContext : DbContext
     public DbSet<Organization> OrganizationSet => Set<Organization>();
     public DbSet<StaffMember> StaffMemberSet => Set<StaffMember>();
     public DbSet<BilliardTable> BilliardTableSet => Set<BilliardTable>();
-    public DbSet<Device> DeviceSet => Set<Device>();
-
     public DbSet<Player> PlayerSet => Set<Player>();
     public DbSet<RefreshToken> RefreshTokenSet => Set<RefreshToken>();
     public DbSet<PlayerInvite> PlayerInviteSet => Set<PlayerInvite>();
@@ -34,48 +32,25 @@ public class DataContext : DbContext
     public DbSet<OrganizationCountry> OrganizationCountrySet => Set<OrganizationCountry>();
     public DbSet<OrganizationCity> OrganizationCitySet => Set<OrganizationCity>();
     public DbSet<OrganizationRegion> OrganizationRegionSet => Set<OrganizationRegion>();
-    public DbSet<ClubMembership> ClubMembershipSet => Set<ClubMembership>();
     public DbSet<Team> TeamSet => Set<Team>();
     public DbSet<TeamMember> TeamMemberSet => Set<TeamMember>();
-    public DbSet<CustomerMembership> CustomerMembershipSet => Set<CustomerMembership>();
-
     public DbSet<PricingRule> PricingRuleSet => Set<PricingRule>();
     public DbSet<Reservation> ReservationSet => Set<Reservation>();
     public DbSet<TableSession> TableSessionSet => Set<TableSession>();
-    public DbSet<SessionPlayer> SessionPlayerSet => Set<SessionPlayer>();
     public DbSet<ProductCategory> ProductCategorySet => Set<ProductCategory>();
     public DbSet<Product> ProductSet => Set<Product>();
     public DbSet<OrderItem> OrderItemSet => Set<OrderItem>();
     public DbSet<Payment> PaymentSet => Set<Payment>();
     public DbSet<CashRegisterShift> CashRegisterShiftSet => Set<CashRegisterShift>();
 
-    public DbSet<RuleSet> RuleSetSet => Set<RuleSet>();
     public DbSet<Match> MatchesSet => Set<Match>();
     public DbSet<MatchParticipant> MatchParticipantSet => Set<MatchParticipant>();
-    public DbSet<MatchSet> MatchSetSet => Set<MatchSet>();
-    public DbSet<Inning> InningSet => Set<Inning>();
     public DbSet<MatchEvent> MatchEventSet => Set<MatchEvent>();
-
-    public DbSet<Tournament> TournamentSet => Set<Tournament>();
-    public DbSet<TournamentStage> TournamentStageSet => Set<TournamentStage>();
     public DbSet<StageGroup> StageGroupSet => Set<StageGroup>();
-    public DbSet<TournamentEntry> TournamentEntrySet => Set<TournamentEntry>();
-
     public DbSet<Cup> CupSet => Set<Cup>();
     public DbSet<CupParticipant> CupParticipantSet => Set<CupParticipant>();
     public DbSet<CupRuleBlock> CupRuleBlockSet => Set<CupRuleBlock>();
     public DbSet<CupMatch> CupMatchSet => Set<CupMatch>();
-    public DbSet<StageStanding> StageStandingSet => Set<StageStanding>();
-    public DbSet<League> LeagueSet => Set<League>();
-    public DbSet<Season> SeasonSet => Set<Season>();
-    public DbSet<SeasonTeam> SeasonTeamSet => Set<SeasonTeam>();
-    public DbSet<TeamFixture> TeamFixtureSet => Set<TeamFixture>();
-
-    public DbSet<PlayerStats> PlayerStatsSet => Set<PlayerStats>();
-    public DbSet<PlayerOrganizationStats> PlayerOrganizationStatsSet => Set<PlayerOrganizationStats>();
-    public DbSet<RatingHistory> RatingHistorySet => Set<RatingHistory>();
-    public DbSet<AuditLog> AuditLogSet => Set<AuditLog>();
-
     public DbSet<MatchStat> MatchStatSet => Set<MatchStat>();
     public DbSet<MatchStatBucket> MatchStatBucketSet => Set<MatchStatBucket>();
 
@@ -122,6 +97,7 @@ public class DataContext : DbContext
             e.HasIndex(u => u.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
             e.HasIndex(u => u.Phone).IsUnique().HasFilter("\"Phone\" IS NOT NULL");
             e.Property(u => u.Email).HasMaxLength(200);
+            e.Property(u => u.SecurityStamp).HasMaxLength(64);
             e.HasOne(u => u.Organization).WithMany().HasForeignKey(u => u.OrganizationId);
             e.Property(u => u.DisplayName).HasMaxLength(200);
             e.HasOne(u => u.Player).WithOne(p => p.User).HasForeignKey<Player>(p => p.UserId);
@@ -372,7 +348,6 @@ public class DataContext : DbContext
         modelBuilder.Entity<RuleSet>().HasQueryFilter(e => e.OrganizationId == _organizationId || e.OrganizationId == null);
         modelBuilder.Entity<Match>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<PlayerOrganizationStats>().HasQueryFilter(e => e.OrganizationId == _organizationId);
-        modelBuilder.Entity<AuditLog>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<MatchStat>().HasQueryFilter(e => e.OrganizationId == _organizationId);
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
@@ -401,12 +376,19 @@ public class DataContext : DbContext
     {
         StampAudit();
         var pending = CollectChanges();
+        if (pending.Count == 0)
+        {
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        using var transaction = Database.CurrentTransaction is null ? Database.BeginTransaction() : null;
         var result = base.SaveChanges(acceptAllChangesOnSuccess);
         foreach (var change in ResolveChanges(pending))
         {
             Database.ExecuteSqlInterpolated(EntityChangeSql.Upsert(change.OrganizationId, change.Entity, change.Id, change.Deleted));
         }
 
+        transaction?.Commit();
         return result;
     }
 
@@ -414,10 +396,21 @@ public class DataContext : DbContext
     {
         StampAudit();
         var pending = CollectChanges();
+        if (pending.Count == 0)
+        {
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        await using var transaction = Database.CurrentTransaction is null ? await Database.BeginTransactionAsync(cancellationToken) : null;
         var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         foreach (var change in ResolveChanges(pending))
         {
             await Database.ExecuteSqlInterpolatedAsync(EntityChangeSql.Upsert(change.OrganizationId, change.Entity, change.Id, change.Deleted), cancellationToken);
+        }
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
         }
 
         return result;

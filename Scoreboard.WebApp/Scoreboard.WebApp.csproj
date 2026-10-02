@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <Using Include="Scoreboard.WebApp.Domain" />
+    <Using Include="Scoreboard.Common" />
   </ItemGroup>
 
   <!-- Legacy int-keyed models + old migration, superseded by Domain/ (kept on disk, excluded from the build) -->

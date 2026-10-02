@@ -25,15 +25,26 @@ public class BoardSessionGuard
         }
     }
 
+    public event Action<Guid>? SessionReplaced;
+
     public Guid ForceAcquire()
     {
+        Guid? replaced;
+        Guid sessionId;
         lock (_lock)
         {
-            var sessionId = Guid.NewGuid();
+            replaced = _activeSessionId;
+            sessionId = Guid.NewGuid();
             _activeSessionId = sessionId;
             _connected = true;
-            return sessionId;
         }
+
+        if (replaced is Guid previous)
+        {
+            SessionReplaced?.Invoke(previous);
+        }
+
+        return sessionId;
     }
 
     public void SetConnected(Guid sessionId, bool connected)

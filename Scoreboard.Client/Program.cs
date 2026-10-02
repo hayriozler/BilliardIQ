@@ -6,6 +6,7 @@ using Serilog;
 using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 var logsFolder = Path.Combine(Directory.GetCurrentDirectory(), "logs");
 Directory.CreateDirectory(logsFolder);
@@ -62,14 +63,16 @@ builder.Services.AddSingleton<LanguageSync>();
 builder.Services.AddScoped<BoardSessionTracker>();
 builder.Services.AddScoped<CircuitHandler, BoardCircuitHandler>();
 builder.Services.Configure<RemoteSyncOptions>(builder.Configuration.GetSection("RemoteSync"));
-builder.Services.AddHttpClient(nameof(RemoteSyncService));
+builder.Services.AddHttpClient(nameof(RemoteSyncService), c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddHostedService<RemoteSyncService>();
-builder.Services.AddHttpClient(nameof(RemotePullService));
+builder.Services.AddSingleton<ServerClock>();
+builder.Services.AddTransient<ServerClockHandler>();
+builder.Services.AddHttpClient(nameof(RemotePullService), c => c.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ServerClockHandler>();
 builder.Services.AddHostedService<RemotePullService>();
 
 var app = builder.Build();
 app.UseAntiforgery();
-app.Services.InitializeDbAsync();
+app.Services.InitializeDb();
 app.UseStaticFiles();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

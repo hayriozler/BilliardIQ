@@ -370,5 +370,13 @@
   "Davet kodu {0} tarihine kadar geçerli. Oyuncu mobil uygulamada bu kodla kendi hesabını açar.": "De uitnodigingscode is geldig tot {0}. De speler maakt met deze code zelf een account aan in de mobiele app.",
   "Bu oyuncunun zaten bir hesabı var.": "Deze speler heeft al een account.",
   "Bu oyuncunun hesabı yok.": "Deze speler heeft geen account.",
-  "Davet kodu geçersiz veya süresi dolmuş.": "De uitnodigingscode is ongeldig of verlopen."
+  "Davet kodu geçersiz veya süresi dolmuş.": "De uitnodigingscode is ongeldig of verlopen.",
+  "Yönetici ve sahip hesaplarını yalnızca bir sahip değiştirebilir.": "Beheerders- en eigenaarsaccounts kunnen alleen door een eigenaar worden gewijzigd.",
+  "Fotoğraf en fazla 5 MB olabilir.": "De foto mag maximaal 5 MB zijn.",
+  "Bu telefon numarası zaten kullanılıyor.": "Dit telefoonnummer is al in gebruik.",
+  "Beklenmeyen bir hata oluştu.": "Er is een onverwachte fout opgetreden.",
+  "Sayfayı yenile": "Pagina vernieuwen",
+  "Son aktif sahip devre dışı bırakılamaz.": "De laatste actieve eigenaar kan niet worden gedeactiveerd.",
+  "Son 6 ay": "Laatste 6 maanden",
+  "Tarih aralığı": "Datumbereik"
 }

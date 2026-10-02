@@ -1,6 +1,5 @@
-using Scoreboard.WebApp.Middlewares;
 using Scoreboard.WebApp.Requests;
-using Scoreboard.WebApp.Responses;
+using Scoreboard.WebApp.Security;
 using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Endpoints;
@@ -10,16 +9,17 @@ public static class ClubsEndpoints
     public static RouteGroupBuilder MapClubsEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/clubs").WithTags("Clubs").RequireAuthorization();
+        var write = group.MapGroup("").RequireAuthorization(AuthClaims.ManagePolicy);
 
         group.MapGet("/", (ScoreboardDataService data) =>
             data.ListClubsAsync());
 
-        group.MapPost("/", async (UpsertClubRequest request, ClubService clubs, HttpContext context) =>
+        write.MapPost("/", async (UpsertClubRequest request, ClubService clubs) =>
         {
             try
             {
                 var club = await clubs.UpsertAsync(request.Id, request.Name, request.ShortName, request.City, request.PrimaryColor);
-                return Results.Ok(ToDto(club));
+                return Results.Ok(ScoreboardDataService.ToDto(club));
             }
             catch (ArgumentException ex)
             {
@@ -27,7 +27,7 @@ public static class ClubsEndpoints
             }
         });
 
-        group.MapDelete("/{id:int}", async (int id, ClubService clubs, HttpContext context) =>
+        write.MapDelete("/{id:int}", async (int id, ClubService clubs) =>
         {
             try
             {
@@ -41,6 +41,4 @@ public static class ClubsEndpoints
 
         return group;
     }
-
-    private static ClubDto ToDto(Club club) => ScoreboardDataService.ToDto(club);
 }

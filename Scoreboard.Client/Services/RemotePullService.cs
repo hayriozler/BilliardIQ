@@ -62,7 +62,7 @@ public partial class RemotePullService(
                 {
                     await PullAsync(http, stoppingToken);
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException)
+                catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
                 {
                     LogPullTickFailed(ex);
                 }
@@ -122,6 +122,8 @@ public partial class RemotePullService(
 
         LogReceived(clubs.Count, teams.Count, players.Count);
 
+        var photoPaths = await DownloadPhotosAsync(http, players, ct);
+
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
@@ -135,16 +137,18 @@ public partial class RemotePullService(
 
         await UpsertClubsAsync(db, clubs, changes.Full, changes.DeletedIdsOf("Club"), ct);
         await UpsertTeamsAsync(db, teams, changes.Full, changes.DeletedIdsOf("Team"), ct);
-        await UpsertPlayersAsync(db, http, players, teams, changes.Full, changes.DeletedIdsOf("Player"), ct);
+        await UpsertPlayersAsync(db, photoPaths, players, teams, changes.Full, changes.DeletedIdsOf("Player"), ct);
 
         await transaction.CommitAsync(ct);
         _resync = false;
-        await AcknowledgeAsync(http, ct);
 
         if (languageChanged)
         {
+            LocalizationService.InvalidateLanguage();
             languageSync.Notify();
         }
+
+        await AcknowledgeAsync(http, ct);
     }
 
     private async Task<string> GetInstanceIdAsync(CancellationToken ct)
@@ -168,7 +172,7 @@ public partial class RemotePullService(
             using var response = await http.PostAsync("scoreboard/changes/ack", null, ct);
             response.EnsureSuccessStatusCode();
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException || (ex is OperationCanceledException && !ct.IsCancellationRequested))
         {
             LogAckFailed(ex.Message, ex);
         }
@@ -296,7 +300,7 @@ public partial class RemotePullService(
     }
 
     private async Task UpsertPlayersAsync(
-        DataContext db, HttpClient http, List<RemotePlayer> remotePlayers, List<RemoteTeam> remoteTeams, bool prune, HashSet<int> deletedIds, CancellationToken ct)
+        DataContext db, Dictionary<int, string?> photoPaths, List<RemotePlayer> remotePlayers, List<RemoteTeam> remoteTeams, bool prune, HashSet<int> deletedIds, CancellationToken ct)
     {
         var local = await db.PlayerSet.ToDictionaryAsync(p => p.Id, ct);
         var remoteIds = remotePlayers.Select(p => p.Id).ToHashSet();
@@ -320,7 +324,6 @@ public partial class RemotePullService(
                 local[remote.Id] = player;
             }
 
-            var photoChanged = player.UpdatedAt != remote.UpdatedAt;
             player.Nickname = remote.Nickname ?? "";
             player.Name = remote.Name ?? "";
             player.ShortcutNumber = remote.ShortcutNumber;
@@ -329,7 +332,7 @@ public partial class RemotePullService(
             player.IsSystem = remote.IsSystem == true;
             player.SystemSlot = remote.IsSystem == true ? remote.SystemSlot : null;
 
-            player.PhotoPath = await SyncPhotoAsync(http, remote, player.PhotoPath, photoChanged, ct);
+            player.PhotoPath = photoPaths.GetValueOrDefault(remote.Id, player.PhotoPath);
         }
 
         var gone = local.Values.Where(p => (prune ? !remoteIds.Contains(p.Id) : deletedIds.Contains(p.Id)) && !p.IsLocalSeed).ToList();
@@ -401,6 +404,26 @@ public partial class RemotePullService(
         }
     }
 
+    private async Task<Dictionary<int, string?>> DownloadPhotosAsync(HttpClient http, List<RemotePlayer> remotePlayers, CancellationToken ct)
+    {
+        var photoPaths = new Dictionary<int, string?>();
+        if (remotePlayers.Count == 0)
+        {
+            return photoPaths;
+        }
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        var local = await db.PlayerSet.AsNoTracking().Select(p => new { p.Id, p.UpdatedAt, p.PhotoPath }).ToDictionaryAsync(p => p.Id, ct);
+        foreach (var remote in remotePlayers)
+        {
+            local.TryGetValue(remote.Id, out var existing);
+            var changed = existing is null || existing.UpdatedAt != remote.UpdatedAt;
+            photoPaths[remote.Id] = await SyncPhotoAsync(http, remote, existing?.PhotoPath, changed, ct);
+        }
+
+        return photoPaths;
+    }
+
     private async Task<string?> SyncPhotoAsync(HttpClient http, RemotePlayer remote, string? currentPath, bool changed, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(remote.PhotoPath))
@@ -430,7 +453,7 @@ public partial class RemotePullService(
 
             return relativePath;
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException || (ex is OperationCanceledException && !ct.IsCancellationRequested))
         {
             LogPhotoFailed(remote.Id, ex);
             return File.Exists(Path.Combine(env.WebRootPath, currentPath ?? "-")) ? currentPath : null;

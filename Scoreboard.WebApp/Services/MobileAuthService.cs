@@ -27,12 +27,13 @@ public record PlayerAccount(int PlayerId, string Email, string TemporaryPassword
 
 public record PlayerInviteInfo(string Code, DateTimeOffset ExpiresAt);
 
-public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService tokens, JwtSettings settings)
+public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService tokens, JwtSettings settings, SessionRevalidator sessions)
 {
     private static readonly PasswordHasher<User> _hasher = new();
     private const string PasswordAlphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private const string CodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static readonly TimeSpan _inviteLifetime = TimeSpan.FromDays(14);
+    private static readonly TimeSpan _rotationGrace = TimeSpan.FromSeconds(30);
 
     private sealed record Identity(string Role, IReadOnlyList<MobileOrganization> Organizations, MobileOrganization? Organization, StaffMember? Staff, Player? Player);
 
@@ -52,7 +53,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         }
 
         var now = DateTimeOffset.UtcNow;
-        if (stored.RevokedAt is not null)
+        if (stored.RevokedAt is not null && !(stored.RotatedAt is { } rotatedAt && now - rotatedAt <= _rotationGrace))
         {
             await RevokeAllAsync(stored.UserId, null);
             return null;
@@ -69,7 +70,8 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
             return null;
         }
 
-        stored.RevokedAt = now;
+        stored.RevokedAt ??= now;
+        stored.RotatedAt ??= now;
         var next = NewRefreshToken(stored.UserId, identity.Organization?.Id, stored.DeviceName, out var raw);
         db.RefreshTokenSet.Add(next);
         await db.SaveChangesAsync();
@@ -152,7 +154,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         }
 
         user.Email = email;
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Email", "Bu e-posta zaten kullanılıyor.");
     }
 
     public async Task UpdateProfileAsync(int userId, string? displayName, string? locale, string? phone)
@@ -169,7 +171,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         }
 
         user.Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Phone", "Bu telefon numarası zaten kullanılıyor.");
     }
 
     public async Task<PlayerAccount> CreatePlayerAccountAsync(int playerId, string email)
@@ -205,7 +207,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         db.UserSet.Add(user);
         player.User = user;
         player.Email ??= email;
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Email", "Bu e-posta zaten kullanılıyor.");
         return new PlayerAccount(player.Id, email, password);
     }
 
@@ -217,8 +219,10 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
 
         var password = RandomText(PasswordAlphabet, 8);
         user.PasswordHash = _hasher.HashPassword(user, password);
+        user.RotateSecurityStamp();
         user.MustChangePassword = true;
         await db.SaveChangesAsync();
+        sessions.Invalidate(user.Id);
         await RevokeAllAsync(user.Id, null);
         return new PlayerAccount(player.Id, user.Email ?? "", password);
     }
@@ -292,7 +296,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         player.User = user;
         player.Email ??= email;
         invite.UsedAt = now;
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Email", "Bu e-posta zaten kullanılıyor.");
         return (await StartSessionAsync(user, null, deviceName))!;
     }
 

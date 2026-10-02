@@ -66,7 +66,8 @@ public class TableService(DataContext db)
 
     public async Task<TableSession> OpenSessionAsync(int tableId, int staffId)
     {
-        var table = await FindTableAsync(tableId);
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var table = await LockTableAsync(tableId);
         if (table.Status is TableStatus.InUse || table.CurrentSessionId is not null)
         {
             throw new InvalidOperationException("Masa zaten açık.");
@@ -93,12 +94,12 @@ public class TableService(DataContext db)
         table.Status = TableStatus.InUse;
         table.CurrentSessionId = session.Id;
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
         return session;
     }
 
-    public async Task PauseSessionAsync(int sessionId)
+    public Task PauseSessionAsync(int sessionId) => WithLockedSessionAsync(sessionId, async session =>
     {
-        var session = await FindSessionAsync(sessionId);
         if (session.Status != TableSessionStatus.Open)
         {
             throw new InvalidOperationException("Oturum açık değil.");
@@ -107,11 +108,11 @@ public class TableService(DataContext db)
         session.Status = TableSessionStatus.Paused;
         session.PausedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
-    }
+        return session;
+    });
 
-    public async Task ResumeSessionAsync(int sessionId)
+    public Task ResumeSessionAsync(int sessionId) => WithLockedSessionAsync(sessionId, async session =>
     {
-        var session = await FindSessionAsync(sessionId);
         if (session.Status != TableSessionStatus.Paused || session.PausedAt is null)
         {
             throw new InvalidOperationException("Oturum duraklatılmamış.");
@@ -121,11 +122,11 @@ public class TableService(DataContext db)
         session.PausedAt = null;
         session.Status = TableSessionStatus.Open;
         await db.SaveChangesAsync();
-    }
+        return session;
+    });
 
-    public async Task<TableSession> CloseSessionAsync(int sessionId, int staffId)
+    public Task<TableSession> CloseSessionAsync(int sessionId, int staffId) => WithLockedSessionAsync(sessionId, async session =>
     {
-        var session = await FindSessionAsync(sessionId);
         if (session.Status is not (TableSessionStatus.Open or TableSessionStatus.Paused))
         {
             throw new InvalidOperationException("Oturum zaten kapalı.");
@@ -158,11 +159,10 @@ public class TableService(DataContext db)
 
         await db.SaveChangesAsync();
         return session;
-    }
+    });
 
-    public async Task<TableSession> SettleSessionAsync(int sessionId, int staffId, PaymentMethod method)
+    public Task<TableSession> SettleSessionAsync(int sessionId, int staffId, PaymentMethod method) => WithLockedSessionAsync(sessionId, async session =>
     {
-        var session = await FindSessionAsync(sessionId);
         if (session.Status != TableSessionStatus.Closed)
         {
             throw new InvalidOperationException("Sadece kapatılmış oturum tahsil edilebilir.");
@@ -187,11 +187,10 @@ public class TableService(DataContext db)
         session.Status = TableSessionStatus.Settled;
         await db.SaveChangesAsync();
         return session;
-    }
+    });
 
-    public async Task VoidPendingCollectionAsync(int sessionId, int staffId)
+    public Task VoidPendingCollectionAsync(int sessionId, int staffId) => WithLockedSessionAsync(sessionId, async session =>
     {
-        var session = await FindSessionAsync(sessionId);
         if (session.Status != TableSessionStatus.Closed)
         {
             throw new InvalidOperationException("Sadece bekleyen tahsilat silinebilir.");
@@ -201,7 +200,8 @@ public class TableService(DataContext db)
         session.VoidedAt = DateTimeOffset.UtcNow;
         session.VoidedByStaffId = staffId;
         await db.SaveChangesAsync();
-    }
+        return session;
+    });
 
     public Task<List<TableSession>> VoidedSessionsAsync(int take = 20) =>
         db.TableSessionSet
@@ -335,6 +335,24 @@ public class TableService(DataContext db)
     private async Task<TableSession> FindSessionAsync(int sessionId) =>
         await db.TableSessionSet.FirstOrDefaultAsync(s => s.Id == sessionId)
         ?? throw new InvalidOperationException("Oturum bulunamadı.");
+
+    private async Task<BilliardTable> LockTableAsync(int tableId) =>
+        await db.BilliardTableSet
+            .FromSql($"""SELECT * FROM "BilliardTable" WHERE "Id" = {tableId} FOR UPDATE""")
+            .FirstOrDefaultAsync(t => t.DeletedAt == null)
+        ?? throw new InvalidOperationException("Masa bulunamadı.");
+
+    private async Task<T> WithLockedSessionAsync<T>(int sessionId, Func<TableSession, Task<T>> action)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var session = await db.TableSessionSet
+            .FromSql($"""SELECT * FROM "TableSession" WHERE "Id" = {sessionId} FOR UPDATE""")
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException("Oturum bulunamadı.");
+        var result = await action(session);
+        await transaction.CommitAsync();
+        return result;
+    }
 
     private async Task<PricingRule> ResolveRuleAsync(int? preferredRuleId)
     {

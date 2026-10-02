@@ -18,22 +18,6 @@ public class RuleSet : BaseEntity
     public int? WarmupSeconds { get; set; }
     public bool IsSystem { get; set; }
 
-    public MatchRules ToSnapshot() => new()
-    {
-        RuleSetId = Id,
-        Discipline = Discipline,
-        Format = Format,
-        TargetPoints = TargetPoints,
-        SetsToWin = SetsToWin,
-        InningLimit = InningLimit,
-        ShotClockSeconds = ShotClockSeconds,
-        ExtensionsPerPlayer = ExtensionsPerPlayer,
-        ExtensionSeconds = ExtensionSeconds,
-        EqualizingInning = EqualizingInning,
-        PenaltyShootoutOnTie = PenaltyShootoutOnTie,
-        TimeoutsPerPlayer = TimeoutsPerPlayer,
-        WarmupSeconds = WarmupSeconds,
-    };
 }
 
 public class MatchRules

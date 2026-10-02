@@ -34,12 +34,14 @@ public static class MobileEndpoints
         auth.MapPost("/login", async (MobileLoginRequest request, MobileAuthService mobile) =>
             await mobile.LoginAsync(request.Email, request.Password, request.DeviceName) is { } session
                 ? Results.Ok(session)
-                : Results.Unauthorized());
+                : Results.Unauthorized())
+            .RequireRateLimiting(RateLimitPolicies.Credentials);
 
         auth.MapPost("/refresh", async (MobileRefreshRequest request, MobileAuthService mobile) =>
             await mobile.RefreshAsync(request.RefreshToken) is { } session
                 ? Results.Ok(session)
-                : Results.Unauthorized());
+                : Results.Unauthorized())
+            .RequireRateLimiting(RateLimitPolicies.Refresh);
 
         auth.MapPost("/logout", async (MobileRefreshRequest request, MobileAuthService mobile) =>
         {
@@ -57,7 +59,7 @@ public static class MobileEndpoints
             {
                 return Results.BadRequest(loc.Error(ex));
             }
-        });
+        }).RequireRateLimiting(RateLimitPolicies.Credentials);
 
         auth.MapPost("/organization", async (MobileOrganizationRequest request, HttpContext context, MobileAuthService mobile) =>
             await mobile.SelectOrganizationAsync(context.User.GetUserId(), context.User.GetRefreshTokenId(), request.OrganizationId) is { } session

@@ -106,7 +106,7 @@ else if (_detail is not null)
     private Tenant? _tenant;
     private PlayerStatDetail? _detail;
     private TimeZoneInfo _zone = TimeZoneInfo.Utc;
-    private string _range = "all";
+    private StatsPeriod _range = StatsPeriod.Default;
     private bool _loaded;
 
     protected override async Task OnParametersSetAsync()
@@ -115,7 +115,7 @@ else if (_detail is not null)
         await LoadAsync();
     }
 
-    private async Task OnRangeChangedAsync(string range)
+    private async Task OnRangeChangedAsync(StatsPeriod range)
     {
         _range = range;
         await LoadAsync();
@@ -123,10 +123,11 @@ else if (_detail is not null)
 
     private async Task LoadAsync()
     {
-        var since = StatsRangeSelect.Since(_range);
+        var since = _range.Since;
+        var until = _range.Until;
         var id = Id;
         _zone = PricingCalculator.ResolveTimeZone((await Db.RunAsync((TableService s) => s.GetOrganizationAsync())).TimeZone);
-        _detail = await Db.RunAsync((StatsService s) => s.PlayerAsync(id, since));
+        _detail = await Db.RunAsync((StatsService s) => s.PlayerAsync(id, since, until));
         _loaded = true;
     }
 }

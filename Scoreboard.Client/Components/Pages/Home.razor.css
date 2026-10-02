@@ -65,6 +65,7 @@
 }
 
 .board-header {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -94,6 +95,23 @@
     letter-spacing: 0.25em;
     text-transform: uppercase;
     color: var(--label-gray);
+}
+
+.header-clock {
+    position: absolute;
+    left: 5vw;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: clamp(1.1rem, 2.4vw, 2rem);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+    color: var(--white);
+}
+
+.header-clock.right {
+    left: auto;
+    right: 5vw;
 }
 
 .header-title-group {
@@ -488,6 +506,7 @@
 }
 
 .control-group select,
+.control-group input[type="number"],
 .control-group input[type="text"] {
     background: var(--red-dark);
     color: var(--white);
@@ -499,6 +518,14 @@
 
 .control-group input[type="text"] {
     width: 8rem;
+}
+
+.control-group input[type="number"] {
+    width: 3.4rem;
+    height: 1.5rem;
+    padding: 0 0.3rem;
+    font-size: 0.8rem;
+    text-align: center;
 }
 
 .control-group input[type="text"]::placeholder {

@@ -1,6 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Scoreboard.WebApp.Data;
-using Scoreboard.WebApp.Middlewares;
 using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Endpoints;

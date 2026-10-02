@@ -11,7 +11,6 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             .Include(p => p.Region)
             .Include(p => p.CountryRef)
             .Include(p => p.CityRef)
-            .Include(p => p.User)
             .Where(p => p.DeletedAt == null)
             .OrderBy(p => p.DisplayName)
             .ToListAsync();
@@ -24,6 +23,12 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             .Include(p => p.CityRef)
             .Where(p => ids.Contains(p.Id))
             .ToListAsync();
+
+    public Task<Dictionary<int, string?>> AccountEmailsAsync() =>
+        db.PlayerSet.AsNoTracking()
+            .Where(p => p.UserId != null && p.DeletedAt == null)
+            .Select(p => new { p.Id, p.User!.Email })
+            .ToDictionaryAsync(x => x.Id, x => x.Email);
 
     public Task<Player?> GetAsync(int id) =>
         db.PlayerSet.FirstOrDefaultAsync(p =>
@@ -140,18 +145,13 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         player.RegionId = regionId;
         player.CountryId = country?.Id;
         player.CityId = city?.Id;
-        if (country is not null)
-        {
-            player.Nationality = country.Name;
-            player.City = city?.Name;
-        }
         player.AvatarId = avatarId;
         player.Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
         player.Level = level;
         player.Nationality = string.IsNullOrWhiteSpace(baseCountry) ? null : baseCountry.Trim();
         player.City = string.IsNullOrWhiteSpace(baseCity) ? null : baseCity.Trim();
 
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("ShortcutNumber", () => new LocalizedArgumentException("{0} numaralı kısayol başka bir oyuncuda kayıtlı.", shortcutNumber!.Value));
 
         await SavePhotoAsync(player, photoBase64, photoExtension);
 

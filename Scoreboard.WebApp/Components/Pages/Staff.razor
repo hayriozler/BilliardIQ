@@ -2,6 +2,7 @@
 @attribute [Authorize(Roles = "Owner,Manager")]
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
+@inject NavigationManager Navigation
 
 <PageTitle>@L["Kullanıcılar"] • BilliardIQ</PageTitle>
 
@@ -120,13 +121,13 @@
     });
 
     private Task SetActiveAsync(int staffId, bool active) => RunAsync(() =>
-        Db.RunAsync((AuthService s) => s.SetStaffActiveAsync(_tenant!.OrganizationId, staffId, active)));
+        Db.RunAsync((AuthService s) => s.SetStaffActiveAsync(_tenant!.OrganizationId, staffId, active, _tenant.IsOwner)));
 
     private Task ChangePasswordAsync() => RunAsync(async () =>
     {
         await Db.RunAsync((AuthService s) => s.ChangePasswordAsync(_tenant!.UserId, _currentPassword, _newPassword));
         _currentPassword = _newPassword = "";
-        _message = L["Şifre değiştirildi."];
+        Navigation.NavigateTo("/login", forceLoad: true);
     });
 
     private async Task RunAsync(Func<Task> action)

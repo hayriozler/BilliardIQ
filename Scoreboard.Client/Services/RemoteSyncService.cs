@@ -49,7 +49,7 @@ public partial class RemoteSyncService(
                 {
                     await SyncOnceAsync(http, stoppingToken);
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException)
+                catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
                 {
                     LogSyncTickFailed(ex);
                 }

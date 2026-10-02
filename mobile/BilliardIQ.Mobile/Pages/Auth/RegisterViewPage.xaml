@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Auth"
+    x:DataType="pageModels:RegisterPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Auth.RegisterViewPage"
+    Shell.FlyoutBehavior="Disabled"
+    Title="{Binding L[Register_Title]}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="14">
+
+            <Label Text="{Binding L[Register_Hint]}" TextColor="Gray" FontSize="14" />
+
+            <Entry Text="{Binding Code, Mode=TwoWay}"
+                   Placeholder="{Binding L[Register_Code]}"
+                   Keyboard="Plain"
+                   IsEnabled="{Binding IsIdle}" />
+            <Entry Text="{Binding Email, Mode=TwoWay}"
+                   Placeholder="{Binding L[Auth_Email]}"
+                   Keyboard="Email"
+                   IsEnabled="{Binding IsIdle}" />
+            <Entry Text="{Binding Password, Mode=TwoWay}"
+                   Placeholder="{Binding L[Auth_Password]}"
+                   IsPassword="True"
+                   IsEnabled="{Binding IsIdle}" />
+            <Entry Text="{Binding ConfirmPassword, Mode=TwoWay}"
+                   Placeholder="{Binding L[Pwd_Confirm]}"
+                   IsPassword="True"
+                   IsEnabled="{Binding IsIdle}"
+                   ReturnCommand="{Binding SubmitCommand}" />
+
+            <Label Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13"
+                   IsVisible="{Binding HasError}" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+            <Button Text="{Binding L[Register_Submit]}"
+                    Command="{Binding SubmitCommand}"
+                    IsEnabled="{Binding IsIdle}" />
+            <Button Text="{Binding L[Action_Cancel]}"
+                    Command="{Binding BackCommand}"
+                    IsEnabled="{Binding IsIdle}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</basePages:BasePage>

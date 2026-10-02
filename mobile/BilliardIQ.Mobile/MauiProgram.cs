@@ -1,5 +1,8 @@
 
 using BilliardIQ.Mobile.Data;
+using BilliardIQ.Mobile.PageModels.Auth;
+using BilliardIQ.Mobile.Pages.Auth;
+using BilliardIQ.Mobile.Services.Api;
 using BilliardIQ.Mobile.PageModels.Admin;
 using BilliardIQ.Mobile.PageModels.Analyzers;
 using BilliardIQ.Mobile.PageModels.ConnectionPageModels;
@@ -106,6 +109,21 @@ public static class MauiProgram
         builder.Services.AddSingleton<SshConsolePageModel>();
         builder.Services.AddSingleton<SshConsoleViewPage>();
         builder.Services.AddSingleton(FileSystem.Current);
+        builder.Services.AddSingleton<SessionStore>();
+        builder.Services.AddSingleton<ApiClient>();
+        builder.Services.AddSingleton<AuthService>();
+        builder.Services.AddSingleton<LoginPageModel>();
+        builder.Services.AddSingleton<LoginViewPage>();
+        builder.Services.AddSingleton<OrganizationPageModel>();
+        builder.Services.AddSingleton<OrganizationViewPage>();
+        builder.Services.AddSingleton<ChangePasswordPageModel>();
+        builder.Services.AddSingleton<ChangePasswordViewPage>();
+        builder.Services.AddSingleton<AccountPageModel>();
+        builder.Services.AddSingleton<AccountViewPage>();
+        builder.Services.AddSingleton<PlayerHomePageModel>();
+        builder.Services.AddSingleton<PlayerHomeViewPage>();
+        builder.Services.AddSingleton<AppShell>();
+        builder.Services.AddTransientWithShellRoute<RegisterViewPage, RegisterPageModel>("register");
         builder.Services.AddTransientWithShellRoute<NewGameViewPage, NewGamePageModel>("newgame");
         builder.Services.AddTransientWithShellRoute<AddScoreboardPlayerViewPage, AddScoreboardPlayerPageModel>("addscoreboardplayer");
         builder.Services.AddTransientWithShellRoute<PlayerStatsDetailViewPage, PlayerStatsDetailPageModel>("playerstatsdetail");

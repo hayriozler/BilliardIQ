@@ -34,7 +34,7 @@ public static class AuthEndpoints
             var result = await auth.LoginToAsync(user.Id, memberships[0].OrganizationId);
             await SignInAsync(context, result!);
             return Results.LocalRedirect(IsLocal(returnUrl) ? returnUrl! : "/");
-        }).DisableAntiforgery();
+        }).DisableAntiforgery().RequireRateLimiting(RateLimitPolicies.Credentials);
 
         app.MapGet("/login/organization", async (HttpContext context, AuthService auth, Loc loc, IDataProtectionProvider dataProtection, string? returnUrl) =>
         {
@@ -78,7 +78,7 @@ public static class AuthEndpoints
             context.Response.Cookies.Delete(PickCookie);
             await SignInAsync(context, result);
             return Results.LocalRedirect(IsLocal(returnUrl) ? returnUrl! : "/");
-        }).DisableAntiforgery();
+        }).DisableAntiforgery().RequireRateLimiting(RateLimitPolicies.Credentials);
 
         app.MapPost("/register", async (
             HttpContext context, AuthService auth, Loc loc,
@@ -106,7 +106,7 @@ public static class AuthEndpoints
                             $"&language={Uri.EscapeDataString(language ?? "")}";
                 return Results.Redirect($"/register?{query}");
             }
-        }).DisableAntiforgery();
+        }).DisableAntiforgery().RequireRateLimiting(RateLimitPolicies.Credentials);
 
         app.MapPost("/logout", async (HttpContext context) =>
         {

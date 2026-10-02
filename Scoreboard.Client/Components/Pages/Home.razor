@@ -8,12 +8,14 @@
 @inject BoardSessionGuard BoardSession
 @inject BoardSessionTracker BoardTracker
 @inject LanguageSync LanguageSync
+@inject ServerClock Clock
+@inject Microsoft.Extensions.Logging.ILogger<Home> Logger
 @inject Microsoft.Extensions.Options.IOptions<RemoteSyncOptions> SyncOptions
-@using Scoreboard.Client.Models
-@using Scoreboard.Client.Services
+@using System.Text.Json
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.EntityFrameworkCore
-@using System.Text.Json
+@using Scoreboard.Client.Models
+@using Scoreboard.Client.Services
 
 @if (_boardOccupiedElsewhere)
 {
@@ -27,6 +29,7 @@ else
 <div @ref="board" class="board" tabindex="0" @onkeydown="HandleKeyDown" @onkeyup="HandleKeyUp" @onclick="RequestFullscreenAsync">
 
     <header class="board-header">
+        <div class="header-clock">@Clock.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)</div>
         <div class="header-brand">
             <img class="header-logo" src="images/zeymera-ram.png" alt="Zeymera" />
             <span class="header-brand-label">Zeymera</span>
@@ -49,6 +52,7 @@ else
             <img class="header-logo" src="images/zeymera-ram.png" alt="Zeymera" />
             <span class="header-brand-label">Zeymera</span>
         </div>
+        <div class="header-clock right">@Clock.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)</div>
     </header>
 
     <main class="scores">
@@ -191,7 +195,7 @@ else
                 }
                 <input type="text" value="@Current.Player1Name" placeholder="@L.T("Player1Label")"
                        @onchange="e => DispatchAsync(ScoreboardCommand.RenamePlayer1, e.Value?.ToString())" />
-                <button @onclick="() => OpenPlayerPickerAsync(1)">@L.T("ChoosePlayer")</button>
+                <button @onclick="() => OpenPlayerPicker(1)">@L.T("ChoosePlayer")</button>
             </div>
             <div class="control-group">
                 <span>@L.T("P2")</span>
@@ -205,11 +209,12 @@ else
                 }
                 <input type="text" value="@Current.Player2Name" placeholder="@L.T("Player2Default")"
                        @onchange="e => DispatchAsync(ScoreboardCommand.RenamePlayer2, e.Value?.ToString())" />
-                <button @onclick="() => OpenPlayerPickerAsync(2)">@L.T("ChoosePlayer")</button>
+                <button @onclick="() => OpenPlayerPicker(2)">@L.T("ChoosePlayer")</button>
             </div>
             <div class="control-group">
                 <span>@L.T("Match")</span>
-                <input type="number" min="1" value="@Current.MatchTarget"
+                <input type="number" class="match-target" min="@MinMatchTarget" max="@MaxMatchTarget" step="1" inputmode="numeric"
+                       @key="_matchInputKey" value="@Current.MatchTarget"
                        @onchange="e => SetMatchTargetFromInputAsync(e.Value?.ToString())" />
             </div>
             <div class="control-group">
@@ -239,7 +244,7 @@ else
                 <button @onclick="OpenWarmupPicker">@L.T("WarmUp")</button>
             </div>
             <div class="control-group">
-                <span>Language</span>
+                <span>@L.T("Language")</span>
                     <select value="@L.GetLang" @onchange="OnLanguageChanged">
                     <option value="tr">TR</option>
                     <option value="en">EN</option>
@@ -247,8 +252,8 @@ else
                 </select>
             </div>
             <div class="control-group">
-                <button @onclick="() => DispatchAsync(ScoreboardCommand.NewGame)">New Game</button>
-                <button @onclick="() => DispatchAsync(ScoreboardCommand.EndGame)" disabled="@_gameEnded">End Game</button>
+                <button @onclick="() => DispatchAsync(ScoreboardCommand.NewGame)">@L.T("NewGame")</button>
+                <button @onclick="() => DispatchAsync(ScoreboardCommand.EndGame)" disabled="@_gameEnded">@L.T("EndGame")</button>
             </div>
             <p class="hint">@L.T("ControlsHint")</p>
         </div>
@@ -470,6 +475,21 @@ else
             .ToList();
 
     private void TakeOverBoard() => Nav.NavigateTo("/?takeover=1", forceLoad: true);
+
+    private void OnBoardSessionReplaced(Guid replacedSessionId)
+    {
+        if (replacedSessionId != _sessionId)
+        {
+            return;
+        }
+
+        _ = InvokeAsync(() =>
+        {
+            _shotClockCts.Cancel();
+            _boardOccupiedElsewhere = true;
+            StateHasChanged();
+        });
+    }
     private Guid _sessionId;
 
     protected override async Task OnInitializedAsync()
@@ -487,6 +507,7 @@ else
 
         BoardTracker.SessionId = _sessionId;
         LanguageSync.Changed += OnServerLanguageChanged;
+        BoardSession.SessionReplaced += OnBoardSessionReplaced;
         UpdateDefaultPlayers();
         _ = RunShotClockAsync(_shotClockCts.Token);
         var game = await DbContext.ScoreboardStateSet.Where(p => p.Id == 1).FirstOrDefaultAsync();
@@ -618,7 +639,7 @@ else
         return AvatarGenerator.GetColor(hash);
     }
 
-    private async Task OpenPlayerPickerAsync(int slot)
+    private void OpenPlayerPicker(int slot)
     {
         LoadRoster();
         _pickerBuffer = "";
@@ -682,7 +703,6 @@ else
         _showPlayerPicker = null;
     }
 
-    private void Adjust() => StateHasChanged();
     private async Task PersistAsync()
     {
         await DbContext.SaveChangesAsync();
@@ -710,7 +730,11 @@ else
         }
     }
 
-    private void SetMatchTarget(int target) => Current.MatchTarget = Math.Max(1, target);
+    private const int MinMatchTarget = 10;
+    private const int MaxMatchTarget = 100;
+    private int _matchInputKey;
+
+    private void SetMatchTarget(int target) => Current.MatchTarget = Math.Clamp(target, MinMatchTarget, MaxMatchTarget);
 
     private bool _showMatchEnd;
 
@@ -735,7 +759,8 @@ else
         Current.ShotClockActive = false;
     }
 
-    private async Task OnLanguageChanged(ChangeEventArgs e) {
+    private void OnLanguageChanged(ChangeEventArgs e)
+    {
         var selectedLanguage = e.Value?.ToString() ?? "en";
         L.SetLanguage(selectedLanguage);
         UpdateDefaultPlayers();
@@ -840,6 +865,7 @@ else
             StartedAt = _gameStartedAt,
             EndedAt = DateTime.Now
         };
+        using var transaction = DbContext.Database.BeginTransaction();
         DbContext.MatchResultSet.Add(matchResult);
         DbContext.SaveChanges();
 
@@ -855,6 +881,8 @@ else
             });
         DbContext.MatchScoreStatSet.AddRange(buckets);
         DbContext.ScoreEventSet.RemoveRange(events);
+        DbContext.SaveChanges();
+        transaction.Commit();
 
         Current.ShotClockActive = false;
         _showMatchEnd = false;
@@ -871,6 +899,7 @@ else
         _showMatchEnd = false;
         _ = SetFireworksAsync(0);
         _gameStartedAt = DateTime.Now;
+        DbContext.ScoreEventSet.RemoveRange(DbContext.ScoreEventSet.ToList());
         Current.Player1Score = 0;
         Current.Player2Score = 0;
         Current.Player1Avg = 0;
@@ -880,8 +909,8 @@ else
         Current.Inning = 0;
         Current.CurrentPoints = 0;
         Current.ActivePlayer = 1;
-        Current.Player1Id = 1;
-        Current.Player2Id = 2;
+        Current.Player1Id = DefaultPlayerId(1);
+        Current.Player2Id = DefaultPlayerId(2);
         Current.Player1Name = "";
         Current.Player2Name = "";        
         Current.ShotClockActive = false;
@@ -959,7 +988,7 @@ else
 
         if (e.Key is "p" or "P" or "0" or "Insert")
         {
-            await OpenPlayerPickerAsync(Current.ActivePlayer);
+            OpenPlayerPicker(Current.ActivePlayer);
             return;
         }
 
@@ -1092,8 +1121,15 @@ else
     private Task DispatchAsync(ScoreboardCommand command, object? payload = null) =>
         ApplyCommandsAsync([new ScoreboardCommandMessage(command, payload is null ? null : JsonSerializer.SerializeToElement(payload))]);
 
-    private Task SetMatchTargetFromInputAsync(string? value) =>
-        int.TryParse(value, out var target) ? DispatchAsync(ScoreboardCommand.SetMatchTarget, target) : Task.CompletedTask;
+    private async Task SetMatchTargetFromInputAsync(string? value)
+    {
+        if (int.TryParse(value, out var target))
+        {
+            await DispatchAsync(ScoreboardCommand.SetMatchTarget, target);
+        }
+
+        _matchInputKey++;
+    }
 
     private void ChangeActivePlayer(int player) => Current.ActivePlayer = player;
 
@@ -1129,25 +1165,19 @@ else
         {
             using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
             var ticks = 0;
+            var last = System.Diagnostics.Stopwatch.GetTimestamp();
             while (await timer.WaitForNextTickAsync(token))
             {
-                if (SystemPower.IsShuttingDown) continue;
-
-                var refresh = ++ticks % 30 == 0;
-                if (!Current.ShotClockActive)
+                var elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(last).TotalSeconds;
+                last = System.Diagnostics.Stopwatch.GetTimestamp();
+                try
                 {
-                    if (refresh) await InvokeAsync(StateHasChanged);
-                    continue;
+                    await InvokeAsync(() => ShotClockTick(elapsed, ++ticks % 30 == 0));
                 }
-
-                Current.ShotClockRemaining = Math.Max(0, Current.ShotClockRemaining - 0.1);
-                if (Current.ShotClockRemaining <= 0)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    Current.ShotClockActive = false;
-                    Current.ShotClockRemaining = Current.ShotClockSeconds;
-                    DbContext.SaveChanges();
+                    Logger.LogError(ex, "Shot clock tick failed.");
                 }
-                await InvokeAsync(StateHasChanged);
             }
         }
         catch (OperationCanceledException)
@@ -1155,16 +1185,40 @@ else
         }
     }
 
+    private void ShotClockTick(double elapsedSeconds, bool refresh)
+    {
+        if (SystemPower.IsShuttingDown)
+        {
+            return;
+        }
+
+        if (!Current.ShotClockActive)
+        {
+            if (refresh) StateHasChanged();
+            return;
+        }
+
+        Current.ShotClockRemaining = Math.Max(0, Current.ShotClockRemaining - elapsedSeconds);
+        if (Current.ShotClockRemaining <= 0)
+        {
+            Current.ShotClockActive = false;
+            Current.ShotClockRemaining = Current.ShotClockSeconds;
+            DbContext.SaveChanges();
+        }
+
+        StateHasChanged();
+    }
+
     public async ValueTask DisposeAsync()
     {
         LanguageSync.Changed -= OnServerLanguageChanged;
+        BoardSession.SessionReplaced -= OnBoardSessionReplaced;
         BoardSession.Release(_sessionId);
         if (_boardOccupiedElsewhere)
         {
             return;
         }
 
-        L.LanguageChanged -= Adjust;
         if (_shotClockCts is not null)
         {
             _shotClockCts.Cancel();

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using Microsoft.AspNetCore.DataProtection;
@@ -29,6 +30,10 @@ builder.Services.AddDbContext<DataContext>(options =>
 });
 
 builder.Services.AddSingleton<Loc>();
+builder.Services.AddSingleton<LoginThrottle>();
+builder.Services.AddSingleton<SessionRevalidator>();
+builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingAuthenticationStateProvider>();
+builder.Services.AddCredentialRateLimiting();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<MobileAuthService>();
 
@@ -86,6 +91,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
+        options.Events.OnValidatePrincipal = CookieSessionValidation.ValidateAsync;
         options.Events.OnRedirectToLogin = context =>
         {
             if (context.Request.Path.StartsWithSegments("/api"))
@@ -106,6 +112,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthentication().AddJwtBearer(JwtSettings.Scheme, options =>
 {
     options.MapInboundClaims = false;
+    options.Events = new JwtBearerEvents { OnTokenValidated = JwtSessionValidation.ValidateAsync };
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -121,6 +128,7 @@ builder.Services.AddAuthentication().AddJwtBearer(JwtSettings.Scheme, options =>
     };
 });
 builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AuthClaims.ManagePolicy, policy => policy.RequireRole(nameof(StaffRole.Owner), nameof(StaffRole.Manager)))
     .AddPolicy(JwtSettings.MobileAnyPolicy, policy => policy
         .AddAuthenticationSchemes(JwtSettings.Scheme)
         .RequireAuthenticatedUser())
@@ -231,6 +239,7 @@ app.MapStaticAssets();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.UseMiddleware<ClientIdMiddleware>();
 
@@ -251,7 +260,7 @@ app.MapPost("/culture", async (HttpContext context, DataContext db, SystemPlayer
         {
             var organizationId = context.User.GetOrganizationId();
             await db.OrganizationSet.Where(o => o.Id == organizationId).ExecuteUpdateAsync(o => o.SetProperty(x => x.Language, lang));
-            await systemPlayers.RenameAsync(lang);
+            await systemPlayers.NotifyLanguageChangedAsync(organizationId);
         }
 
         context.Response.Cookies.Append(

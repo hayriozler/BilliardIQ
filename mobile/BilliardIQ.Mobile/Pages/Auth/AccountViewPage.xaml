@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Auth"
+    x:DataType="pageModels:AccountPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Auth.AccountViewPage"
+    x:Name="AccountPage"
+    Title="{Binding L[Account_Title]}">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=AccountPage}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </ContentPage.Behaviors>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="12">
+
+            <Border BackgroundColor="#1E3A5F" StrokeThickness="0" Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="{Binding DisplayName}" FontSize="20" FontAttributes="Bold" TextColor="White" />
+                    <Label Text="{Binding Email}" FontSize="14" TextColor="#90CAF9" />
+                    <Label Text="{Binding Role}" FontSize="13" TextColor="#FFD54F" />
+                    <Label Text="{Binding OrganizationName}" FontSize="13" TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Button Text="{Binding L[Account_ChangeOrganization]}"
+                    Command="{Binding ChangeOrganizationCommand}"
+                    IsVisible="{Binding CanSwitchOrganization}" />
+            <Button Text="{Binding L[Account_ChangePassword]}"
+                    Command="{Binding ChangePasswordCommand}" />
+
+            <Label Text="{Binding L[Account_ChangeEmail]}" FontAttributes="Bold" Margin="0,12,0,0" />
+            <Entry Text="{Binding NewEmail, Mode=TwoWay}"
+                   Placeholder="{Binding L[Account_NewEmail]}"
+                   Keyboard="Email" />
+            <Entry Text="{Binding EmailPassword, Mode=TwoWay}"
+                   Placeholder="{Binding L[Pwd_Current]}"
+                   IsPassword="True" />
+            <Button Text="{Binding L[Account_ChangeEmail]}"
+                    Command="{Binding ChangeEmailCommand}"
+                    IsEnabled="{Binding IsIdle}" />
+
+            <Label Text="{Binding Message}" FontSize="13" IsVisible="{Binding HasMessage}">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label" Binding="{Binding MessageIsError}" Value="True">
+                        <Setter Property="TextColor" Value="Red" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Label" Binding="{Binding MessageIsError}" Value="False">
+                        <Setter Property="TextColor" Value="Green" />
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+
+            <Button Text="{Binding L[Account_SignOut]}"
+                    Command="{Binding SignOutCommand}"
+                    BackgroundColor="Red"
+                    TextColor="White"
+                    Margin="0,20,0,0" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</basePages:BasePage>

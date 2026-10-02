@@ -60,17 +60,3 @@ public class RatingHistory
     public Match? Match { get; set; }
 }
 
-public class AuditLog
-{
-    public int Id { get; set; }
-    public int OrganizationId { get; set; }
-    public int? ActorUserId { get; set; }
-    public int? ActorDeviceId { get; set; }
-    public string EntityType { get; set; } = default!;
-    public int EntityId { get; set; }
-    public string Action { get; set; } = default!;
-    public string? BeforeJson { get; set; }
-    public string? AfterJson { get; set; }
-    public string? Ip { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
-}

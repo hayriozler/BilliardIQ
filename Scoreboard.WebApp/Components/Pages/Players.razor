@@ -1,5 +1,5 @@
 @page "/players"
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Owner,Manager")]
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
@@ -33,13 +33,13 @@
                 else
                 {
                     <div>@L["Davet kodu"]: <strong>@_accountResult.InviteCode</strong></div>
-                    <div class="hint">@L["Davet kodu {0} tarihine kadar geçerli. Oyuncu mobil uygulamada bu kodla kendi hesabını açar.", Format.DateTime(_accountResult.InviteExpiresAt!.Value, TimeZoneInfo.Local)]</div>
+                    <div class="hint">@L["Davet kodu {0} tarihine kadar geçerli. Oyuncu mobil uygulamada bu kodla kendi hesabını açar.", Format.DateTime(_accountResult.InviteExpiresAt!.Value, _zone)]</div>
                 }
             </div>
         }
-        else if (accountPlayer.User is not null)
+        else if (accountPlayer.UserId is not null)
         {
-            <p>@L["Hesap"]: <strong>@accountPlayer.User.Email</strong></p>
+            <p>@L["Hesap"]: <strong>@_accountEmails.GetValueOrDefault(accountPlayer.Id)</strong></p>
             <div class="form-actions">
                 <button type="button" class="primary" disabled="@_busy" @onclick="ResetAccountPasswordAsync">@L["Parolayı sıfırla"]</button>
             </div>
@@ -272,6 +272,7 @@
     }
     private PlayerFormModel _form = new();
     private Player? _accountPlayer;
+    private Dictionary<int, string?> _accountEmails = [];
     private string _accountEmail = string.Empty;
     private AccountResult? _accountResult;
 
@@ -344,6 +345,7 @@
         _accountPlayer = _players?.FirstOrDefault(p => p.Id == _accountPlayer.Id);
     }
     private string _homeCountryId = "";
+    private TimeZoneInfo _zone = TimeZoneInfo.Utc;
     private string? _pendingPhotoBase64;
     private string? _pendingPhotoExtension;
 
@@ -356,11 +358,13 @@
     private async Task LoadAsync()
     {
         _players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync());
+        _accountEmails = await Db.RunAsync((PlayerService s) => s.AccountEmailsAsync());
         _associations = await Db.RunAsync((AssociationService s) => s.ListAsync());
         _regions = await Db.RunAsync((RegionService s) => s.ListAsync());
         _countries = await Db.RunAsync((CountryService s) => s.ListAsync());
         _cities = await Db.RunAsync((CityService s) => s.ListAsync());
         var org = await Db.RunAsync((TableService s) => s.GetOrganizationAsync());
+        _zone = PricingCalculator.ResolveTimeZone(org.TimeZone);
         _homeCountryId = _countries.FirstOrDefault(c => CountryCatalog.Find(org.CountryCode)?.HasName(c.Name) == true)?.Id.ToString() ?? "";
         if (_form.Id == 0 && _form.CountryId == "")
         {
@@ -417,6 +421,13 @@
     private async Task OnPhotoSelectedAsync(InputFileChangeEventArgs e)
     {
         const long maxSize = 5 * 1024 * 1024;
+        if (e.File.Size > maxSize)
+        {
+            _error = L["Fotoğraf en fazla 5 MB olabilir."];
+            return;
+        }
+
+        _error = null;
         await using var stream = e.File.OpenReadStream(maxSize);
         using var memory = new MemoryStream();
         await stream.CopyToAsync(memory);
@@ -457,6 +468,11 @@
         try
         {
             await Db.RunAsync((PlayerService s) => s.DeleteAsync(id));
+            _confirmDelete = null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = L.Error(ex);
             _confirmDelete = null;
         }
         finally
