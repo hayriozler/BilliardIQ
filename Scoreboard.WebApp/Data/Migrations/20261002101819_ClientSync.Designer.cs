@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Scoreboard.WebApp.Data;
@@ -12,9 +13,11 @@ using Scoreboard.WebApp.Data;
 namespace Scoreboard.WebApp.Data.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20261002101819_ClientSync")]
+    partial class ClientSync
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1280,6 +1283,11 @@ namespace Scoreboard.WebApp.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)");
@@ -1354,6 +1362,9 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.HasIndex("ClientId")
                         .IsUnique()
                         .HasFilter("\"ClientId\" IS NOT NULL");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
 
                     b.HasIndex("DefaultRuleSetId");
 

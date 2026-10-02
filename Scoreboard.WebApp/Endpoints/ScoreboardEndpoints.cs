@@ -18,9 +18,38 @@ public static class ScoreboardEndpoints
         group.MapGet("/teams", (ScoreboardDataService data) =>
             data.ListTeamsAsync());
 
-        group.MapGet("/changes", (long? since, ScoreboardDataService data) =>
-            data.GetChangesAsync(since ?? 0));
+        group.MapGet("/changes", async (HttpContext context, ScoreboardDataService data, bool? resync) =>
+        {
+            if (InstanceId(context) is not { } instanceId)
+            {
+                return Results.BadRequest(new { error = $"'{InstanceHeader}' header is required." });
+            }
+
+            return Results.Ok(await data.GetChangesAsync(instanceId, TableNo(context), resync == true));
+        });
+
+        group.MapPost("/changes/ack", async (HttpContext context, ScoreboardDataService data) =>
+        {
+            if (InstanceId(context) is not { } instanceId)
+            {
+                return Results.BadRequest(new { error = $"'{InstanceHeader}' header is required." });
+            }
+
+            await data.AckChangesAsync(instanceId, TableNo(context));
+            return Results.NoContent();
+        });
 
         return group;
     }
+
+    private const string InstanceHeader = "X-Client-Instance";
+
+    private static string? InstanceId(HttpContext context)
+    {
+        var value = context.Request.Headers[InstanceHeader].ToString().Trim();
+        return value.Length is > 0 and <= 40 ? value : null;
+    }
+
+    private static int TableNo(HttpContext context) =>
+        int.TryParse(context.Request.Headers[ClientIdMiddleware.TableHeaderName].ToString(), out var tableNo) && tableNo > 0 ? tableNo : 0;
 }

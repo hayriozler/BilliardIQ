@@ -17,9 +17,9 @@ public partial class RemotePullService(
     private const string _photosFolder = "PlayerSet";
 
     private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
-    private static readonly TimeSpan _fullSyncInterval = TimeSpan.FromHours(24);
 
     private readonly RemoteSyncOptions _options = options.Value;
+    private bool _resync = true;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -52,13 +52,15 @@ public partial class RemotePullService(
                 http.DefaultRequestHeaders.Add("X-Table-No", _options.TableNo.ToString());
             }
 
+            http.DefaultRequestHeaders.Add("X-Client-Instance", await GetInstanceIdAsync(stoppingToken));
+
             var interval = TimeSpan.FromSeconds(Math.Max(5, _options.PollSeconds));
             using var timer = new PeriodicTimer(interval);
             do
             {
                 try
                 {
-                    await PullOnceAsync(http, stoppingToken);
+                    await PullAsync(http, stoppingToken);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -75,7 +77,7 @@ public partial class RemotePullService(
         }
     }
 
-    private async Task PullOnceAsync(HttpClient http, CancellationToken ct)
+    private async Task PullAsync(HttpClient http, CancellationToken ct)
     {
         if (systemPower.IsShuttingDown)
         {
@@ -86,9 +88,6 @@ public partial class RemotePullService(
         var organizationPulled = await IsOrganizationPulledAsync(ct);
         RemoteOrganization? organization = null;
         RemoteChanges changes;
-        var cursor = long.TryParse(await GetSettingAsync("ChangeCursor", ct), out var storedCursor) ? storedCursor : 0;
-        var lastFullSync = DateTimeOffset.TryParse(await GetSettingAsync("LastFullSync", ct), out var storedFullSync) ? storedFullSync : DateTimeOffset.MinValue;
-        var fullSync = cursor == 0 || DateTimeOffset.UtcNow - lastFullSync > _fullSyncInterval;
         try
         {
             if (!organizationPulled)
@@ -101,11 +100,12 @@ public partial class RemotePullService(
                     return;
                 }
             }
-            changes = await http.GetFromJsonAsync<RemoteChanges>($"scoreboard/changes?since={(fullSync ? 0 : cursor)}", _jsonOptions, ct)
+            changes = await http.GetFromJsonAsync<RemoteChanges>($"scoreboard/changes?resync={_resync}", _jsonOptions, ct)
                 ?? throw new HttpRequestException("Change list is null");
         }
         catch (HttpRequestException e)
         {
+            _resync = true;
             LogReceivedFailed(e.Message, e);
             return;
         }
@@ -116,13 +116,7 @@ public partial class RemotePullService(
         var nothingChanged = !changes.Full && changes.Changes.Count == 0;
         if (organizationPulled && nothingChanged)
         {
-            if (changes.Cursor != cursor)
-            {
-                await using var cursorDb = await dbFactory.CreateDbContextAsync(ct);
-                await SetSettingAsync(cursorDb, "ChangeCursor", changes.Cursor.ToString(), ct);
-            }
-
-            LogNoChanges(changes.Cursor);
+            LogNoChanges();
             return;
         }
 
@@ -143,13 +137,9 @@ public partial class RemotePullService(
         await UpsertTeamsAsync(db, teams, changes.Full, changes.DeletedIdsOf("Team"), ct);
         await UpsertPlayersAsync(db, http, players, teams, changes.Full, changes.DeletedIdsOf("Player"), ct);
 
-        await SetSettingAsync(db, "ChangeCursor", changes.Cursor.ToString(), ct);
-        if (changes.Full)
-        {
-            await SetSettingAsync(db, "LastFullSync", DateTimeOffset.UtcNow.ToString("O"), ct);
-        }
-
         await transaction.CommitAsync(ct);
+        _resync = false;
+        await AcknowledgeAsync(http, ct);
 
         if (languageChanged)
         {
@@ -157,10 +147,31 @@ public partial class RemotePullService(
         }
     }
 
-    private async Task<string?> GetSettingAsync(string key, CancellationToken ct)
+    private async Task<string> GetInstanceIdAsync(CancellationToken ct)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
-        return await db.SettingsSet.AsNoTracking().Where(s => s.Id == key).Select(s => s.Value).FirstOrDefaultAsync(ct);
+        var existing = await db.SettingsSet.AsNoTracking().Where(s => s.Id == "InstanceId").Select(s => s.Value).FirstOrDefaultAsync(ct);
+        if (!string.IsNullOrWhiteSpace(existing))
+        {
+            return existing;
+        }
+
+        var created = Guid.NewGuid().ToString("N");
+        await SetSettingAsync(db, "InstanceId", created, ct);
+        return created;
+    }
+
+    private async Task AcknowledgeAsync(HttpClient http, CancellationToken ct)
+    {
+        try
+        {
+            using var response = await http.PostAsync("scoreboard/changes/ack", null, ct);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (HttpRequestException ex)
+        {
+            LogAckFailed(ex.Message, ex);
+        }
     }
 
     private static async Task SetSettingAsync(DataContext db, string key, string value, CancellationToken ct)
@@ -374,9 +385,9 @@ public partial class RemotePullService(
                          ("match_result", "Player1Id", " WHERE SyncedAPI = 0"), ("match_result", "Player2Id", " WHERE SyncedAPI = 0")
                      })
             {
-#pragma warning disable EF1002
-                await db.Database.ExecuteSqlRawAsync($"UPDATE {table} SET {column} = CASE {column} {cases} ELSE {column} END{filter}", ct);
-#pragma warning restore EF1002
+#pragma warning disable EF1002 // Risk of vulnerability to SQL injection.
+                await db.Database.ExecuteSqlRawAsync($"UPDATE {table} SET {column} = CASE {column} {cases} ELSE {column} END {filter}", ct);
+#pragma warning restore EF1002 // Risk of vulnerability to SQL injection.
             }
         }
 
@@ -451,7 +462,7 @@ public partial class RemotePullService(
 
     private record RemoteChangeGroup(string EntityType, string State, List<JsonElement>? Items, List<int>? Ids);
 
-    private record RemoteChanges(long Cursor, bool Full, List<RemoteChangeGroup> Changes)
+    private record RemoteChanges(bool Full, List<RemoteChangeGroup> Changes)
     {
         public List<T> ItemsOf<T>(string entityType) =>
             Changes
@@ -484,8 +495,11 @@ public partial class RemotePullService(
     [LoggerMessage(Level = LogLevel.Warning, Message = "RemotePull is enabled but RemoteSync:BaseUrl is empty - skipping remote data pull.")]
     private partial void LogPullNoBaseUrl();
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "No changes on the server (cursor {Cursor}).")]
-    private partial void LogNoChanges(long cursor);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not confirm the received changes to the server: {Error}")]
+    private partial void LogAckFailed(string error, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "No changes on the server.")]
+    private partial void LogNoChanges();
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "RemotePull is enabled but RemoteSync:ClientId is empty - skipping remote data pull.")]
     private partial void LogPullNoClientId();

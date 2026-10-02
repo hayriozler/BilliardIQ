@@ -8,4 +8,4 @@ public static class ChangeState
 
 public record ChangeGroupDto(string EntityType, string State, IReadOnlyList<object>? Items, IReadOnlyList<int>? Ids);
 
-public record ChangeSetDto(long Cursor, bool Full, List<ChangeGroupDto> Changes);
+public record ChangeSetDto(bool Full, List<ChangeGroupDto> Changes);

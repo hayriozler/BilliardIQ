@@ -23,7 +23,6 @@ public class Organization : BaseEntity
 {
     public string Name { get; set; } = default!;
     public string Slug { get; set; } = default!;
-    public string Code { get; set; } = default!;
     public string? ClientId { get; set; }
     public string? LegalName { get; set; }
     public string? TaxNumber { get; set; }

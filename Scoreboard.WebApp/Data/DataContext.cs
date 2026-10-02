@@ -28,6 +28,7 @@ public class DataContext : DbContext
     public DbSet<Country> CountrySet => Set<Country>();
     public DbSet<City> CitySet => Set<City>();
     public DbSet<EntityChange> EntityChangeSet => Set<EntityChange>();
+    public DbSet<ClientSync> ClientSyncSet => Set<ClientSync>();
     public DbSet<OrganizationCountry> OrganizationCountrySet => Set<OrganizationCountry>();
     public DbSet<OrganizationCity> OrganizationCitySet => Set<OrganizationCity>();
     public DbSet<OrganizationRegion> OrganizationRegionSet => Set<OrganizationRegion>();
@@ -83,14 +84,12 @@ public class DataContext : DbContext
             e.OwnsOne(o => o.Address, a => a.ToJson());
             e.OwnsMany(o => o.OpeningHours, h => h.ToJson());
             e.HasIndex(o => o.Slug).IsUnique();
-            e.HasIndex(o => o.Code).IsUnique();
             e.HasIndex(o => o.ClientId).IsUnique().HasFilter("\"ClientId\" IS NOT NULL");
             e.Property(o => o.ClientId).HasMaxLength(20);
             e.Property(o => o.Language).HasMaxLength(5);
             e.Property(o => o.CountryCode).HasMaxLength(2);
             e.Property(o => o.Name).HasMaxLength(200);
             e.Property(o => o.Slug).HasMaxLength(100);
-            e.Property(o => o.Code).HasMaxLength(10);
             e.HasOne(o => o.DefaultRuleSet).WithMany().HasForeignKey(o => o.DefaultRuleSetId);
         });
 
@@ -184,6 +183,12 @@ public class DataContext : DbContext
             e.Property(x => x.EntityName).HasMaxLength(30);
             e.Property(x => x.Seq).HasDefaultValueSql("nextval('\"EntityChangeSeq\"')");
             e.HasIndex(x => new { x.OrganizationId, x.Seq });
+        });
+
+        modelBuilder.Entity<ClientSync>(e =>
+        {
+            e.HasKey(x => new { x.OrganizationId, x.TableNo });
+            e.Property(x => x.InstanceId).HasMaxLength(40);
         });
 
         modelBuilder.Entity<Country>(e =>
@@ -339,6 +344,7 @@ public class DataContext : DbContext
         modelBuilder.Entity<Device>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<Association>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<EntityChange>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<ClientSync>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<OrganizationCountry>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<OrganizationCity>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<OrganizationRegion>().HasQueryFilter(e => e.OrganizationId == _organizationId);

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
-using Scoreboard.WebApp.Domain;
 using Scoreboard.WebApp.Responses;
 
 namespace Scoreboard.WebApp.Services;
@@ -25,20 +24,75 @@ public class ScoreboardDataService(DataContext db, ClubService clubs, PlayerServ
     public async Task<List<TeamDto>> ListTeamsAsync() =>
         [.. (await teams.ListForOrganizationAsync()).Select(ToDto)];
 
-    public async Task<ChangeSetDto> GetChangesAsync(long since)
+    private static readonly TimeSpan _fullSyncInterval = TimeSpan.FromHours(24);
+
+    public async Task<ChangeSetDto> GetChangesAsync(string instanceId, int tableNo, bool resync)
     {
+        var now = DateTimeOffset.UtcNow;
         var latest = await db.EntityChangeSet.MaxAsync(c => (long?)c.Seq) ?? 0;
-        if (since <= 0 || since > latest)
+        var state = await db.ClientSyncSet.FirstOrDefaultAsync(s => s.TableNo == tableNo);
+        var full = resync || state is null || state.InstanceId != instanceId || state.AckedSeq == 0 || state.AckedSeq > latest
+            || now - state.LastFullSyncAt > _fullSyncInterval;
+
+        var result = full ? await SnapshotAsync() : await DeltaAsync(state!.AckedSeq, latest);
+
+        if (state is null)
         {
-            var language = await LanguageOfAsync();
-            return new ChangeSetDto(latest, true,
-            [
-                Changed(nameof(Club), (await clubs.ListAsync()).Select(ToDto)),
-                Changed(nameof(Team), (await teams.ListForOrganizationAsync()).Select(ToDto)),
-                Changed(nameof(Player), (await players.ListForOrganizationAsync()).Select(p => ToDto(p, language)))
-            ]);
+            state = new ClientSync { OrganizationId = db.CurrentOrganizationId, TableNo = tableNo, InstanceId = instanceId };
+            db.ClientSyncSet.Add(state);
         }
 
+        var changed = full || result.Changes.Count > 0 || state.PendingSeq != latest || now - state.LastSyncAt > TimeSpan.FromMinutes(1);
+        if (full)
+        {
+            state.InstanceId = instanceId;
+            state.AckedSeq = 0;
+            state.PendingFull = true;
+        }
+
+        state.PendingSeq = latest;
+        state.LastSyncAt = now;
+        if (changed)
+        {
+            await db.SaveChangesAsync();
+        }
+
+        return result;
+    }
+
+    public async Task AckChangesAsync(string instanceId, int tableNo)
+    {
+        var state = await db.ClientSyncSet.FirstOrDefaultAsync(s => s.TableNo == tableNo && s.InstanceId == instanceId);
+        if (state is null)
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        state.AckedSeq = state.PendingSeq;
+        state.LastSyncAt = now;
+        if (state.PendingFull)
+        {
+            state.LastFullSyncAt = now;
+            state.PendingFull = false;
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private async Task<ChangeSetDto> SnapshotAsync()
+    {
+        var language = await LanguageOfAsync();
+        return new ChangeSetDto(true,
+        [
+            Changed(nameof(Club), (await clubs.ListAsync()).Select(ToDto)),
+            Changed(nameof(Team), (await teams.ListForOrganizationAsync()).Select(ToDto)),
+            Changed(nameof(Player), (await players.ListForOrganizationAsync()).Select(p => ToDto(p, language)))
+        ]);
+    }
+
+    private async Task<ChangeSetDto> DeltaAsync(long since, long latest)
+    {
         var rows = await db.EntityChangeSet.AsNoTracking().Where(c => c.Seq > since && c.Seq <= latest).ToListAsync();
         var groups = new List<ChangeGroupDto>();
 
@@ -51,11 +105,11 @@ public class ScoreboardDataService(DataContext db, ClubService clubs, PlayerServ
         AddGroups(groups, nameof(Team), teamIds, teamList.Where(t => t.DeletedAt is null).Select(t => (t.Id, (object)ToDto(t))));
 
         var playerIds = IdsOf(rows, nameof(Player));
-        var language2 = playerIds.Count == 0 ? Loc.DefaultLanguage : await LanguageOfAsync();
+        var language = playerIds.Count == 0 ? Loc.DefaultLanguage : await LanguageOfAsync();
         var playerList = playerIds.Count == 0 ? [] : await players.ListByIdsAsync(playerIds);
-        AddGroups(groups, nameof(Player), playerIds, playerList.Where(p => p.DeletedAt is null).Select(p => (p.Id, (object)ToDto(p, language2))));
+        AddGroups(groups, nameof(Player), playerIds, playerList.Where(p => p.DeletedAt is null).Select(p => (p.Id, (object)ToDto(p, language))));
 
-        return new ChangeSetDto(latest, false, groups);
+        return new ChangeSetDto(false, groups);
     }
 
     private static List<int> IdsOf(List<EntityChange> rows, string entityType) =>
