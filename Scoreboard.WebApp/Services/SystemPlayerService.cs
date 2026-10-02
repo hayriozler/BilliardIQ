@@ -20,6 +20,15 @@ public class SystemPlayerService(DataContext db)
                     .SetProperty(p => p.FirstName, name)
                     .SetProperty(p => p.DisplayName, name)
                     .SetProperty(p => p.UpdatedAt, DateTimeOffset.UtcNow));
+            foreach (var organizationId in await db.OrganizationSet.AsNoTracking().Select(o => o.Id).ToListAsync())
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO "EntityChange" ("OrganizationId", "EntityName", "EntityId", "IsDeleted", "ChangedAt", "Seq")
+                    VALUES ({organizationId}, 'Player', {slot}, FALSE, now(), nextval('"EntityChangeSeq"'))
+                    ON CONFLICT ("OrganizationId", "EntityName", "EntityId")
+                    DO UPDATE SET "IsDeleted" = FALSE, "ChangedAt" = now(), "Seq" = nextval('"EntityChangeSeq"')
+                    """);
+            }
         }
     }
 

@@ -97,8 +97,7 @@
 
     private async Task LoadAsync()
     {
-        var orgId = _tenant!.OrganizationId;
         var since = StatsRangeSelect.Since(_range);
-        _rows = await Db.RunAsync((StatsService s) => s.PlayersAsync(orgId, since));
+        _rows = await Db.RunAsync((StatsService s) => s.PlayersAsync(since));
     }
 }

@@ -5,16 +5,19 @@ namespace Scoreboard.WebApp.Services;
 
 public class ClubService(DataContext db)
 {
-    public Task<List<Club>> ListAsync(int organizationId) =>
+    public Task<List<Club>> ListAsync() =>
         db.ClubSet
-            .Where(c => c.OrganizationId == organizationId && c.DeletedAt == null)
+            .Where(c => c.DeletedAt == null)
             .OrderBy(c => c.Name)
             .ToListAsync();
 
-    public Task<Club?> GetAsync(int organizationId, int id) =>
-        db.ClubSet.FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == organizationId && c.DeletedAt == null);
+    public Task<List<Club>> ListByIdsAsync(IReadOnlyCollection<int> ids) =>
+        db.ClubSet.AsNoTracking().Where(c => ids.Contains(c.Id)).ToListAsync();
 
-    public async Task<Club> UpsertAsync(int organizationId, int id, string name, string? shortName, string? city, string? primaryColor)
+    public Task<Club?> GetAsync(int id) =>
+        db.ClubSet.FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null);
+
+    public async Task<Club> UpsertAsync(int id, string name, string? shortName, string? city, string? primaryColor)
     {
         name = name.Trim();
         if (name.Length == 0)
@@ -22,10 +25,10 @@ public class ClubService(DataContext db)
             throw new ArgumentException("Kulüp adı gerekli.");
         }
 
-        var club = id != 0 ? await GetAsync(organizationId, id) : null;
+        var club = id != 0 ? await GetAsync(id) : null;
         if (club is null)
         {
-            club = new Club { OrganizationId = organizationId };
+            club = new Club { OrganizationId = db.CurrentOrganizationId };
             db.ClubSet.Add(club);
         }
 
@@ -37,10 +40,10 @@ public class ClubService(DataContext db)
         return club;
     }
 
-    public async Task<Club> EnsureDefaultClubAsync(int organizationId)
+    public async Task<Club> EnsureDefaultClubAsync()
     {
         var club = await db.ClubSet
-            .Where(c => c.OrganizationId == organizationId && c.DeletedAt == null)
+            .Where(c => c.DeletedAt == null)
             .OrderBy(c => c.Id)
             .FirstOrDefaultAsync();
         if (club is not null)
@@ -48,13 +51,13 @@ public class ClubService(DataContext db)
             return club;
         }
 
-        var organization = await db.OrganizationSet.FirstAsync(o => o.Id == organizationId);
-        return await UpsertAsync(organizationId, 0, organization.Name, null, null, null);
+        var organization = await db.OrganizationSet.FirstAsync(o => o.Id == db.CurrentOrganizationId);
+        return await UpsertAsync(0, organization.Name, null, null, null);
     }
 
-    public async Task<bool> DeleteAsync(int organizationId, int id)
+    public async Task<bool> DeleteAsync(int id)
     {
-        var club = await GetAsync(organizationId, id);
+        var club = await GetAsync(id);
         if (club is null)
         {
             return false;

@@ -89,7 +89,7 @@
         _tenant = await TenantContext.GetAsync();
         var orgId = _tenant!.OrganizationId;
         _clientId = await Db.RunAsync((ClientIdService s) => s.GetAsync(orgId));
-        _scoreboardTables = (await Db.RunAsync((TableService s) => s.ListAsync(orgId)))
+        _scoreboardTables = (await Db.RunAsync((TableService s) => s.ListAsync()))
             .Where(v => v.Table.ScoreboardNo is not null)
             .OrderBy(v => v.Table.ScoreboardNo)
             .ToList();

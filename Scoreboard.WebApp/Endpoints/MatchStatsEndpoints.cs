@@ -15,11 +15,10 @@ public static class MatchStatsEndpoints
 
         group.MapGet("/", async (DataContext db, HttpContext context) =>
         {
-            var organizationId = context.GetOrganizationId();
             var tableId = context.GetTableId();
             var stats = await db.MatchStatSet
                 .Include(s => s.Buckets)
-                .Where(s => s.OrganizationId == organizationId && (tableId == null || s.TableId == tableId))
+                .Where(s => tableId == null || s.TableId == tableId)
                 .OrderByDescending(s => s.PlayedAt)
                 .Take(200)
                 .ToListAsync();
@@ -46,7 +45,7 @@ public static class MatchStatsEndpoints
 
             var stat = new MatchStat
             {
-                OrganizationId = context.GetOrganizationId(),
+                OrganizationId = db.CurrentOrganizationId,
                 TableId = tableId,
                 TableNo = context.GetTableNo(),
                 Player1ExternalId = request.Player1Id,
@@ -77,9 +76,8 @@ public static class MatchStatsEndpoints
 
         group.MapDelete("/{id:int}", async (int id, DataContext db, HttpContext context) =>
         {
-            var organizationId = context.GetOrganizationId();
             var stat = await db.MatchStatSet.Include(s => s.Buckets)
-                .FirstOrDefaultAsync(s => s.Id == id && s.OrganizationId == organizationId);
+                .FirstOrDefaultAsync(s => s.Id == id);
             if (stat is null)
             {
                 return Results.NotFound();

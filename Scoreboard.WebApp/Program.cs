@@ -17,7 +17,13 @@ const string clientCorsPolicy = "Client";
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<DataContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default"));
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging().EnableDetailedErrors();
+    }
+});
 
 builder.Services.AddSingleton<Loc>();
 builder.Services.AddScoped<AuthService>();

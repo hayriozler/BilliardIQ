@@ -1,33 +1,87 @@
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
+using Scoreboard.WebApp.Domain;
 using Scoreboard.WebApp.Responses;
 
 namespace Scoreboard.WebApp.Services;
 
-public class ScoreboardDataService(DataContext db, IOrganizationService organizationService, ClubService clubs, PlayerService players, TeamService teams)
+public class ScoreboardDataService(DataContext db, ClubService clubs, PlayerService players, TeamService teams)
 {
-    private int OrganizationId => organizationService.GetCurrentOrganizationId() ?? throw new InvalidOperationException("No organization for this request.");
-
     public async Task<OrganizationDto> GetOrganizationAsync()
     {
-        var o = await db.OrganizationSet.AsNoTracking().FirstAsync(x => x.Id == OrganizationId);
+        var o = await db.OrganizationSet.AsNoTracking().FirstAsync(x => x.Id == db.CurrentOrganizationId);
         return new OrganizationDto(o.Name, o.Language, o.CountryCode, o.Currency, o.TimeZone);
     }
 
     public async Task<List<ClubDto>> ListClubsAsync() =>
-        [.. (await clubs.ListAsync(OrganizationId)).Select(ToDto)];
+        [.. (await clubs.ListAsync()).Select(ToDto)];
 
     public async Task<List<PlayerDto>> ListPlayersAsync()
     {
         var language = await LanguageOfAsync();
-        return [.. (await players.ListForOrganizationAsync(OrganizationId)).Select(p => ToDto(p, language))];
+        return [.. (await players.ListForOrganizationAsync()).Select(p => ToDto(p, language))];
     }
 
     public async Task<List<TeamDto>> ListTeamsAsync() =>
-        [.. (await teams.ListForOrganizationAsync(OrganizationId)).Select(ToDto)];
+        [.. (await teams.ListForOrganizationAsync()).Select(ToDto)];
+
+    public async Task<ChangeSetDto> GetChangesAsync(long since)
+    {
+        var latest = await db.EntityChangeSet.MaxAsync(c => (long?)c.Seq) ?? 0;
+        if (since <= 0 || since > latest)
+        {
+            var language = await LanguageOfAsync();
+            return new ChangeSetDto(latest, true,
+            [
+                Changed(nameof(Club), (await clubs.ListAsync()).Select(ToDto)),
+                Changed(nameof(Team), (await teams.ListForOrganizationAsync()).Select(ToDto)),
+                Changed(nameof(Player), (await players.ListForOrganizationAsync()).Select(p => ToDto(p, language)))
+            ]);
+        }
+
+        var rows = await db.EntityChangeSet.AsNoTracking().Where(c => c.Seq > since && c.Seq <= latest).ToListAsync();
+        var groups = new List<ChangeGroupDto>();
+
+        var clubIds = IdsOf(rows, nameof(Club));
+        var clubList = clubIds.Count == 0 ? [] : await clubs.ListByIdsAsync(clubIds);
+        AddGroups(groups, nameof(Club), clubIds, clubList.Where(c => c.DeletedAt is null).Select(c => (c.Id, (object)ToDto(c))));
+
+        var teamIds = IdsOf(rows, nameof(Team));
+        var teamList = teamIds.Count == 0 ? [] : await teams.ListByIdsAsync(teamIds);
+        AddGroups(groups, nameof(Team), teamIds, teamList.Where(t => t.DeletedAt is null).Select(t => (t.Id, (object)ToDto(t))));
+
+        var playerIds = IdsOf(rows, nameof(Player));
+        var language2 = playerIds.Count == 0 ? Loc.DefaultLanguage : await LanguageOfAsync();
+        var playerList = playerIds.Count == 0 ? [] : await players.ListByIdsAsync(playerIds);
+        AddGroups(groups, nameof(Player), playerIds, playerList.Where(p => p.DeletedAt is null).Select(p => (p.Id, (object)ToDto(p, language2))));
+
+        return new ChangeSetDto(latest, false, groups);
+    }
+
+    private static List<int> IdsOf(List<EntityChange> rows, string entityType) =>
+        rows.Where(r => r.EntityName == entityType).Select(r => r.EntityId).ToList();
+
+    private static ChangeGroupDto Changed(string entityType, IEnumerable<object> items) =>
+        new(entityType, ChangeState.Changed, items.ToList(), null);
+
+    private static void AddGroups(List<ChangeGroupDto> groups, string entityType, List<int> requestedIds, IEnumerable<(int Id, object Dto)> alive)
+    {
+        var aliveList = alive.ToList();
+        if (aliveList.Count > 0)
+        {
+            groups.Add(new ChangeGroupDto(entityType, ChangeState.Changed, aliveList.Select(a => a.Dto).ToList(), null));
+        }
+
+        var aliveIds = aliveList.Select(a => a.Id).ToHashSet();
+        var gone = requestedIds.Where(id => !aliveIds.Contains(id)).ToList();
+        if (gone.Count > 0)
+        {
+            groups.Add(new ChangeGroupDto(entityType, ChangeState.Deleted, null, gone));
+        }
+    }
 
     public async Task<string> LanguageOfAsync() =>
-        await db.OrganizationSet.Where(o => o.Id == OrganizationId).Select(o => o.Language).FirstOrDefaultAsync() ?? Loc.DefaultLanguage;
+        await db.OrganizationSet.Where(o => o.Id == db.CurrentOrganizationId).Select(o => o.Language).FirstOrDefaultAsync() ?? Loc.DefaultLanguage;
 
     public static ClubDto ToDto(Club club) => new(club.Id, club.Name, club.ShortName, club.City, club.PrimaryColor);
 

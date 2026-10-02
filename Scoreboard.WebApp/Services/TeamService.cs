@@ -5,16 +5,24 @@ namespace Scoreboard.WebApp.Services;
 
 public class TeamService(DataContext db, ClubService clubs)
 {
-    public Task<List<Team>> ListForOrganizationAsync(int organizationId) =>
+    public Task<List<Team>> ListForOrganizationAsync() =>
         db.TeamSet
             .Include(t => t.Club)
             .Include(t => t.Members)
             .ThenInclude(m => m.Player)
-            .Where(t => t.Club.OrganizationId == organizationId && t.DeletedAt == null)
+            .Where(t => t.DeletedAt == null)
             .OrderBy(t => t.Club.Name).ThenBy(t => t.Name)
             .ToListAsync();
 
-    public async Task<Team> UpsertAsync(int organizationId, int id, string name, int? clubId = null, int? avatarId = null)
+    public Task<List<Team>> ListByIdsAsync(IReadOnlyCollection<int> ids) =>
+        db.TeamSet.AsNoTracking()
+            .Include(t => t.Club)
+            .Include(t => t.Members)
+            .ThenInclude(m => m.Player)
+            .Where(t => ids.Contains(t.Id))
+            .ToListAsync();
+
+    public async Task<Team> UpsertAsync(int id, string name, int? clubId = null, int? avatarId = null)
     {
         name = name.Trim();
         if (name.Length == 0)
@@ -27,13 +35,13 @@ public class TeamService(DataContext db, ClubService clubs)
             throw new ArgumentException("Geçersiz avatar.");
         }
 
-        var team = id != 0 ? await FindAsync(organizationId, id) : null;
+        var team = id != 0 ? await FindAsync(id) : null;
 
         if (clubId is not null || team is null)
         {
             var club = clubId is null
-                ? await clubs.EnsureDefaultClubAsync(organizationId)
-                : await clubs.GetAsync(organizationId, clubId.Value) ?? throw new ArgumentException("Kulüp bulunamadı.");
+                ? await clubs.EnsureDefaultClubAsync()
+                : await clubs.GetAsync(clubId.Value) ?? throw new ArgumentException("Kulüp bulunamadı.");
             if (team is null)
             {
                 team = new Team();
@@ -51,9 +59,9 @@ public class TeamService(DataContext db, ClubService clubs)
         return await LoadWithPlayersAsync(team.Id);
     }
 
-    public async Task<bool> DeleteAsync(int organizationId, int id)
+    public async Task<bool> DeleteAsync(int id)
     {
-        var team = await FindAsync(organizationId, id);
+        var team = await FindAsync(id);
         if (team is null)
         {
             return false;
@@ -65,12 +73,12 @@ public class TeamService(DataContext db, ClubService clubs)
         return true;
     }
 
-    public async Task<Team?> SetPlayersAsync(int organizationId, int id, int[] playerIds)
+    public async Task<Team?> SetPlayersAsync(int id, int[] playerIds)
     {
         var team = await db.TeamSet
             .Include(t => t.Club)
             .Include(t => t.Members)
-            .FirstOrDefaultAsync(t => t.Id == id && t.Club.OrganizationId == organizationId && t.DeletedAt == null);
+            .FirstOrDefaultAsync(t => t.Id == id && t.DeletedAt == null);
         if (team is null)
         {
             return null;
@@ -78,7 +86,7 @@ public class TeamService(DataContext db, ClubService clubs)
 
         var distinctIds = playerIds.Distinct().ToArray();
         var found = await db.PlayerSet
-            .Where(p => p.CreatedInOrganizationId == organizationId && p.DeletedAt == null && distinctIds.Contains(p.Id))
+            .Where(p => p.DeletedAt == null && !p.IsSystem && distinctIds.Contains(p.Id))
             .Select(p => p.Id)
             .ToListAsync();
         if (found.Count != distinctIds.Length)
@@ -103,12 +111,12 @@ public class TeamService(DataContext db, ClubService clubs)
         return await LoadWithPlayersAsync(team.Id);
     }
 
-    public async Task<Team?> RemovePlayerAsync(int organizationId, int teamId, int playerId)
+    public async Task<Team?> RemovePlayerAsync(int teamId, int playerId)
     {
         var team = await db.TeamSet
             .Include(t => t.Club)
             .Include(t => t.Members)
-            .FirstOrDefaultAsync(t => t.Id == teamId && t.Club.OrganizationId == organizationId && t.DeletedAt == null);
+            .FirstOrDefaultAsync(t => t.Id == teamId && t.DeletedAt == null);
         var member = team?.Members.FirstOrDefault(m => m.PlayerId == playerId);
         if (team is null || member is null)
         {
@@ -120,8 +128,8 @@ public class TeamService(DataContext db, ClubService clubs)
         return await LoadWithPlayersAsync(team.Id);
     }
 
-    private Task<Team?> FindAsync(int organizationId, int id) =>
-        db.TeamSet.FirstOrDefaultAsync(t => t.Id == id && t.Club.OrganizationId == organizationId && t.DeletedAt == null);
+    private Task<Team?> FindAsync(int id) =>
+        db.TeamSet.FirstOrDefaultAsync(t => t.Id == id && t.DeletedAt == null);
 
     private Task<Team> LoadWithPlayersAsync(int teamId) =>
         db.TeamSet

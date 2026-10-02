@@ -119,8 +119,7 @@
 
     private async Task LoadAsync()
     {
-        var orgId = _tenant!.OrganizationId;
-        _cups = await Db.RunAsync((CupService s) => s.ListAsync(orgId));
+        _cups = await Db.RunAsync((CupService s) => s.ListAsync());
     }
 
     private string FormatName(CupFormat format) =>
@@ -157,14 +156,13 @@
 
     private Task SaveAsync() => RunAsync(async () =>
     {
-        await Db.RunAsync((CupService s) => s.UpsertAsync(
-            _tenant!.OrganizationId, _form.Id, _form.Name, _form.Description, _form.StartDate, _form.EndDate, _form.Format, _form.MaxInnings));
+        await Db.RunAsync((CupService s) => s.UpsertAsync(_form.Id, _form.Name, _form.Description, _form.StartDate, _form.EndDate, _form.Format, _form.MaxInnings));
         ResetForm();
     });
 
     private Task DeleteAsync(int id) => RunAsync(async () =>
     {
-        await Db.RunAsync((CupService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+        await Db.RunAsync((CupService s) => s.DeleteAsync(id));
         _confirmDelete = null;
     });
 

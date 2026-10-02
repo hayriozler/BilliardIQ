@@ -212,10 +212,9 @@
 
     private async Task LoadAsync()
     {
-        var orgId = _tenant!.OrganizationId;
-        _categories = await Db.RunAsync((ProductService s) => s.ListCategoriesAsync(orgId));
-        _products = await Db.RunAsync((ProductService s) => s.ListProductsAsync(orgId));
-        _currency = (await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId))).Currency;
+        _categories = await Db.RunAsync((ProductService s) => s.ListCategoriesAsync());
+        _products = await Db.RunAsync((ProductService s) => s.ListProductsAsync());
+        _currency = (await Db.RunAsync((TableService s) => s.GetOrganizationAsync())).Currency;
     }
 
     private void EditCategory(ProductCategory category) => _categoryForm = new CategoryForm { Id = category.Id, Name = category.Name };
@@ -235,24 +234,23 @@
 
     private Task SaveCategoryAsync() => RunAsync(async () =>
     {
-        await Db.RunAsync((ProductService s) => s.UpsertCategoryAsync(_tenant!.OrganizationId, _categoryForm.Id, _categoryForm.Name));
+        await Db.RunAsync((ProductService s) => s.UpsertCategoryAsync(_categoryForm.Id, _categoryForm.Name));
         _categoryForm = new CategoryForm();
         _message = L["Kategori kaydedildi."];
     });
 
     private Task MoveCategoryAsync(int id, int direction) =>
-        RunAsync(() => Db.RunAsync((ProductService s) => s.MoveCategoryAsync(_tenant!.OrganizationId, id, direction)));
+        RunAsync(() => Db.RunAsync((ProductService s) => s.MoveCategoryAsync(id, direction)));
 
     private Task DeleteCategoryAsync(int id) => RunAsync(async () =>
     {
-        await Db.RunAsync((ProductService s) => s.DeleteCategoryAsync(_tenant!.OrganizationId, id));
+        await Db.RunAsync((ProductService s) => s.DeleteCategoryAsync(id));
         _confirmDeleteCategory = null;
     });
 
     private Task SaveProductAsync() => RunAsync(async () =>
     {
-        await Db.RunAsync((ProductService s) => s.UpsertProductAsync(
-            _tenant!.OrganizationId, _productForm.Id, _productForm.CategoryId, _productForm.Name,
+        await Db.RunAsync((ProductService s) => s.UpsertProductAsync(_productForm.Id, _productForm.CategoryId, _productForm.Name,
             _productForm.Price, _productForm.VatRate, _productForm.IsActive));
         ResetProductForm();
         _message = L["Ürün kaydedildi."];
@@ -260,7 +258,7 @@
 
     private Task DeleteProductAsync(int id) => RunAsync(async () =>
     {
-        await Db.RunAsync((ProductService s) => s.DeleteProductAsync(_tenant!.OrganizationId, id));
+        await Db.RunAsync((ProductService s) => s.DeleteProductAsync(id));
         _confirmDeleteProduct = null;
     });
 

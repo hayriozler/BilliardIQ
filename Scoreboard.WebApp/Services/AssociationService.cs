@@ -5,33 +5,33 @@ namespace Scoreboard.WebApp.Services;
 
 public class AssociationService(DataContext db)
 {
-    public Task<List<Association>> ListAsync(int organizationId) =>
+    public Task<List<Association>> ListAsync() =>
         db.AssociationSet
             .AsNoTracking()
-            .Where(a => a.OrganizationId == organizationId && a.DeletedAt == null)
+            .Where(a => a.DeletedAt == null)
             .OrderBy(a => a.Name)
             .ToListAsync();
 
-    public async Task<Association> UpsertAsync(int organizationId, int id, string name)
+    public async Task<Association> UpsertAsync(int id, string name)
     {
         name = name.Trim();
         if (name.Length == 0) throw new ArgumentException("Dernek / federasyon adı gerekli.");
         if (name.Length > 150) throw new ArgumentException("Dernek adı en fazla 150 karakter olabilir.");
 
         var association = id != 0
-            ? await db.AssociationSet.FirstOrDefaultAsync(a => a.Id == id && a.OrganizationId == organizationId && a.DeletedAt == null)
+            ? await db.AssociationSet.FirstOrDefaultAsync(a => a.Id == id && a.DeletedAt == null)
             : null;
         if (id != 0 && association is null) throw new ArgumentException("Dernek / federasyon bulunamadı.");
 
         if (await db.AssociationSet.AnyAsync(a =>
-                a.OrganizationId == organizationId && a.DeletedAt == null && a.Id != id && a.Name.ToLower() == name.ToLower()))
+                a.DeletedAt == null && a.Id != id && a.Name.ToLower() == name.ToLower()))
         {
             throw new ArgumentException("Bu isimde bir dernek / federasyon zaten var.");
         }
 
         if (association is null)
         {
-            association = new Association { OrganizationId = organizationId };
+            association = new Association { OrganizationId = db.CurrentOrganizationId };
             db.AssociationSet.Add(association);
         }
 
@@ -40,9 +40,9 @@ public class AssociationService(DataContext db)
         return association;
     }
 
-    public async Task DeleteAsync(int organizationId, int id)
+    public async Task DeleteAsync(int id)
     {
-        var association = await db.AssociationSet.FirstOrDefaultAsync(a => a.Id == id && a.OrganizationId == organizationId && a.DeletedAt == null)
+        var association = await db.AssociationSet.FirstOrDefaultAsync(a => a.Id == id && a.DeletedAt == null)
             ?? throw new InvalidOperationException("Dernek / federasyon bulunamadı.");
         if (await db.PlayerSet.AnyAsync(p => p.AssociationId == id && p.DeletedAt == null))
         {

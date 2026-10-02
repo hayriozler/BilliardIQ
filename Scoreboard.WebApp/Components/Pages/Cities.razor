@@ -127,10 +127,10 @@
     private async Task LoadAsync()
     {
         var orgId = _tenant!.OrganizationId;
-        _countries = await Db.RunAsync((CountryService s) => s.ListAsync(orgId));
-        _cities = await Db.RunAsync((CityService s) => s.ListAsync(orgId));
+        _countries = await Db.RunAsync((CountryService s) => s.ListAsync());
+        _cities = await Db.RunAsync((CityService s) => s.ListAsync());
         await LoadAvailableAsync();
-        var players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId));
+        var players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync());
         _playerCounts = players.Where(p => p.CityId != null)
             .GroupBy(p => p.CityId!.Value)
             .ToDictionary(g => g.Key, g => g.Count());
@@ -140,7 +140,7 @@
     {
         var orgId = _tenant!.OrganizationId;
         var countryId = _addCountryId;
-        _available = countryId == 0 ? [] : await Db.RunAsync((CityService s) => s.AvailableAsync(orgId, countryId));
+        _available = countryId == 0 ? [] : await Db.RunAsync((CityService s) => s.AvailableAsync(countryId));
     }
 
     private async Task OnAddCountryChanged(ChangeEventArgs e)
@@ -152,13 +152,13 @@
 
     private Task AddAsync() => RunAsync(async () =>
     {
-        await Db.RunAsync((CityService s) => s.AddAsync(_tenant!.OrganizationId, _selectedId));
+        await Db.RunAsync((CityService s) => s.AddAsync(_selectedId));
         _selectedId = 0;
     });
 
     private Task DeleteAsync(int id) => RunAsync(async () =>
     {
-        await Db.RunAsync((CityService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+        await Db.RunAsync((CityService s) => s.DeleteAsync(id));
         _confirmDelete = null;
     });
 

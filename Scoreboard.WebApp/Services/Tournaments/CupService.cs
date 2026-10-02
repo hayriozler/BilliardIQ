@@ -5,31 +5,31 @@ namespace Scoreboard.WebApp.Services.Tournaments;
 
 public class CupService(DataContext db)
 {
-    public Task<List<Cup>> ListAsync(int organizationId) =>
+    public Task<List<Cup>> ListAsync() =>
         db.CupSet
             .AsNoTracking()
             .Include(c => c.Participants)
-            .Where(c => c.OrganizationId == organizationId && c.DeletedAt == null)
+            .Where(c => c.DeletedAt == null)
             .OrderByDescending(c => c.StartDate).ThenByDescending(c => c.Id)
             .ToListAsync();
 
-    public Task<Cup?> GetAsync(int organizationId, int id) =>
+    public Task<Cup?> GetAsync(int id) =>
         db.CupSet
             .AsNoTracking()
             .Include(c => c.Participants).ThenInclude(p => p.Player)
             .Include(c => c.RuleBlocks)
             .Include(c => c.Matches).ThenInclude(m => m.Table)
             .AsSplitQuery()
-            .FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == organizationId && c.DeletedAt == null);
+            .FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null);
 
-    public Task<List<Player>> AvailablePlayersAsync(int organizationId, int cupId) =>
+    public Task<List<Player>> AvailablePlayersAsync(int cupId) =>
         db.PlayerSet
             .AsNoTracking()
             .Include(p => p.Association)
             .Include(p => p.Region)
             .Include(p => p.CityRef)
             .Include(p => p.TeamMemberships.Where(m => m.LeftAt == null)).ThenInclude(m => m.Team)
-            .Where(p => p.CreatedInOrganizationId == organizationId && p.DeletedAt == null && !p.IsSystem
+            .Where(p => p.DeletedAt == null && !p.IsSystem
                         && !db.CupParticipantSet.Any(x => x.CupId == cupId && x.PlayerId == p.Id))
             .OrderBy(p => p.DisplayName)
             .ToListAsync();
@@ -45,8 +45,7 @@ public class CupService(DataContext db)
         return CupLogic.Standings(cup.Participants.Select(p => p.Id), finished, byes);
     }
 
-    public async Task<Cup> UpsertAsync(
-        int organizationId, int id, string name, string? description, DateOnly startDate, DateOnly? endDate,
+    public async Task<Cup> UpsertAsync(int id, string name, string? description, DateOnly startDate, DateOnly? endDate,
         CupFormat format, int? maxInnings)
     {
         name = name.Trim();
@@ -58,7 +57,7 @@ public class CupService(DataContext db)
         Cup? cup = null;
         if (id != 0)
         {
-            cup = await db.CupSet.FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == organizationId && c.DeletedAt == null)
+            cup = await db.CupSet.FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null)
                 ?? throw new ArgumentException("Turnuva bulunamadı.");
             if (cup.Status != CupStatus.Draft && cup.Format != format)
             {
@@ -67,7 +66,7 @@ public class CupService(DataContext db)
         }
         else
         {
-            cup = new Cup { OrganizationId = organizationId, Status = CupStatus.Draft };
+            cup = new Cup { OrganizationId = db.CurrentOrganizationId, Status = CupStatus.Draft };
             db.CupSet.Add(cup);
         }
 
@@ -81,20 +80,20 @@ public class CupService(DataContext db)
         return cup;
     }
 
-    public async Task DeleteAsync(int organizationId, int id)
+    public async Task DeleteAsync(int id)
     {
-        var cup = await db.CupSet.FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == organizationId && c.DeletedAt == null)
+        var cup = await db.CupSet.FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null)
             ?? throw new InvalidOperationException("Turnuva bulunamadı.");
         cup.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
     }
 
-    public async Task AddParticipantsAsync(int organizationId, int cupId, IEnumerable<int> playerIds)
+    public async Task AddParticipantsAsync(int cupId, IEnumerable<int> playerIds)
     {
-        var cup = await FindDraftAsync(organizationId, cupId);
+        var cup = await FindDraftAsync(cupId);
         var ids = playerIds.Distinct().ToList();
         var players = await db.PlayerSet
-            .Where(p => ids.Contains(p.Id) && p.CreatedInOrganizationId == organizationId && p.DeletedAt == null && !p.IsSystem)
+            .Where(p => ids.Contains(p.Id) && p.DeletedAt == null && !p.IsSystem)
             .ToListAsync();
         if (players.Count != ids.Count) throw new ArgumentException("Oyuncu bulunamadı.");
 
@@ -114,18 +113,18 @@ public class CupService(DataContext db)
         await db.SaveChangesAsync();
     }
 
-    public async Task RemoveParticipantAsync(int organizationId, int cupId, int participantId)
+    public async Task RemoveParticipantAsync(int cupId, int participantId)
     {
-        await FindDraftAsync(organizationId, cupId);
+        await FindDraftAsync(cupId);
         var participant = await db.CupParticipantSet.FirstOrDefaultAsync(p => p.Id == participantId && p.CupId == cupId)
             ?? throw new InvalidOperationException("Katılımcı bulunamadı.");
         db.CupParticipantSet.Remove(participant);
         await db.SaveChangesAsync();
     }
 
-    public async Task SetParticipantAsync(int organizationId, int cupId, int participantId, int? handicapTarget, int? seed)
+    public async Task SetParticipantAsync(int cupId, int participantId, int? handicapTarget, int? seed)
     {
-        await FindDraftAsync(organizationId, cupId);
+        await FindDraftAsync(cupId);
         if (handicapTarget is < 1 or > 9999) throw new ArgumentException("Handikap sayısı 1-9999 arasında olmalı.");
         if (seed is < 1) throw new ArgumentException("Seri başı sırası 1 veya daha büyük olmalı.");
         var participant = await db.CupParticipantSet.FirstOrDefaultAsync(p => p.Id == participantId && p.CupId == cupId)
@@ -135,9 +134,9 @@ public class CupService(DataContext db)
         await db.SaveChangesAsync();
     }
 
-    public async Task SetRuleBlocksAsync(int organizationId, int cupId, IEnumerable<RuleBlockInput> blocks)
+    public async Task SetRuleBlocksAsync(int cupId, IEnumerable<RuleBlockInput> blocks)
     {
-        var cup = await FindDraftAsync(organizationId, cupId);
+        var cup = await FindDraftAsync(cupId);
         var list = blocks.OrderBy(b => b.FromRound).ThenBy(b => b.ToRound).ToList();
         ValidateBlocks(list);
 
@@ -157,15 +156,15 @@ public class CupService(DataContext db)
         await db.SaveChangesAsync();
     }
 
-    public async Task QuickRulesAsync(int organizationId, int cupId, int handicapRounds, int? fixedTarget)
+    public async Task QuickRulesAsync(int cupId, int handicapRounds, int? fixedTarget)
     {
-        var cup = await FindDraftAsync(organizationId, cupId);
+        var cup = await FindDraftAsync(cupId);
         var participants = await db.CupParticipantSet.CountAsync(p => p.CupId == cupId);
         var rounds = CupLogic.TotalRounds(cup.Format, participants);
         if (rounds == 0) throw new InvalidOperationException("Önce en az iki katılımcı ekleyin.");
         if (handicapRounds < rounds && fixedTarget is null or < 1) throw new ArgumentException("Sabit hedef sayısı gerekli.");
 
-        await SetRuleBlocksAsync(organizationId, cupId, CupLogic.QuickBlocks(rounds, handicapRounds, fixedTarget));
+        await SetRuleBlocksAsync(cupId, CupLogic.QuickBlocks(rounds, handicapRounds, fixedTarget));
     }
 
     private static void ValidateBlocks(List<RuleBlockInput> list)
@@ -192,9 +191,9 @@ public class CupService(DataContext db)
         }
     }
 
-    public async Task StartAsync(int organizationId, int cupId)
+    public async Task StartAsync(int cupId)
     {
-        var cup = await FindDraftAsync(organizationId, cupId);
+        var cup = await FindDraftAsync(cupId);
         var participants = await db.CupParticipantSet
             .Include(p => p.Player)
             .Where(p => p.CupId == cupId)
@@ -230,9 +229,9 @@ public class CupService(DataContext db)
         await db.SaveChangesAsync();
     }
 
-    public async Task ResetAsync(int organizationId, int cupId)
+    public async Task ResetAsync(int cupId)
     {
-        var cup = await db.CupSet.FirstOrDefaultAsync(c => c.Id == cupId && c.OrganizationId == organizationId && c.DeletedAt == null)
+        var cup = await db.CupSet.FirstOrDefaultAsync(c => c.Id == cupId && c.DeletedAt == null)
             ?? throw new InvalidOperationException("Turnuva bulunamadı.");
         db.CupMatchSet.RemoveRange(await db.CupMatchSet.Where(m => m.CupId == cupId).ToListAsync());
         cup.Status = CupStatus.Draft;
@@ -327,10 +326,9 @@ public class CupService(DataContext db)
         }
     }
 
-    public async Task RecordResultAsync(
-        int organizationId, int matchId, int scoreA, int scoreB, int innings, int highRunA, int highRunB, int winnerParticipantId)
+    public async Task RecordResultAsync(int matchId, int scoreA, int scoreB, int innings, int highRunA, int highRunB, int winnerParticipantId)
     {
-        var (cup, match, all) = await LoadMatchAsync(organizationId, matchId);
+        var (cup, match, all) = await LoadMatchAsync(matchId);
         if (match.Status == CupMatchStatus.Bye || match.ParticipantAId is null || match.ParticipantBId is null)
         {
             throw new InvalidOperationException("Bu maçın oyuncuları henüz belli değil.");
@@ -365,9 +363,9 @@ public class CupService(DataContext db)
         await db.SaveChangesAsync();
     }
 
-    public async Task ClearResultAsync(int organizationId, int matchId)
+    public async Task ClearResultAsync(int matchId)
     {
-        var (cup, match, all) = await LoadMatchAsync(organizationId, matchId);
+        var (cup, match, all) = await LoadMatchAsync(matchId);
         if (match.Status != CupMatchStatus.Finished) return;
 
         if (cup.Format == CupFormat.SingleElimination && match.Round < cup.TotalRounds)
@@ -390,11 +388,11 @@ public class CupService(DataContext db)
         await db.SaveChangesAsync();
     }
 
-    public async Task SetTableAsync(int organizationId, int matchId, int? tableId)
+    public async Task SetTableAsync(int matchId, int? tableId)
     {
-        var (_, match, _) = await LoadMatchAsync(organizationId, matchId);
+        var (_, match, _) = await LoadMatchAsync(matchId);
         if (tableId is not null &&
-            !await db.BilliardTableSet.AnyAsync(t => t.Id == tableId && t.OrganizationId == organizationId && t.DeletedAt == null))
+            !await db.BilliardTableSet.AnyAsync(t => t.Id == tableId && t.DeletedAt == null))
         {
             throw new InvalidOperationException("Masa bulunamadı.");
         }
@@ -403,18 +401,18 @@ public class CupService(DataContext db)
         await db.SaveChangesAsync();
     }
 
-    private async Task<Cup> FindDraftAsync(int organizationId, int cupId)
+    private async Task<Cup> FindDraftAsync(int cupId)
     {
-        var cup = await db.CupSet.FirstOrDefaultAsync(c => c.Id == cupId && c.OrganizationId == organizationId && c.DeletedAt == null)
+        var cup = await db.CupSet.FirstOrDefaultAsync(c => c.Id == cupId && c.DeletedAt == null)
             ?? throw new InvalidOperationException("Turnuva bulunamadı.");
         if (cup.Status != CupStatus.Draft) throw new InvalidOperationException("Turnuva başladıktan sonra değiştirilemez. Önce sıfırlayın.");
         return cup;
     }
 
-    private async Task<(Cup Cup, CupMatch Match, List<CupMatch> All)> LoadMatchAsync(int organizationId, int matchId)
+    private async Task<(Cup Cup, CupMatch Match, List<CupMatch> All)> LoadMatchAsync(int matchId)
     {
         var match = await db.CupMatchSet.Include(m => m.Cup)
-            .FirstOrDefaultAsync(m => m.Id == matchId && m.Cup.OrganizationId == organizationId && m.Cup.DeletedAt == null)
+            .FirstOrDefaultAsync(m => m.Id == matchId && m.Cup.DeletedAt == null)
             ?? throw new InvalidOperationException("Maç bulunamadı.");
         var all = await db.CupMatchSet.Where(m => m.CupId == match.CupId).ToListAsync();
         return (match.Cup, all.First(m => m.Id == matchId), all);

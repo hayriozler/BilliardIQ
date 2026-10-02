@@ -18,6 +18,9 @@ public static class ScoreboardEndpoints
         group.MapGet("/teams", (ScoreboardDataService data) =>
             data.ListTeamsAsync());
 
+        group.MapGet("/changes", (long? since, ScoreboardDataService data) =>
+            data.GetChangesAsync(since ?? 0));
+
         return group;
     }
 }

@@ -17,6 +17,7 @@ public partial class RemotePullService(
     private const string _photosFolder = "PlayerSet";
 
     private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly TimeSpan _fullSyncInterval = TimeSpan.FromHours(24);
 
     private readonly RemoteSyncOptions _options = options.Value;
 
@@ -84,9 +85,10 @@ public partial class RemotePullService(
         LogSendGet();
         var organizationPulled = await IsOrganizationPulledAsync(ct);
         RemoteOrganization? organization = null;
-        List<RemoteClub>? clubs;
-        List<RemoteTeam>? teams;
-        List<RemotePlayer>? players;
+        RemoteChanges changes;
+        var cursor = long.TryParse(await GetSettingAsync("ChangeCursor", ct), out var storedCursor) ? storedCursor : 0;
+        var lastFullSync = DateTimeOffset.TryParse(await GetSettingAsync("LastFullSync", ct), out var storedFullSync) ? storedFullSync : DateTimeOffset.MinValue;
+        var fullSync = cursor == 0 || DateTimeOffset.UtcNow - lastFullSync > _fullSyncInterval;
         try
         {
             if (!organizationPulled)
@@ -99,16 +101,32 @@ public partial class RemotePullService(
                     return;
                 }
             }
-            clubs = await http.GetFromJsonAsync<List<RemoteClub>>("scoreboard/clubs", _jsonOptions, ct) ?? [];
-            players = await http.GetFromJsonAsync<List<RemotePlayer>>("scoreboard/players", _jsonOptions, ct) ?? [];
-            teams = await http.GetFromJsonAsync<List<RemoteTeam>>("scoreboard/teams", _jsonOptions, ct) ?? [];
-            LogReceived(clubs.Count, teams.Count, players.Count);
+            changes = await http.GetFromJsonAsync<RemoteChanges>($"scoreboard/changes?since={(fullSync ? 0 : cursor)}", _jsonOptions, ct)
+                ?? throw new HttpRequestException("Change list is null");
         }
         catch (HttpRequestException e)
         {
             LogReceivedFailed(e.Message, e);
             return;
         }
+
+        var clubs = changes.ItemsOf<RemoteClub>("Club");
+        var teams = changes.ItemsOf<RemoteTeam>("Team");
+        var players = changes.ItemsOf<RemotePlayer>("Player");
+        var nothingChanged = !changes.Full && changes.Changes.Count == 0;
+        if (organizationPulled && nothingChanged)
+        {
+            if (changes.Cursor != cursor)
+            {
+                await using var cursorDb = await dbFactory.CreateDbContextAsync(ct);
+                await SetSettingAsync(cursorDb, "ChangeCursor", changes.Cursor.ToString(), ct);
+            }
+
+            LogNoChanges(changes.Cursor);
+            return;
+        }
+
+        LogReceived(clubs.Count, teams.Count, players.Count);
 
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
@@ -121,9 +139,15 @@ public partial class RemotePullService(
             await MarkOrganizationPulledAsync(db, ct);
         }
 
-        await MirrorClubsAsync(db, clubs, ct);
-        await MirrorTeamsAsync(db, teams, ct);
-        await MirrorPlayersAsync(db, http, players, teams, ct);
+        await UpsertClubsAsync(db, clubs, changes.Full, changes.DeletedIdsOf("Club"), ct);
+        await UpsertTeamsAsync(db, teams, changes.Full, changes.DeletedIdsOf("Team"), ct);
+        await UpsertPlayersAsync(db, http, players, teams, changes.Full, changes.DeletedIdsOf("Player"), ct);
+
+        await SetSettingAsync(db, "ChangeCursor", changes.Cursor.ToString(), ct);
+        if (changes.Full)
+        {
+            await SetSettingAsync(db, "LastFullSync", DateTimeOffset.UtcNow.ToString("O"), ct);
+        }
 
         await transaction.CommitAsync(ct);
 
@@ -131,6 +155,27 @@ public partial class RemotePullService(
         {
             languageSync.Notify();
         }
+    }
+
+    private async Task<string?> GetSettingAsync(string key, CancellationToken ct)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.SettingsSet.AsNoTracking().Where(s => s.Id == key).Select(s => s.Value).FirstOrDefaultAsync(ct);
+    }
+
+    private static async Task SetSettingAsync(DataContext db, string key, string value, CancellationToken ct)
+    {
+        var setting = await db.SettingsSet.FirstOrDefaultAsync(s => s.Id == key, ct);
+        if (setting is null)
+        {
+            db.SettingsSet.Add(new Setting { Id = key, Value = value });
+        }
+        else
+        {
+            setting.Value = value;
+        }
+
+        await db.SaveChangesAsync(ct);
     }
 
     private async Task<bool> IsOrganizationPulledAsync(CancellationToken ct)
@@ -193,7 +238,7 @@ public partial class RemotePullService(
         return true;
     }
 
-    private static async Task MirrorClubsAsync(DataContext db, List<RemoteClub> remoteClubs, CancellationToken ct)
+    private static async Task UpsertClubsAsync(DataContext db, List<RemoteClub> remoteClubs, bool prune, HashSet<int> deletedIds, CancellationToken ct)
     {
         var local = await db.ClubSet.ToDictionaryAsync(c => c.Id, ct);
         foreach (var remote in remoteClubs)
@@ -212,11 +257,11 @@ public partial class RemotePullService(
         }
 
         var remoteIds = remoteClubs.Select(c => c.Id).ToHashSet();
-        db.ClubSet.RemoveRange(local.Values.Where(c => !remoteIds.Contains(c.Id)));
+        db.ClubSet.RemoveRange(local.Values.Where(c => prune ? !remoteIds.Contains(c.Id) : deletedIds.Contains(c.Id)).ToList());
         await db.SaveChangesAsync(ct);
     }
 
-    private static async Task MirrorTeamsAsync(DataContext db, List<RemoteTeam> remoteTeams, CancellationToken ct)
+    private static async Task UpsertTeamsAsync(DataContext db, List<RemoteTeam> remoteTeams, bool prune, HashSet<int> deletedIds, CancellationToken ct)
     {
         var local = await db.TeamSet.ToDictionaryAsync(t => t.Id, ct);
         foreach (var remote in remoteTeams)
@@ -235,12 +280,12 @@ public partial class RemotePullService(
         }
 
         var remoteIds = remoteTeams.Select(t => t.Id).ToHashSet();
-        db.TeamSet.RemoveRange(local.Values.Where(t => !remoteIds.Contains(t.Id)));
+        db.TeamSet.RemoveRange(local.Values.Where(t => prune ? !remoteIds.Contains(t.Id) : deletedIds.Contains(t.Id)).ToList());
         await db.SaveChangesAsync(ct);
     }
 
-    private async Task MirrorPlayersAsync(
-        DataContext db, HttpClient http, List<RemotePlayer> remotePlayers, List<RemoteTeam> remoteTeams, CancellationToken ct)
+    private async Task UpsertPlayersAsync(
+        DataContext db, HttpClient http, List<RemotePlayer> remotePlayers, List<RemoteTeam> remoteTeams, bool prune, HashSet<int> deletedIds, CancellationToken ct)
     {
         var local = await db.PlayerSet.ToDictionaryAsync(p => p.Id, ct);
         var remoteIds = remotePlayers.Select(p => p.Id).ToHashSet();
@@ -276,7 +321,7 @@ public partial class RemotePullService(
             player.PhotoPath = await SyncPhotoAsync(http, remote, player.PhotoPath, photoChanged, ct);
         }
 
-        var gone = local.Values.Where(p => !remoteIds.Contains(p.Id) && !p.IsLocalSeed).ToList();
+        var gone = local.Values.Where(p => (prune ? !remoteIds.Contains(p.Id) : deletedIds.Contains(p.Id)) && !p.IsLocalSeed).ToList();
         foreach (var player in gone)
         {
             DeletePhoto(player.PhotoPath);
@@ -293,9 +338,28 @@ public partial class RemotePullService(
             }
         }
 
-        foreach (var player in local.Values.Where(p => !p.IsLocalSeed && remoteIds.Contains(p.Id)))
+        if (prune)
         {
-            player.TeamId = teamOfPlayer.TryGetValue(player.Id, out var teamId) ? teamId : null;
+            foreach (var player in local.Values.Where(p => !p.IsLocalSeed && remoteIds.Contains(p.Id)))
+            {
+                player.TeamId = teamOfPlayer.TryGetValue(player.Id, out var teamId) ? teamId : null;
+            }
+        }
+        else
+        {
+            foreach (var team in remoteTeams)
+            {
+                var memberIds = team.Players.Select(m => m.Id).ToHashSet();
+                foreach (var player in local.Values.Where(p => !p.IsLocalSeed && p.TeamId == team.Id && !memberIds.Contains(p.Id)))
+                {
+                    player.TeamId = null;
+                }
+
+                foreach (var player in local.Values.Where(p => !p.IsLocalSeed && memberIds.Contains(p.Id)))
+                {
+                    player.TeamId = team.Id;
+                }
+            }
         }
 
         await db.SaveChangesAsync(ct);
@@ -385,6 +449,24 @@ public partial class RemotePullService(
 
     private record RemoteOrganization(string Name, string Language);
 
+    private record RemoteChangeGroup(string EntityType, string State, List<JsonElement>? Items, List<int>? Ids);
+
+    private record RemoteChanges(long Cursor, bool Full, List<RemoteChangeGroup> Changes)
+    {
+        public List<T> ItemsOf<T>(string entityType) =>
+            Changes
+                .Where(g => g.EntityType == entityType && g.State == "changed" && g.Items is not null)
+                .SelectMany(g => g.Items!)
+                .Select(item => item.Deserialize<T>(_jsonOptions)!)
+                .ToList();
+
+        public HashSet<int> DeletedIdsOf(string entityType) =>
+            Changes
+                .Where(g => g.EntityType == entityType && g.State == "deleted" && g.Ids is not null)
+                .SelectMany(g => g.Ids!)
+                .ToHashSet();
+    }
+
     private record RemoteClub(int Id, string Name, string ShortName, string? City, string? PrimaryColor);
 
     private record RemotePlayer(
@@ -401,6 +483,9 @@ public partial class RemotePullService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "RemotePull is enabled but RemoteSync:BaseUrl is empty - skipping remote data pull.")]
     private partial void LogPullNoBaseUrl();
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "No changes on the server (cursor {Cursor}).")]
+    private partial void LogNoChanges(long cursor);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "RemotePull is enabled but RemoteSync:ClientId is empty - skipping remote data pull.")]
     private partial void LogPullNoClientId();
