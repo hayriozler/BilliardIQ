@@ -1157,7 +1157,7 @@ else
                 last = System.Diagnostics.Stopwatch.GetTimestamp();
                 try
                 {
-                    await ShotClockTickAsync(elapsed, ++ticks % 30 == 0);
+                    await InvokeAsync(() => ShotClockTick(elapsed, ++ticks % 30 == 0));
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -1170,7 +1170,7 @@ else
         }
     }
 
-    private async Task ShotClockTickAsync(double elapsedSeconds, bool refresh)
+    private void ShotClockTick(double elapsedSeconds, bool refresh)
     {
         if (SystemPower.IsShuttingDown)
         {
@@ -1179,7 +1179,7 @@ else
 
         if (!Current.ShotClockActive)
         {
-            if (refresh) await InvokeAsync(StateHasChanged);
+            if (refresh) StateHasChanged();
             return;
         }
 
@@ -1191,7 +1191,7 @@ else
             DbContext.SaveChanges();
         }
 
-        await InvokeAsync(StateHasChanged);
+        StateHasChanged();
     }
 
     public async ValueTask DisposeAsync()
