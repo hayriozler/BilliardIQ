@@ -7,7 +7,7 @@ namespace Scoreboard.WebApp.Services;
 
 public record LoginResult(User User, StaffMember Staff, Organization Organization);
 
-public class AuthService(DataContext db, ClientIdService clientIds, OrganizationRunner runner)
+public class AuthService(DataContext db, ClientIdService clientIds, OrganizationRunner runner, LoginThrottle throttle)
 {
     private static readonly PasswordHasher<User> _hasher = new();
 
@@ -22,7 +22,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
     public async Task<User?> VerifyAsync(string email, string password)
     {
         email = NormalizeEmail(email);
-        if (email.Length == 0 || string.IsNullOrEmpty(password))
+        if (email.Length == 0 || string.IsNullOrEmpty(password) || throttle.IsLocked(email))
         {
             return null;
         }
@@ -30,14 +30,18 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         var user = await db.UserSet.FirstOrDefaultAsync(u => u.Email == email);
         if (user?.PasswordHash is null || user.Status != UserStatus.Active)
         {
+            throttle.RecordFailure(email);
             return null;
         }
 
         var verification = _hasher.VerifyHashedPassword(user, user.PasswordHash, password);
         if (verification == PasswordVerificationResult.Failed)
         {
+            throttle.RecordFailure(email);
             return null;
         }
+
+        throttle.Reset(email);
 
         if (verification == PasswordVerificationResult.SuccessRehashNeeded)
         {

@@ -29,6 +29,8 @@ builder.Services.AddDbContext<DataContext>(options =>
 });
 
 builder.Services.AddSingleton<Loc>();
+builder.Services.AddSingleton<LoginThrottle>();
+builder.Services.AddCredentialRateLimiting();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<MobileAuthService>();
 
@@ -231,6 +233,7 @@ app.MapStaticAssets();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.UseMiddleware<ClientIdMiddleware>();
 
