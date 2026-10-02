@@ -179,15 +179,14 @@ public class DataContext : DbContext
         modelBuilder.HasSequence<long>("EntityChangeSeq");
         modelBuilder.Entity<EntityChange>(e =>
         {
-            e.HasKey(x => new { x.OrganizationId, x.EntityName, x.EntityId });
+            e.HasKey(x => new { x.OrganizationId, x.TableId, x.EntityName, x.EntityId });
             e.Property(x => x.EntityName).HasMaxLength(30);
             e.Property(x => x.Seq).HasDefaultValueSql("nextval('\"EntityChangeSeq\"')");
-            e.HasIndex(x => new { x.OrganizationId, x.Seq });
         });
 
         modelBuilder.Entity<ClientSync>(e =>
         {
-            e.HasKey(x => new { x.OrganizationId, x.TableNo });
+            e.HasKey(x => new { x.OrganizationId, x.TableId });
             e.Property(x => x.InstanceId).HasMaxLength(40);
         });
 
@@ -387,7 +386,7 @@ public class DataContext : DbContext
         var result = base.SaveChanges(acceptAllChangesOnSuccess);
         foreach (var change in ResolveChanges(pending))
         {
-            Database.ExecuteSqlInterpolated(UpsertChange(change));
+            Database.ExecuteSqlInterpolated(EntityChangeSql.Upsert(change.OrganizationId, change.Entity, change.Id, change.Deleted));
         }
 
         return result;
@@ -400,7 +399,7 @@ public class DataContext : DbContext
         var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         foreach (var change in ResolveChanges(pending))
         {
-            await Database.ExecuteSqlInterpolatedAsync(UpsertChange(change), cancellationToken);
+            await Database.ExecuteSqlInterpolatedAsync(EntityChangeSql.Upsert(change.OrganizationId, change.Entity, change.Id, change.Deleted), cancellationToken);
         }
 
         return result;
@@ -456,14 +455,6 @@ public class DataContext : DbContext
 
         return resolved.Select(r => (r.Key.Item1, r.Key.Item2, r.Key.Item3, r.Value)).ToList();
     }
-
-    private static FormattableString UpsertChange((int OrganizationId, string Entity, int Id, bool Deleted) change) =>
-        $"""
-        INSERT INTO "EntityChange" ("OrganizationId", "EntityName", "EntityId", "IsDeleted", "ChangedAt", "Seq")
-        VALUES ({change.OrganizationId}, {change.Entity}, {change.Id}, {change.Deleted}, now(), nextval('"EntityChangeSeq"'))
-        ON CONFLICT ("OrganizationId", "EntityName", "EntityId")
-        DO UPDATE SET "IsDeleted" = EXCLUDED."IsDeleted", "ChangedAt" = EXCLUDED."ChangedAt", "Seq" = EXCLUDED."Seq"
-        """;
 
     private void StampAudit()
     {

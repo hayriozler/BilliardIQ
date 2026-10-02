@@ -264,8 +264,10 @@ public class TableService(DataContext db)
         table.Type = type;
         table.PricingRuleId = pricingRuleId;
 
+        var removedScoreboard = false;
         if (!hasScoreboard)
         {
+            removedScoreboard = table.ScoreboardNo is not null;
             table.ScoreboardNo = null;
         }
         else if (table.ScoreboardNo is null)
@@ -274,6 +276,10 @@ public class TableService(DataContext db)
         }
 
         await db.SaveChangesAsync();
+        if (removedScoreboard)
+        {
+            await ForgetScoreboardAsync(table.Id);
+        }
         return table;
     }
 
@@ -313,6 +319,13 @@ public class TableService(DataContext db)
 
         table.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
+        await ForgetScoreboardAsync(table.Id);
+    }
+
+    private async Task ForgetScoreboardAsync(int tableId)
+    {
+        await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"EntityChange\" WHERE \"TableId\" = {tableId}");
+        await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"ClientSync\" WHERE \"TableId\" = {tableId}");
     }
 
     private async Task<BilliardTable> FindTableAsync(int tableId) =>

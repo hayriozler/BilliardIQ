@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
 using Scoreboard.WebApp.Responses;
@@ -26,31 +27,40 @@ public class ScoreboardDataService(DataContext db, ClubService clubs, PlayerServ
 
     private static readonly TimeSpan _fullSyncInterval = TimeSpan.FromHours(24);
 
+    private sealed record PendingKey(string Entity, int Id, long Seq);
+
+    private Task<int?> TableIdAsync(int tableNo) =>
+        db.BilliardTableSet.AsNoTracking()
+            .Where(t => t.ScoreboardNo == tableNo && t.DeletedAt == null)
+            .Select(t => (int?)t.Id)
+            .FirstOrDefaultAsync();
+
     public async Task<ChangeSetDto> GetChangesAsync(string instanceId, int tableNo, bool resync)
     {
+        if (await TableIdAsync(tableNo) is not int tableId)
+        {
+            return await SnapshotAsync();
+        }
+
         var now = DateTimeOffset.UtcNow;
-        var latest = await db.EntityChangeSet.MaxAsync(c => (long?)c.Seq) ?? 0;
-        var state = await db.ClientSyncSet.FirstOrDefaultAsync(s => s.TableNo == tableNo);
-        var full = resync || state is null || state.InstanceId != instanceId || state.AckedSeq == 0 || state.AckedSeq > latest
+        var state = await db.ClientSyncSet.FirstOrDefaultAsync(s => s.TableId == tableId);
+        var full = resync || state is null || state.InstanceId != instanceId || state.PendingFull
             || now - state.LastFullSyncAt > _fullSyncInterval;
 
-        var result = full ? await SnapshotAsync() : await DeltaAsync(state!.AckedSeq, latest);
+        var rows = await db.EntityChangeSet.AsNoTracking().Where(c => c.TableId == tableId).ToListAsync();
+        var result = full ? await SnapshotAsync() : await DeltaAsync(rows);
 
         if (state is null)
         {
-            state = new ClientSync { OrganizationId = db.CurrentOrganizationId, TableNo = tableNo, InstanceId = instanceId };
+            state = new ClientSync { OrganizationId = db.CurrentOrganizationId, TableId = tableId, InstanceId = instanceId };
             db.ClientSyncSet.Add(state);
         }
 
-        var changed = full || result.Changes.Count > 0 || state.PendingSeq != latest || now - state.LastSyncAt > TimeSpan.FromMinutes(1);
-        if (full)
-        {
-            state.InstanceId = instanceId;
-            state.AckedSeq = 0;
-            state.PendingFull = true;
-        }
-
-        state.PendingSeq = latest;
+        var keys = JsonSerializer.Serialize(rows.Select(r => new PendingKey(r.EntityName, r.EntityId, r.Seq)));
+        var changed = full || rows.Count > 0 || state.PendingKeys != keys || now - state.LastSyncAt > TimeSpan.FromMinutes(1);
+        state.InstanceId = instanceId;
+        state.PendingFull = full;
+        state.PendingKeys = keys;
         state.LastSyncAt = now;
         if (changed)
         {
@@ -62,14 +72,26 @@ public class ScoreboardDataService(DataContext db, ClubService clubs, PlayerServ
 
     public async Task AckChangesAsync(string instanceId, int tableNo)
     {
-        var state = await db.ClientSyncSet.FirstOrDefaultAsync(s => s.TableNo == tableNo && s.InstanceId == instanceId);
+        if (await TableIdAsync(tableNo) is not int tableId)
+        {
+            return;
+        }
+
+        var state = await db.ClientSyncSet.FirstOrDefaultAsync(s => s.TableId == tableId && s.InstanceId == instanceId);
         if (state is null)
         {
             return;
         }
 
+        var keys = JsonSerializer.Deserialize<List<PendingKey>>(state.PendingKeys) ?? [];
+        if (keys.Count > 0)
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync(EntityChangeSql.Remove(
+                state.OrganizationId, tableId, keys.Select(k => k.Entity).ToArray(), keys.Select(k => k.Id).ToArray(), keys.Select(k => k.Seq).ToArray()));
+        }
+
         var now = DateTimeOffset.UtcNow;
-        state.AckedSeq = state.PendingSeq;
+        state.PendingKeys = "[]";
         state.LastSyncAt = now;
         if (state.PendingFull)
         {
@@ -91,9 +113,8 @@ public class ScoreboardDataService(DataContext db, ClubService clubs, PlayerServ
         ]);
     }
 
-    private async Task<ChangeSetDto> DeltaAsync(long since, long latest)
+    private async Task<ChangeSetDto> DeltaAsync(List<EntityChange> rows)
     {
-        var rows = await db.EntityChangeSet.AsNoTracking().Where(c => c.Seq > since && c.Seq <= latest).ToListAsync();
         var groups = new List<ChangeGroupDto>();
 
         var clubIds = IdsOf(rows, nameof(Club));
