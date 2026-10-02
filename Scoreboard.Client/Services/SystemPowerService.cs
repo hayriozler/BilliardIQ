@@ -8,34 +8,47 @@ public partial class SystemPowerService(IDbContextFactory<DataContext> dbFactory
 {
     public const int HoldMilliseconds = 4000;
 
+    private readonly Lock _gate = new();
     private readonly HashSet<string> _heldKeys = [];
     private CancellationTokenSource? _holdCts;
 
     public bool IsShuttingDown { get; private set; }
 
-    public bool IsHeld(string key) => _heldKeys.Contains(key);
+    public bool IsHeld(string key)
+    {
+        lock (_gate)
+        {
+            return _heldKeys.Contains(key);
+        }
+    }
 
     public void NotifyKeyDown(string key)
     {
-        if (IsShuttingDown || !_heldKeys.Add(key))
+        lock (_gate)
         {
-            return;
-        }
+            if (IsShuttingDown || !_heldKeys.Add(key))
+            {
+                return;
+            }
 
-        if (IsHeld("NumLock") && IsHeld("Insert"))
-        {
-            StartHold(RebootAsync);
-        }
-        else if (IsHeld("NumLock") && IsHeld("Delete"))
-        {
-            StartHold(ShutdownAsync);
+            if (IsHeld("NumLock") && IsHeld("Insert"))
+            {
+                StartHold(RebootAsync);
+            }
+            else if (IsHeld("NumLock") && IsHeld("Delete"))
+            {
+                StartHold(ShutdownAsync);
+            }
         }
     }
 
     public void NotifyKeyUp(string key)
     {
-        _heldKeys.Remove(key);
-        _holdCts?.Cancel();
+        lock (_gate)
+        {
+            _heldKeys.Remove(key);
+            _holdCts?.Cancel();
+        }
     }
 
     private void StartHold(Func<Task> action)
