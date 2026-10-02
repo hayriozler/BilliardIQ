@@ -371,5 +371,10 @@
   "Bu oyuncunun zaten bir hesabı var.": "This player already has an account.",
   "Bu oyuncunun hesabı yok.": "This player has no account.",
   "Davet kodu geçersiz veya süresi dolmuş.": "The invite code is invalid or has expired.",
-  "Yönetici ve sahip hesaplarını yalnızca bir sahip değiştirebilir.": "Manager and owner accounts can only be changed by an owner."
+  "Yönetici ve sahip hesaplarını yalnızca bir sahip değiştirebilir.": "Manager and owner accounts can only be changed by an owner.",
+  "Fotoğraf en fazla 5 MB olabilir.": "The photo can be at most 5 MB.",
+  "Bu telefon numarası zaten kullanılıyor.": "This phone number is already in use.",
+  "Beklenmeyen bir hata oluştu.": "An unexpected error occurred.",
+  "Sayfayı yenile": "Reload page",
+  "Son aktif sahip devre dışı bırakılamaz.": "The last active owner cannot be deactivated."
 }

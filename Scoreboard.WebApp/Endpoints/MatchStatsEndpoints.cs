@@ -42,7 +42,7 @@ public static class MatchStatsEndpoints
                 {
                     PlayerSlot = g.Key.PlayerSlot,
                     BucketIndex = g.Key.BucketIndex,
-                    TotalPoints = g.Sum(b => b.TotalPoints)
+                    TotalPoints = (int)Math.Clamp(g.Sum(b => (long)b.TotalPoints), int.MinValue, int.MaxValue)
                 })
                 .ToList();
 

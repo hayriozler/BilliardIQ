@@ -132,7 +132,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         var staff = new StaffMember { Organization = organization, User = user, Roles = [StaffRole.Owner] };
 
         db.StaffMemberSet.Add(staff);
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Email", "Bu e-posta ile zaten bir hesap var.");
         await runner.RunAsync<GeoSeedService>(organization.Id, seed => seed.EnsureAsync(organization.Id));
         return new LoginResult(user, staff, organization);
     }
@@ -161,7 +161,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
 
         var staff = new StaffMember { OrganizationId = organizationId, User = user, Roles = [role] };
         db.StaffMemberSet.Add(staff);
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Email", "Bu e-posta zaten kullanılıyor.");
         return staff;
     }
 
@@ -175,9 +175,9 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         }
 
         if (!active && staff.Roles.Contains(StaffRole.Owner) &&
-            await db.StaffMemberSet.CountAsync(s => s.OrganizationId == organizationId && s.IsActive && s.Id != staffId) == 0)
+            await db.StaffMemberSet.CountAsync(s => s.OrganizationId == organizationId && s.IsActive && s.Id != staffId && s.Roles.Contains(StaffRole.Owner)) == 0)
         {
-            throw new ArgumentException("Son aktif kullanıcı devre dışı bırakılamaz.");
+            throw new ArgumentException("Son aktif sahip devre dışı bırakılamaz.");
         }
 
         staff.IsActive = active;

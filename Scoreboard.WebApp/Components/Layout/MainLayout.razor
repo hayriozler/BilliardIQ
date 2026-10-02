@@ -1,11 +1,20 @@
 @inherits LayoutComponentBase
+@inject NavigationManager Nav
 
 <AuthorizeView>
     <Authorized>
         <div class="shell">
             <NavMenu />
             <main class="content">
-                @Body
+                <ErrorBoundary @key="Nav.Uri">
+                    <ChildContent>@Body</ChildContent>
+                    <ErrorContent Context="error">
+                        <div class="alert error">
+                            @L["Beklenmeyen bir hata oluştu."]
+                            <button type="button" class="small" @onclick="() => Nav.NavigateTo(Nav.Uri, forceLoad: true)">@L["Sayfayı yenile"]</button>
+                        </div>
+                    </ErrorContent>
+                </ErrorBoundary>
             </main>
         </div>
     </Authorized>

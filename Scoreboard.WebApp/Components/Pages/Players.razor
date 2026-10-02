@@ -419,6 +419,13 @@
     private async Task OnPhotoSelectedAsync(InputFileChangeEventArgs e)
     {
         const long maxSize = 5 * 1024 * 1024;
+        if (e.File.Size > maxSize)
+        {
+            _error = L["Fotoğraf en fazla 5 MB olabilir."];
+            return;
+        }
+
+        _error = null;
         await using var stream = e.File.OpenReadStream(maxSize);
         using var memory = new MemoryStream();
         await stream.CopyToAsync(memory);
@@ -459,6 +466,11 @@
         try
         {
             await Db.RunAsync((PlayerService s) => s.DeleteAsync(id));
+            _confirmDelete = null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = L.Error(ex);
             _confirmDelete = null;
         }
         finally

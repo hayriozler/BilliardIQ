@@ -152,7 +152,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         }
 
         user.Email = email;
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Email", "Bu e-posta zaten kullanılıyor.");
     }
 
     public async Task UpdateProfileAsync(int userId, string? displayName, string? locale, string? phone)
@@ -169,7 +169,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         }
 
         user.Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Phone", "Bu telefon numarası zaten kullanılıyor.");
     }
 
     public async Task<PlayerAccount> CreatePlayerAccountAsync(int playerId, string email)
@@ -205,7 +205,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         db.UserSet.Add(user);
         player.User = user;
         player.Email ??= email;
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Email", "Bu e-posta zaten kullanılıyor.");
         return new PlayerAccount(player.Id, email, password);
     }
 
@@ -292,7 +292,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         player.User = user;
         player.Email ??= email;
         invite.UsedAt = now;
-        await db.SaveChangesAsync();
+        await db.SaveUniqueAsync("Email", "Bu e-posta zaten kullanılıyor.");
         return (await StartSessionAsync(user, null, deviceName))!;
     }
 

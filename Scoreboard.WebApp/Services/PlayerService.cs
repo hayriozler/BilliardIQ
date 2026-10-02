@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using Scoreboard.WebApp.Data;
 
 namespace Scoreboard.WebApp.Services;
@@ -157,16 +156,7 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         player.Nationality = string.IsNullOrWhiteSpace(baseCountry) ? null : baseCountry.Trim();
         player.City = string.IsNullOrWhiteSpace(baseCity) ? null : baseCity.Trim();
 
-        try
-        {
-            await db.SaveChangesAsync();
-        }
-        catch (DbUpdateException ex) when (shortcutNumber is not null
-            && ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } violation
-            && violation.ConstraintName?.Contains("ShortcutNumber") == true)
-        {
-            throw new LocalizedArgumentException("{0} numaralı kısayol başka bir oyuncuda kayıtlı.", shortcutNumber.Value);
-        }
+        await db.SaveUniqueAsync("ShortcutNumber", () => new LocalizedArgumentException("{0} numaralı kısayol başka bir oyuncuda kayıtlı.", shortcutNumber!.Value));
 
         await SavePhotoAsync(player, photoBase64, photoExtension);
 
