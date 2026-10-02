@@ -41,7 +41,10 @@ create a default `pi` account).
    `ssh admin@scoreboard 'curl -sSf http://localhost:5288/ > /dev/null && echo OK'`
 
 4. **Install the kiosk's apt dependencies** (`unclutter`, `wmctrl`, `xset`, Chromium — see
-   `install-kiosk-deps.sh` for why each is needed):
+   `install-kiosk-deps.sh` for why each is needed). The same script sets the Pi's time zone
+   (default `Europe/Amsterdam`; pass another one as the first argument, e.g.
+   `./install-kiosk-deps.sh Europe/Istanbul`) and turns NTP on, because the kiosk clock and the
+   match times use the Pi's local time:
    ```bash
    scp deploy/pi/install-kiosk-deps.sh admin@scoreboard:~/
    ssh -t admin@scoreboard 'chmod +x install-kiosk-deps.sh && ./install-kiosk-deps.sh'

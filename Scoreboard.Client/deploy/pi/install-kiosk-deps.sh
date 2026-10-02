@@ -16,5 +16,8 @@ set -euo pipefail
 
 sudo apt-get update
 sudo apt-get install -y wmctrl x11-apps x11-xserver-utils chromium-browser
+TIMEZONE="${1:-Europe/Amsterdam}"
+sudo timedatectl set-timezone "$TIMEZONE"
+sudo timedatectl set-ntp true
 
-echo "Done. Verify with: wmctrl -m; xset q; command -v chromium || command -v chromium-browser"
+echo "Done. Verify with: wmctrl -m; xset q; command -v chromium || command -v chromium-browser; timedatectl"
