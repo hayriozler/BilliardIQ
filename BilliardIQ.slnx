@@ -6,7 +6,9 @@
   <Project Path="docker-compose.dcproj">
     <Build />
   </Project>
-  <Project Path="Mobile/BilliardIQ.Mobile/BilliardIQ.Mobile.csproj" />
+  <Project Path="Mobile/BilliardIQ.Mobile/BilliardIQ.Mobile.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
   <Project Path="Scoreboard.Client/Scoreboard.Client.csproj" />
   <Project Path="Scoreboard.WebApp/Scoreboard.WebApp.csproj" />
 </Solution>
