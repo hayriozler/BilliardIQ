@@ -27,24 +27,18 @@ create a default `pi` account).
    ```powershell
    .\deploy\pi\publish-and-deploy.ps1
    ```
-   This will fail at the "restart service" step the first time, since the service doesn't
-   exist yet — that's expected, continue to step 3.
+   This will stop at the sudo check the first time, since the sudoers rule is not installed
+   yet — that's expected, continue to step 3.
 
-3. **Install the systemd service**:
-   ```bash
-   scp deploy/pi/zeymera-scoreboard.service admin@scoreboard:~/
-   ssh -t admin@scoreboard 'sudo cp ~/zeymera-scoreboard.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now zeymera-scoreboard.service'
-   ```
-   Verify it's up: `ssh admin@scoreboard 'curl -sSf http://localhost:5288/ > /dev/null && echo OK'`
-
-   Then let `publish-and-deploy.ps1` restart this service over a non-interactive SSH call
-   without a password prompt on every future redeploy:
+3. **Allow the deploy script to manage the service** (stop, start, enable, install the unit
+   file) without a password prompt:
    ```bash
    scp deploy/pi/install-deploy-sudoers.sh admin@scoreboard:~/
    ssh -t admin@scoreboard 'chmod +x install-deploy-sudoers.sh && ./install-deploy-sudoers.sh'
    ```
-   Skip this and every redeploy's restart step will fail with `sudo: a password is
-   required` (see "Redeploying" below) — you'd have to restart the service by hand instead.
+   Then run `.deploypipublish-and-deploy.ps1` again: it installs and enables
+   `billiardiq-scoreboard.service` on its own. Verify it's up:
+   `ssh admin@scoreboard 'curl -sSf http://localhost:5288/ > /dev/null && echo OK'`
 
 4. **Install the kiosk's apt dependencies** (`unclutter`, `wmctrl`, `xset`, Chromium — see
    `install-kiosk-deps.sh` for why each is needed):
@@ -55,8 +49,8 @@ create a default `pi` account).
 
 5. **Install the kiosk launcher and wire up autostart**:
    ```bash
-   scp deploy/pi/launch-kiosk.sh deploy/pi/setup-autostart.sh admin@scoreboard:/home/admin/zeymera-scoreboard/
-   ssh -t admin@scoreboard 'chmod +x /home/admin/zeymera-scoreboard/launch-kiosk.sh && cd /home/admin/zeymera-scoreboard && bash setup-autostart.sh'
+   scp deploy/pi/launch-kiosk.sh deploy/pi/setup-autostart.sh admin@scoreboard:/home/admin/billiardiq-scoreboard/
+   ssh -t admin@scoreboard 'chmod +x /home/admin/billiardiq-scoreboard/launch-kiosk.sh && cd /home/admin/billiardiq-scoreboard && bash setup-autostart.sh'
    ```
 
 6. **Allow the app to reboot/shut down the Pi** (see "System power" in the main README) —
@@ -85,26 +79,49 @@ create a default `pi` account).
 ```
 
 This publishes, strips `wwwroot/Db`/`wwwroot/Players` from the output (so it can never
-overwrite the Pi's live database or uploaded player photos), copies the result over, and
-restarts the service. `launch-kiosk.sh`/`setup-autostart.sh`/the service file only need to
-be re-copied if you actually change them — routine app redeploys don't touch those.
+overwrite the Pi's live database or uploaded player photos), then on the Pi stops the
+service, deletes the previous binaries (dll, pdb, native libs, manifests, executables — never
+`wwwroot`), copies the new publish over, installs `billiardiq-scoreboard.service` if it
+changed, and starts the service. `launch-kiosk.sh`/`setup-autostart.sh` only need to be
+re-copied if you actually change them.
 
-The restart step needs `install-deploy-sudoers.sh` installed (step 3 above) — without it,
-`sudo systemctl restart zeymera-scoreboard.service` has no TTY to prompt for a password on
-and fails with `sudo: a password is required`, and the script throws `ssh restart failed`.
-The publish/copy still succeeded at that point; you'd just need to restart the service by
-hand (`ssh -t admin@scoreboard 'sudo systemctl restart zeymera-scoreboard.service'`, entering
-the password when prompted) until that sudoers rule is installed.
+The script needs `install-deploy-sudoers.sh` installed (step 3 above). Without it the
+first `sudo -n` call fails with `sudo: a password is required` and the script stops before
+touching anything on the Pi.
+
+## Migrating from the old zeymera-scoreboard names
+
+An install made before the rename lives in `/home/admin/zeymera-scoreboard` with a
+`zeymera-scoreboard.service`. Move it once, keeping the live data:
+```bash
+scp deploy/pi/migrate-from-zeymera.sh deploy/pi/install-deploy-sudoers.sh deploy/pi/install-power-sudoers.sh admin@scoreboard:~/
+ssh -t admin@scoreboard 'bash migrate-from-zeymera.sh && bash install-deploy-sudoers.sh && bash install-power-sudoers.sh'
+```
+Then run `.deploypipublish-and-deploy.ps1`. Remove the old `Zeymera.Scoreboard.Client.*`
+files if any are left in the folder.
+
+## Client settings on the Pi
+
+The service runs in the Production environment, so `appsettings.Production.json` (published with
+the app) points the client at `https://www.billiardiq.com/api/`. The organisation's client id is
+machine-specific and is never published: put it in `appsettings.Local.json` next to the app, once.
+The deploy script does not touch that file.
+```bash
+ssh admin@scoreboard 'cat > /home/admin/billiardiq-scoreboard/appsettings.Local.json' <<'JSON'
+{ "RemoteSync": { "ClientId": "<client id from the panel>", "TableNo": 1 } }
+JSON
+ssh -t admin@scoreboard 'sudo systemctl restart billiardiq-scoreboard.service'
+```
 
 ## Logs
 
 The app logs to `logs/` under its working directory via Serilog (console + a rolling daily
 file, `logs/scoreboard-YYYYMMDD.log`) — every WS connect/disconnect, received/sent message
 (with the sender's IP and a sequence number), and parsed command. On the Pi this lands at
-`/home/admin/zeymera-scoreboard/logs/` automatically, since that's the service's
+`/home/admin/billiardiq-scoreboard/logs/` automatically, since that's the service's
 `WorkingDirectory` — no extra setup needed. Tail it live with:
 ```bash
-ssh admin@scoreboard 'tail -f /home/admin/zeymera-scoreboard/logs/scoreboard-*.log'
+ssh admin@scoreboard 'tail -f /home/admin/billiardiq-scoreboard/logs/scoreboard-*.log'
 ```
 
 ## Exiting kiosk mode for testing
@@ -126,10 +143,11 @@ rm -f ~/.config/chromium/Singleton*
 | File | Runs where | Purpose |
 |---|---|---|
 | `install-dotnet.sh` | Pi, once | Installs the ASP.NET Core runtime to `~/.dotnet` |
-| `zeymera-scoreboard.service` | Pi, once | systemd unit — runs the app, `Restart=always` |
+| `billiardiq-scoreboard.service` | Pi, installed by the deploy script | systemd unit — runs the app, `Restart=always` |
 | `install-kiosk-deps.sh` | Pi, once | apt-installs `unclutter`, `wmctrl`, `xset`, Chromium — everything `launch-kiosk.sh` needs |
 | `install-power-sudoers.sh` | Pi, once | NOPASSWD sudoers rule so the app can run `systemctl reboot`/`poweroff` itself |
-| `install-deploy-sudoers.sh` | Pi, once | NOPASSWD sudoers rule so `publish-and-deploy.ps1` can restart the service over SSH |
+| `install-deploy-sudoers.sh` | Pi, once | NOPASSWD sudoers rule so `publish-and-deploy.ps1` can stop/start the service and install its unit file over SSH |
+| `migrate-from-zeymera.sh` | Pi, once | Renames an old zeymera-scoreboard install (folder, service, autostart path, sudoers rules) to billiardiq-scoreboard |
 | `launch-kiosk.sh` | Pi, every boot (via autostart) | Waits for the app, then launches Chromium in kiosk mode |
 | `setup-autostart.sh` | Pi, once | Wires `launch-kiosk.sh` into `/etc/xdg/labwc/autostart` |
-| `publish-and-deploy.ps1` | Windows, every redeploy | Publish → strip local data → scp → restart service |
+| `publish-and-deploy.ps1` | Windows, every redeploy | Publish → strip local data → stop service → remove old binaries → scp → sync unit → start service |

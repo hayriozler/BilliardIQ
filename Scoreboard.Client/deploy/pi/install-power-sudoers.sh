@@ -9,7 +9,7 @@ set -euo pipefail
 #   bash install-power-sudoers.sh
 
 SERVICE_USER="$(whoami)"
-RULE_FILE="/etc/sudoers.d/zeymera-scoreboard-power"
+RULE_FILE="/etc/sudoers.d/billiardiq-scoreboard-power"
 RULE="${SERVICE_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl reboot, /usr/bin/systemctl poweroff"
 
 TMP_FILE="$(mktemp)"
