@@ -141,12 +141,14 @@ public partial class RemotePullService(
 
         await transaction.CommitAsync(ct);
         _resync = false;
-        await AcknowledgeAsync(http, ct);
 
         if (languageChanged)
         {
+            LocalizationService.InvalidateLanguage();
             languageSync.Notify();
         }
+
+        await AcknowledgeAsync(http, ct);
     }
 
     private async Task<string> GetInstanceIdAsync(CancellationToken ct)
