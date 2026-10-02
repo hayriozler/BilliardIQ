@@ -1,24 +1,27 @@
 <label class="field range-select">@L["Dönem"]
-    <select value="@Value" @onchange="OnChangedAsync">
-        <option value="all">@L["Tüm zamanlar"]</option>
+    <select value="@Value.Kind" @onchange="OnKindChangedAsync">
+        <option value="6m">@L["Son 6 ay"]</option>
         <option value="30">@L["Son 30 gün"]</option>
         <option value="90">@L["Son 90 gün"]</option>
         <option value="year">@L["Bu yıl"]</option>
+        <option value="all">@L["Tüm zamanlar"]</option>
+        <option value="custom">@L["Tarih aralığı"]</option>
     </select>
 </label>
+@if (Value.Kind == "custom")
+{
+    <label class="field">@L["Başlangıç"]<DatePicker Value="@Value.From" ValueChanged="OnFromChangedAsync" /></label>
+    <label class="field">@L["Bitiş"]<DatePicker Value="@Value.To" ValueChanged="OnToChangedAsync" /></label>
+}
 
 @code {
-    [Parameter] public string Value { get; set; } = "all";
+    [Parameter] public StatsPeriod Value { get; set; } = StatsPeriod.Default;
 
-    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public EventCallback<StatsPeriod> ValueChanged { get; set; }
 
-    private Task OnChangedAsync(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value?.ToString() ?? "all");
+    private Task OnKindChangedAsync(ChangeEventArgs e) => ValueChanged.InvokeAsync(Value with { Kind = e.Value?.ToString() ?? "6m" });
 
-    public static DateTimeOffset? Since(string range) => range switch
-    {
-        "30" => DateTimeOffset.UtcNow.AddDays(-30),
-        "90" => DateTimeOffset.UtcNow.AddDays(-90),
-        "year" => new DateTimeOffset(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, TimeSpan.Zero),
-        _ => null
-    };
+    private Task OnFromChangedAsync(DateOnly? from) => ValueChanged.InvokeAsync(Value with { From = from });
+
+    private Task OnToChangedAsync(DateOnly? to) => ValueChanged.InvokeAsync(Value with { To = to });
 }

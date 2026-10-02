@@ -376,5 +376,7 @@
   "Bu telefon numarası zaten kullanılıyor.": "This phone number is already in use.",
   "Beklenmeyen bir hata oluştu.": "An unexpected error occurred.",
   "Sayfayı yenile": "Reload page",
-  "Son aktif sahip devre dışı bırakılamaz.": "The last active owner cannot be deactivated."
+  "Son aktif sahip devre dışı bırakılamaz.": "The last active owner cannot be deactivated.",
+  "Son 6 ay": "Last 6 months",
+  "Tarih aralığı": "Date range"
 }

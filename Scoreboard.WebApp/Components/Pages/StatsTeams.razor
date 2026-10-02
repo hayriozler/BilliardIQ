@@ -71,7 +71,7 @@
 @code {
     private Tenant? _tenant;
     private List<TeamStatRow>? _rows;
-    private string _range = "all";
+    private StatsPeriod _range = StatsPeriod.Default;
 
     protected override async Task OnInitializedAsync()
     {
@@ -79,7 +79,7 @@
         await LoadAsync();
     }
 
-    private async Task OnRangeChangedAsync(string range)
+    private async Task OnRangeChangedAsync(StatsPeriod range)
     {
         _range = range;
         await LoadAsync();
@@ -87,7 +87,8 @@
 
     private async Task LoadAsync()
     {
-        var since = StatsRangeSelect.Since(_range);
-        _rows = await Db.RunAsync((StatsService s) => s.TeamsAsync(since));
+        var since = _range.Since;
+        var until = _range.Until;
+        _rows = await Db.RunAsync((StatsService s) => s.TeamsAsync(since, until));
     }
 }
