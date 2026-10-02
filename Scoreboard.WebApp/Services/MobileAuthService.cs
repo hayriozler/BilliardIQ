@@ -33,6 +33,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
     private const string PasswordAlphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private const string CodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static readonly TimeSpan _inviteLifetime = TimeSpan.FromDays(14);
+    private static readonly TimeSpan _rotationGrace = TimeSpan.FromSeconds(30);
 
     private sealed record Identity(string Role, IReadOnlyList<MobileOrganization> Organizations, MobileOrganization? Organization, StaffMember? Staff, Player? Player);
 
@@ -52,7 +53,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         }
 
         var now = DateTimeOffset.UtcNow;
-        if (stored.RevokedAt is not null)
+        if (stored.RevokedAt is not null && !(stored.RotatedAt is { } rotatedAt && now - rotatedAt <= _rotationGrace))
         {
             await RevokeAllAsync(stored.UserId, null);
             return null;
@@ -69,7 +70,8 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
             return null;
         }
 
-        stored.RevokedAt = now;
+        stored.RevokedAt ??= now;
+        stored.RotatedAt ??= now;
         var next = NewRefreshToken(stored.UserId, identity.Organization?.Id, stored.DeviceName, out var raw);
         db.RefreshTokenSet.Add(next);
         await db.SaveChangesAsync();

@@ -8,6 +8,7 @@ public class RefreshToken : BaseEntity
     public string? DeviceName { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
+    public DateTimeOffset? RotatedAt { get; set; }
     public DateTimeOffset? LastUsedAt { get; set; }
 
     public User User { get; set; } = default!;
