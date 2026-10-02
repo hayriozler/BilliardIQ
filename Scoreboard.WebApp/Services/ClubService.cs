@@ -26,6 +26,11 @@ public class ClubService(DataContext db)
         }
 
         var club = id != 0 ? await GetAsync(id) : null;
+        if (id != 0 && club is null)
+        {
+            throw new ArgumentException("Kulüp bulunamadı.");
+        }
+
         if (club is null)
         {
             club = new Club { OrganizationId = db.CurrentOrganizationId };

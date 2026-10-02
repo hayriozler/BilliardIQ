@@ -111,6 +111,11 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         }
 
         var player = id != 0 ? await GetAsync(id) : null;
+        if (id != 0 && player is null)
+        {
+            throw new ArgumentException("Oyuncu bulunamadı.");
+        }
+
         if (player is { IsSystem: true })
         {
             throw new ArgumentException("Sistem oyuncuları değiştirilemez.");

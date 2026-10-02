@@ -376,6 +376,7 @@ else
 
     private async Task HandlePickerKeyAsync(int slot, string key)
     {
+        LoadRoster();
         switch (key)
         {
             case { Length: 1 } when char.IsDigit(key[0]):
@@ -447,26 +448,26 @@ else
     private bool _boardOccupiedElsewhere;
 
     private void OnServerLanguageChanged() =>
-        _ = InvokeAsync(async () =>
+        _ = InvokeAsync(() =>
         {
-            await LoadOrganizationNameAsync();
             UpdateDefaultPlayers();
             StateHasChanged();
         });
 
     private string? _organizationName;
 
-    private async Task LoadOrganizationNameAsync()
-    {
-        if (!SyncOptions.Value.IsConfigured)
-        {
-            _organizationName = null;
-            return;
-        }
+    private void LoadOrganizationName() =>
+        _organizationName = SyncOptions.Value.IsConfigured
+            ? DbContext.SettingsSet.AsNoTracking().Where(s => s.Id == "OrgName").Select(s => s.Value).FirstOrDefault()
+            : null;
 
-        _organizationName = await DbContext.SettingsSet.AsNoTracking()
-            .Where(s => s.Id == "OrgName").Select(s => s.Value).FirstOrDefaultAsync();
-    }
+    private void LoadRoster() =>
+        _rosterPlayers = DbContext.PlayerSet
+            .AsNoTracking()
+            .OrderBy(p => p.ShortcutNumber == null)
+            .ThenBy(p => p.ShortcutNumber)
+            .ThenBy(p => p.Id)
+            .ToList();
 
     private void TakeOverBoard() => Nav.NavigateTo("/?takeover=1", forceLoad: true);
     private Guid _sessionId;
@@ -486,7 +487,6 @@ else
 
         BoardTracker.SessionId = _sessionId;
         LanguageSync.Changed += OnServerLanguageChanged;
-        await LoadOrganizationNameAsync();
         UpdateDefaultPlayers();
         _ = RunShotClockAsync(_shotClockCts.Token);
         var game = await DbContext.ScoreboardStateSet.Where(p => p.Id == 1).FirstOrDefaultAsync();
@@ -530,22 +530,38 @@ else
 
     private void ResolvePlayers()
     {
-        _resolvedPlayer1 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player1Id);
-        _resolvedPlayer2 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player2Id);
+        _resolvedPlayer1 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == Current.Player1Id);
+        _resolvedPlayer2 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == Current.Player2Id);
 
         if (_resolvedPlayer1 is null)
         {
             Current.Player1Id = DefaultPlayerId(1);
-            _resolvedPlayer1 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player1Id);
+            _resolvedPlayer1 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == Current.Player1Id);
         }
 
         if (_resolvedPlayer2 is null)
         {
             Current.Player2Id = DefaultPlayerId(2);
-            _resolvedPlayer2 = DbContext.PlayerSet.FirstOrDefault(p => p.Id == Current.Player2Id);
+            _resolvedPlayer2 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == Current.Player2Id);
         }
-        _resolvedTeam1 = _resolvedPlayer1?.TeamId is int teamId1 ? DbContext.TeamSet.FirstOrDefault(t => t.Id == teamId1) : null;
-        _resolvedTeam2 = _resolvedPlayer2?.TeamId is int teamId2 ? DbContext.TeamSet.FirstOrDefault(t => t.Id == teamId2) : null;
+
+        _resolvedTeam1 = _resolvedPlayer1?.TeamId is int teamId1 ? DbContext.TeamSet.AsNoTracking().FirstOrDefault(t => t.Id == teamId1) : null;
+        _resolvedTeam2 = _resolvedPlayer2?.TeamId is int teamId2 ? DbContext.TeamSet.AsNoTracking().FirstOrDefault(t => t.Id == teamId2) : null;
+    }
+
+    protected override bool ShouldRender()
+    {
+        if (!_boardOccupiedElsewhere)
+        {
+            ResolvePlayers();
+            LoadOrganizationName();
+            if (_showPlayerPicker is not null)
+            {
+                LoadRoster();
+            }
+        }
+
+        return true;
     }
 
     private string? GetTeamName(int slot) => (slot == 1 ? _resolvedTeam1 : _resolvedTeam2)?.Name;
@@ -604,11 +620,7 @@ else
 
     private async Task OpenPlayerPickerAsync(int slot)
     {
-        _rosterPlayers = await DbContext.PlayerSet
-            .OrderBy(p => p.ShortcutNumber == null)
-            .ThenBy(p => p.ShortcutNumber)
-            .ThenBy(p => p.Id)
-            .ToListAsync();
+        LoadRoster();
         _pickerBuffer = "";
         _pickerIndex = 0;
         _showPlayerPicker = slot;
@@ -680,7 +692,7 @@ else
     {
         if (int.TryParse(name, out var maybeShortcutNumber))
         {
-            var player = DbContext.PlayerSet.FirstOrDefault(p => !p.IsSystem && p.ShortcutNumber == maybeShortcutNumber);
+            var player = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => !p.IsSystem && p.ShortcutNumber == maybeShortcutNumber);
             if (player is not null)
             {
                 SelectRosterPlayer(slot, player.Id);
@@ -1116,9 +1128,17 @@ else
         try
         {
             using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
+            var ticks = 0;
             while (await timer.WaitForNextTickAsync(token))
             {
-                if (!Current.ShotClockActive || SystemPower.IsShuttingDown) continue;
+                if (SystemPower.IsShuttingDown) continue;
+
+                var refresh = ++ticks % 30 == 0;
+                if (!Current.ShotClockActive)
+                {
+                    if (refresh) await InvokeAsync(StateHasChanged);
+                    continue;
+                }
 
                 Current.ShotClockRemaining = Math.Max(0, Current.ShotClockRemaining - 0.1);
                 if (Current.ShotClockRemaining <= 0)

@@ -36,6 +36,11 @@ public class TeamService(DataContext db, ClubService clubs)
         }
 
         var team = id != 0 ? await FindAsync(id) : null;
+        if (id != 0 && team is null)
+        {
+            throw new ArgumentException("Takım bulunamadı.");
+        }
+
 
         if (clubId is not null || team is null)
         {
