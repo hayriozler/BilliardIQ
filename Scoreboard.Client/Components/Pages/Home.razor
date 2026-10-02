@@ -213,7 +213,7 @@ else
             </div>
             <div class="control-group">
                 <span>@L.T("Match")</span>
-                <input type="number" class="match-target" min="@MinMatchTarget" max="@MaxMatchTarget" step="1" inputmode="numeric"
+                <input type="number" class="match-target" min="@MinMatchTarget" max="@MaxMatchTarget" step="5" inputmode="numeric"
                        @key="_matchInputKey" value="@Current.MatchTarget"
                        @onchange="e => SetMatchTargetFromInputAsync(e.Value?.ToString())" />
             </div>
