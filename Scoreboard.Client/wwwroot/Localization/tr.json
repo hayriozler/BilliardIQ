@@ -29,5 +29,10 @@
   "BoardOccupiedElsewhere": "Bu pano zaten başka bir pencerede açık.",
   "PlayerAlreadySelected": "Bu oyuncu zaten karşı tarafta seçili.",
   "OtherSide": "karşı tarafta",
-  "TakeOverBoard": "Bu pencerede aç"
+  "TakeOverBoard": "Bu pencerede aç",
+  "MatchTargetReached": "Maç hedefine ulaşıldı",
+  "MatchTargetReachedText": "{0}, {1} sayıya ulaştı. Maç uzatılsın mı, bitirilsin mi?",
+  "EndMatch": "Maçı bitir",
+  "ShortcutNumberHint": "Kısayol numarasını yazın, Enter ile seçin, oklarla gezin",
+  "NoPlayerWithShortcut": "Bu kısayol numarasına sahip oyuncu yok."
 }

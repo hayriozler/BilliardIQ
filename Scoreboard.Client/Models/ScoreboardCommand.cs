@@ -17,6 +17,7 @@ public enum ScoreboardCommand
     EndGame,
     NewGame,
     SetMatchTarget,
+    ExtendMatch,
     SelectRosterPlayer1,
     SelectRosterPlayer2,
     ClearRosterPlayer1,

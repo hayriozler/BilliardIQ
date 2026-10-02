@@ -29,5 +29,10 @@
   "BoardOccupiedElsewhere": "Dit bord is al open in een ander venster.",
   "PlayerAlreadySelected": "Deze speler is al aan de andere kant gekozen.",
   "OtherSide": "andere kant",
-  "TakeOverBoard": "Hier openen"
+  "TakeOverBoard": "Hier openen",
+  "MatchTargetReached": "Wedstrijddoel bereikt",
+  "MatchTargetReachedText": "{0} heeft {1} punten bereikt. Wedstrijd verlengen of beëindigen?",
+  "EndMatch": "Wedstrijd beëindigen",
+  "ShortcutNumberHint": "Typ een snelkoppelingsnummer, Enter om te kiezen, pijltjes om te bewegen",
+  "NoPlayerWithShortcut": "Geen speler met dat snelkoppelingsnummer."
 }

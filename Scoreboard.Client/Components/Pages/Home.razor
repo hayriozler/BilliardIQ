@@ -259,11 +259,27 @@ else
         <div class="notice-toast" role="alert">@_notice</div>
     }
 
+    @if (_showMatchEnd)
+    {
+        <div class="player-picker-overlay" @onclick:stopPropagation="true">
+            <div class="player-picker-dialog">
+                <h3>@L.T("MatchTargetReached")</h3>
+                <p class="picker-empty">@string.Format(L.T("MatchTargetReachedText"), GetDisplayName(MatchLeaderSlot), Current.MatchTarget)</p>
+                <div class="warmup-picker-options match-end-options">
+                    <button @onclick="() => DispatchAsync(ScoreboardCommand.ExtendMatch, 5)">+5 &rarr; @ExtendedTarget(5) <small>[5]</small></button>
+                    <button @onclick="() => DispatchAsync(ScoreboardCommand.ExtendMatch, 10)">+10 &rarr; @ExtendedTarget(10) <small>[0]</small></button>
+                    <button @onclick="() => DispatchAsync(ScoreboardCommand.EndGame)">@L.T("EndMatch") <small>[E]</small></button>
+                </div>
+            </div>
+        </div>
+    }
+
     @if (_showPlayerPicker is { } slot)
     {
         <div class="player-picker-overlay" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
             <div class="player-picker-dialog">
                 <h3>@L.T(slot == 1 ? "P1" : "P2")</h3>
+                <div class="picker-buffer">@(_pickerBuffer.Length > 0 ? _pickerBuffer : L.T("ShortcutNumberHint"))</div>
                 @if (_rosterPlayers.Count == 0)
                 {
                     <p class="picker-empty">@L.T("NoPlayersInRoster")</p>
@@ -274,7 +290,7 @@ else
                         @foreach (var p in _rosterPlayers)
                         {
                             var taken = IsTakenByOtherSide(slot, p.Id);
-                            <button class="picker-row @(taken ? "taken" : "")" disabled="@taken" title="@(taken ? L.T("PlayerAlreadySelected") : null)"
+                            <button class="picker-row @(taken ? "taken" : "") @(p.Id == HighlightedPlayerId ? "active" : "")" disabled="@taken" title="@(taken ? L.T("PlayerAlreadySelected") : null)"
                                     @onclick="() => DispatchAsync(slot == 1 ? ScoreboardCommand.SelectRosterPlayer1 : ScoreboardCommand.SelectRosterPlayer2, p.Id)">
                                 @if (!string.IsNullOrEmpty(p.PhotoPath))
                                 {
@@ -287,6 +303,10 @@ else
                                 else
                                 {
                                     <div class="picker-photo-placeholder">?</div>
+                                }
+                                @if (p.ShortcutNumber is { } shortcut)
+                                {
+                                    <span class="picker-shortcut">[@shortcut]</span>
                                 }
                                 <span>@PlayerDisplayNameResolver.Resolve(p, L)</span>
                                 @if (taken)
@@ -332,6 +352,86 @@ else
     private Team? _resolvedTeam2;
     private List<Player> _rosterPlayers = new();
     private int? _showPlayerPicker;
+    private string _pickerBuffer = "";
+    private int _pickerIndex;
+
+    private int? HighlightedPlayerId
+    {
+        get
+        {
+            if (_pickerBuffer.Length > 0)
+            {
+                return PlayerWithShortcut(_pickerBuffer)?.Id ?? PlayersStartingWith(_pickerBuffer).FirstOrDefault()?.Id;
+            }
+
+            return _rosterPlayers.Count > 0 ? _rosterPlayers[Math.Clamp(_pickerIndex, 0, _rosterPlayers.Count - 1)].Id : null;
+        }
+    }
+
+    private Player? PlayerWithShortcut(string typed) =>
+        _rosterPlayers.FirstOrDefault(p => p.ShortcutNumber is { } n && n.ToString() == typed);
+
+    private IEnumerable<Player> PlayersStartingWith(string typed) =>
+        _rosterPlayers.Where(p => p.ShortcutNumber is { } n && n.ToString().StartsWith(typed, StringComparison.Ordinal));
+
+    private async Task HandlePickerKeyAsync(int slot, string key)
+    {
+        switch (key)
+        {
+            case { Length: 1 } when char.IsDigit(key[0]):
+                _pickerBuffer += key;
+                var exact = PlayerWithShortcut(_pickerBuffer);
+                var longer = PlayersStartingWith(_pickerBuffer).Any(p => p.ShortcutNumber.ToString() != _pickerBuffer);
+                if (exact is not null && !longer)
+                {
+                    await SelectPickerPlayerAsync(slot, exact.Id);
+                    return;
+                }
+
+                if (exact is null && !longer)
+                {
+                    _pickerBuffer = "";
+                    _ = ShowNoticeAsync(L.T("NoPlayerWithShortcut"));
+                }
+
+                break;
+            case "Backspace":
+                if (_pickerBuffer.Length > 0)
+                {
+                    _pickerBuffer = _pickerBuffer[..^1];
+                }
+                else
+                {
+                    ClosePlayerPicker();
+                }
+
+                break;
+            case "Escape":
+                ClosePlayerPicker();
+                break;
+            case "ArrowDown":
+                _pickerBuffer = "";
+                _pickerIndex = Math.Min(_pickerIndex + 1, Math.Max(_rosterPlayers.Count - 1, 0));
+                break;
+            case "ArrowUp":
+                _pickerBuffer = "";
+                _pickerIndex = Math.Max(_pickerIndex - 1, 0);
+                break;
+            case "Enter":
+                if (HighlightedPlayerId is int highlighted)
+                {
+                    await SelectPickerPlayerAsync(slot, highlighted);
+                    return;
+                }
+
+                break;
+        }
+
+        StateHasChanged();
+    }
+
+    private Task SelectPickerPlayerAsync(int slot, int playerId) =>
+        DispatchAsync(slot == 1 ? ScoreboardCommand.SelectRosterPlayer1 : ScoreboardCommand.SelectRosterPlayer2, playerId);
     private bool _showWarmupPicker;
 
     private ScoreboardState Current = new();
@@ -504,7 +604,13 @@ else
 
     private async Task OpenPlayerPickerAsync(int slot)
     {
-        _rosterPlayers = await DbContext.PlayerSet.OrderBy(p => p.Id).ToListAsync();
+        _rosterPlayers = await DbContext.PlayerSet
+            .OrderBy(p => p.ShortcutNumber == null)
+            .ThenBy(p => p.ShortcutNumber)
+            .ThenBy(p => p.Id)
+            .ToListAsync();
+        _pickerBuffer = "";
+        _pickerIndex = 0;
         _showPlayerPicker = slot;
         StateHasChanged();
     }
@@ -594,6 +700,19 @@ else
 
     private void SetMatchTarget(int target) => Current.MatchTarget = Math.Max(1, target);
 
+    private bool _showMatchEnd;
+
+    private int MatchLeaderSlot => Current.Player1Score >= Current.Player2Score ? 1 : 2;
+
+    private int ExtendedTarget(int extraPoints) =>
+        Math.Max(Current.MatchTarget, Math.Max(Current.Player1Score, Current.Player2Score)) + extraPoints;
+
+    private void ExtendMatch(int extraPoints)
+    {
+        Current.MatchTarget = ExtendedTarget(extraPoints);
+        _showMatchEnd = false;
+    }
+
     private void StopShotClock() => Current.ShotClockActive = false;
 
     private void StartShotClock() => Current.ShotClockActive = true;
@@ -667,6 +786,12 @@ else
             PlayerSlot = scoringSlot,
             Points = points
         });
+
+        if (!_gameEnded && Current.MatchTarget > 0 && Math.Max(Current.Player1Score, Current.Player2Score) >= Current.MatchTarget)
+        {
+            _showMatchEnd = true;
+            Current.ShotClockActive = false;
+        }
     }
 
     private bool _gameEnded;
@@ -720,6 +845,7 @@ else
         DbContext.ScoreEventSet.RemoveRange(events);
 
         Current.ShotClockActive = false;
+        _showMatchEnd = false;
         _gameEnded = true;
         if (winner != 0)
         {
@@ -730,6 +856,7 @@ else
     private void NewGame()
     {
         _gameEnded = false;
+        _showMatchEnd = false;
         _ = SetFireworksAsync(0);
         _gameStartedAt = DateTime.Now;
         Current.Player1Score = 0;
@@ -766,6 +893,42 @@ else
 
         if (_gameEnded)
         {
+            ScoreboardCommand? afterEnd = e.Key switch
+            {
+                "c" or "C" or "9" or "PageUp" => ScoreboardCommand.ToggleControls,
+                "n" or "N" or "8" or "ArrowUp" => ScoreboardCommand.NewGame,
+                _ => null
+            };
+
+            if (afterEnd is not null)
+            {
+                await ApplyCommandsAsync([new ScoreboardCommandMessage(afterEnd.Value)]);
+            }
+
+            return;
+        }
+
+        if (_showMatchEnd)
+        {
+            switch (e.Key)
+            {
+                case "5" or "Clear":
+                    await DispatchAsync(ScoreboardCommand.ExtendMatch, 5);
+                    break;
+                case "0" or "Insert":
+                    await DispatchAsync(ScoreboardCommand.ExtendMatch, 10);
+                    break;
+                case "e" or "E" or "4" or "ArrowLeft":
+                    await DispatchAsync(ScoreboardCommand.EndGame);
+                    break;
+            }
+
+            return;
+        }
+
+        if (_showPlayerPicker is { } pickerSlot)
+        {
+            await HandlePickerKeyAsync(pickerSlot, e.Key);
             return;
         }
 
@@ -858,6 +1021,13 @@ else
                 break;
             case ScoreboardCommand.NewGame:
                 NewGame();
+                break;
+            case ScoreboardCommand.ExtendMatch:
+                if (GetIntPayload(payload) is int extraPoints and > 0)
+                {
+                    ExtendMatch(extraPoints);
+                }
+
                 break;
             case ScoreboardCommand.SetMatchTarget:
                 if (GetIntPayload(payload) is int matchTarget)
