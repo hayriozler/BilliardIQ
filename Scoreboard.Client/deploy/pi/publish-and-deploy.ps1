@@ -60,6 +60,7 @@ if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 # Pi's live data.
 Remove-Item -Recurse -Force (Join-Path $publishDir "wwwroot\Db") -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force (Join-Path $publishDir "wwwroot\Players") -ErrorAction SilentlyContinue
+Remove-Item -Force (Join-Path $publishDir "appsettings.Development.json") -ErrorAction SilentlyContinue
 
 # systemd rejects unit files with CRLF line endings, so normalise before copying.
 $unitText = (Get-Content -Raw (Join-Path $PSScriptRoot $unitFile)) -replace "`r`n", "`n"
@@ -78,7 +79,7 @@ Write-Host "Stopping $ServiceName ..."
 Invoke-Remote "if systemctl is-active --quiet '$unitFile'; then sudo -n /usr/bin/systemctl stop '$unitFile'; fi"
 
 Write-Host "Removing the previous binaries (wwwroot is kept) ..."
-Invoke-Remote "find '$RemoteAppDir' -maxdepth 1 -type f \( -name '*.dll' -o -name '*.pdb' -o -name '*.so' -o -name '*.deps.json' -o -name '*.runtimeconfig.json' -o -name '*.staticwebassets*.json' -o -name 'Scoreboard.Client' -o -name 'Zeymera.Scoreboard.Client' \) -delete"
+Invoke-Remote "find '$RemoteAppDir' -maxdepth 1 -type f \( -name '*.dll' -o -name '*.pdb' -o -name '*.so' -o -name '*.deps.json' -o -name '*.runtimeconfig.json' -o -name '*.staticwebassets*.json' -o -name 'appsettings.Development.json' -o -name 'Scoreboard.Client' -o -name 'Zeymera.Scoreboard.Client' \) -delete"
 
 Write-Host "Copying to ${target}:${RemoteAppDir} ..."
 & scp -r "$publishDir\*" "${target}:${RemoteAppDir}/"
