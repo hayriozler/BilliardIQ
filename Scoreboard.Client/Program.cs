@@ -6,7 +6,6 @@ using Serilog;
 using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 var logsFolder = Path.Combine(Directory.GetCurrentDirectory(), "logs");
 Directory.CreateDirectory(logsFolder);

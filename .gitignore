@@ -35,6 +35,3 @@ Thumbs.db
 
 # local docker-compose settings (client id etc.)
 .env
-
-# machine-specific client settings (client id); never committed or published
-appsettings.Local.json

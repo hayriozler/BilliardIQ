@@ -12,8 +12,6 @@
   <ItemGroup>
     <Compile Remove="publish-pi/**" />
     <Content Remove="publish-pi/**" />
-    <Content Remove="appsettings.Local.json" />
-    <None Remove="appsettings.Local.json" />
     <EmbeddedResource Remove="publish-pi/**" />
     <None Remove="publish-pi/**" />
   </ItemGroup>
