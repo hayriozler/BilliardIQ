@@ -872,6 +872,7 @@ else
         _showMatchEnd = false;
         _ = SetFireworksAsync(0);
         _gameStartedAt = DateTime.Now;
+        DbContext.ScoreEventSet.RemoveRange(DbContext.ScoreEventSet.ToList());
         Current.Player1Score = 0;
         Current.Player2Score = 0;
         Current.Player1Avg = 0;
