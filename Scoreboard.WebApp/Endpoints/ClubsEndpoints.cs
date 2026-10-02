@@ -1,4 +1,5 @@
 using Scoreboard.WebApp.Requests;
+using Scoreboard.WebApp.Security;
 using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Endpoints;
@@ -8,11 +9,12 @@ public static class ClubsEndpoints
     public static RouteGroupBuilder MapClubsEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/clubs").WithTags("Clubs").RequireAuthorization();
+        var write = group.MapGroup("").RequireAuthorization(AuthClaims.ManagePolicy);
 
         group.MapGet("/", (ScoreboardDataService data) =>
             data.ListClubsAsync());
 
-        group.MapPost("/", async (UpsertClubRequest request, ClubService clubs) =>
+        write.MapPost("/", async (UpsertClubRequest request, ClubService clubs) =>
         {
             try
             {
@@ -25,7 +27,7 @@ public static class ClubsEndpoints
             }
         });
 
-        group.MapDelete("/{id:int}", async (int id, ClubService clubs) =>
+        write.MapDelete("/{id:int}", async (int id, ClubService clubs) =>
         {
             try
             {

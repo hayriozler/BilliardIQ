@@ -370,5 +370,6 @@
   "Davet kodu {0} tarihine kadar geçerli. Oyuncu mobil uygulamada bu kodla kendi hesabını açar.": "The invite code is valid until {0}. The player creates their own account in the mobile app with this code.",
   "Bu oyuncunun zaten bir hesabı var.": "This player already has an account.",
   "Bu oyuncunun hesabı yok.": "This player has no account.",
-  "Davet kodu geçersiz veya süresi dolmuş.": "The invite code is invalid or has expired."
+  "Davet kodu geçersiz veya süresi dolmuş.": "The invite code is invalid or has expired.",
+  "Yönetici ve sahip hesaplarını yalnızca bir sahip değiştirebilir.": "Manager and owner accounts can only be changed by an owner."
 }

@@ -165,10 +165,15 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         return staff;
     }
 
-    public async Task SetStaffActiveAsync(int organizationId, int staffId, bool active)
+    public async Task SetStaffActiveAsync(int organizationId, int staffId, bool active, bool actorIsOwner)
     {
         var staff = await db.StaffMemberSet.FirstOrDefaultAsync(s => s.Id == staffId && s.OrganizationId == organizationId)
             ?? throw new ArgumentException("Personel bulunamadı.");
+        if (!actorIsOwner && (staff.Roles.Contains(StaffRole.Owner) || staff.Roles.Contains(StaffRole.Manager)))
+        {
+            throw new ArgumentException("Yönetici ve sahip hesaplarını yalnızca bir sahip değiştirebilir.");
+        }
+
         if (!active && staff.Roles.Contains(StaffRole.Owner) &&
             await db.StaffMemberSet.CountAsync(s => s.OrganizationId == organizationId && s.IsActive && s.Id != staffId) == 0)
         {

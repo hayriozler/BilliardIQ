@@ -8,6 +8,7 @@ public static class AuthClaims
     public const string OrganizationId = "OrganizationId";
     public const string StaffMemberId = "StaffMemberId";
     public const string OrganizationName = "OrganizationName";
+    public const string ManagePolicy = "CanManage";
 
     public static ClaimsPrincipal CreatePrincipal(User user, StaffMember staff, Organization organization, string scheme)
     {
@@ -45,8 +46,8 @@ public class TenantContext(AuthenticationStateProvider authState)
         }
 
         var user = (await authState.GetAuthenticationStateAsync()).User;
-        return _tenant = new Tenant(user.GetOrganizationId(), user.GetStaffMemberId(), user.GetUserId(), user.CanManage(), user.Identity?.Name ?? "");
+        return _tenant = new Tenant(user.GetOrganizationId(), user.GetStaffMemberId(), user.GetUserId(), user.CanManage(), user.Identity?.Name ?? "", user.IsInRole(nameof(StaffRole.Owner)));
     }
 }
 
-public record Tenant(int OrganizationId, int StaffMemberId, int UserId, bool CanManage, string DisplayName);
+public record Tenant(int OrganizationId, int StaffMemberId, int UserId, bool CanManage, string DisplayName, bool IsOwner = false);

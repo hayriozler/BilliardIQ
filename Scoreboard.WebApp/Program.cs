@@ -124,6 +124,7 @@ builder.Services.AddAuthentication().AddJwtBearer(JwtSettings.Scheme, options =>
     };
 });
 builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AuthClaims.ManagePolicy, policy => policy.RequireRole(nameof(StaffRole.Owner), nameof(StaffRole.Manager)))
     .AddPolicy(JwtSettings.MobileAnyPolicy, policy => policy
         .AddAuthenticationSchemes(JwtSettings.Scheme)
         .RequireAuthenticatedUser())

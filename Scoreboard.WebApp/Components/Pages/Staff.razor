@@ -120,7 +120,7 @@
     });
 
     private Task SetActiveAsync(int staffId, bool active) => RunAsync(() =>
-        Db.RunAsync((AuthService s) => s.SetStaffActiveAsync(_tenant!.OrganizationId, staffId, active)));
+        Db.RunAsync((AuthService s) => s.SetStaffActiveAsync(_tenant!.OrganizationId, staffId, active, _tenant.IsOwner)));
 
     private Task ChangePasswordAsync() => RunAsync(async () =>
     {

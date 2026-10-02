@@ -35,9 +35,12 @@
                     @if (IsOpen("people"))
                     {
                         <div class="nav-items">
-                            <NavLink href="/players"><span class="nav-ico">🧑</span>@L["Oyuncular"]</NavLink>
-                            <NavLink href="/clubs"><span class="nav-ico">🏛️</span>@L["Kulüpler"]</NavLink>
-                            <NavLink href="/teams"><span class="nav-ico">👥</span>@L["Takımlar"]</NavLink>
+                            @if (context.User.CanManage())
+                            {
+                                <NavLink href="/players"><span class="nav-ico">🧑</span>@L["Oyuncular"]</NavLink>
+                                <NavLink href="/clubs"><span class="nav-ico">🏛️</span>@L["Kulüpler"]</NavLink>
+                                <NavLink href="/teams"><span class="nav-ico">👥</span>@L["Takımlar"]</NavLink>
+                            }
                             <NavLink href="/tournaments"><span class="nav-ico">🏆</span>@L["Turnuvalar"]</NavLink>
                         </div>
                     }
