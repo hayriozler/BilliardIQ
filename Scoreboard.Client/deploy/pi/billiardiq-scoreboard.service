@@ -15,6 +15,8 @@ After=network.target
 Type=simple
 User=admin
 WorkingDirectory=/home/admin/billiardiq-scoreboard
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_ENVIRONMENT=Production
 Environment=ASPNETCORE_URLS=http://0.0.0.0:5288
 Environment=DOTNET_ROOT=/home/admin/.dotnet
 ExecStart=/home/admin/.dotnet/dotnet /home/admin/billiardiq-scoreboard/Scoreboard.Client.dll
