@@ -37,9 +37,9 @@
                 }
             </div>
         }
-        else if (accountPlayer.User is not null)
+        else if (accountPlayer.UserId is not null)
         {
-            <p>@L["Hesap"]: <strong>@accountPlayer.User.Email</strong></p>
+            <p>@L["Hesap"]: <strong>@_accountEmails.GetValueOrDefault(accountPlayer.Id)</strong></p>
             <div class="form-actions">
                 <button type="button" class="primary" disabled="@_busy" @onclick="ResetAccountPasswordAsync">@L["Parolayı sıfırla"]</button>
             </div>
@@ -272,6 +272,7 @@
     }
     private PlayerFormModel _form = new();
     private Player? _accountPlayer;
+    private Dictionary<int, string?> _accountEmails = [];
     private string _accountEmail = string.Empty;
     private AccountResult? _accountResult;
 
@@ -356,6 +357,7 @@
     private async Task LoadAsync()
     {
         _players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync());
+        _accountEmails = await Db.RunAsync((PlayerService s) => s.AccountEmailsAsync());
         _associations = await Db.RunAsync((AssociationService s) => s.ListAsync());
         _regions = await Db.RunAsync((RegionService s) => s.ListAsync());
         _countries = await Db.RunAsync((CountryService s) => s.ListAsync());

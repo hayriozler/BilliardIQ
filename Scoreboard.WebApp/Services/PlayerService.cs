@@ -11,7 +11,6 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             .Include(p => p.Region)
             .Include(p => p.CountryRef)
             .Include(p => p.CityRef)
-            .Include(p => p.User)
             .Where(p => p.DeletedAt == null)
             .OrderBy(p => p.DisplayName)
             .ToListAsync();
@@ -24,6 +23,12 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             .Include(p => p.CityRef)
             .Where(p => ids.Contains(p.Id))
             .ToListAsync();
+
+    public Task<Dictionary<int, string?>> AccountEmailsAsync() =>
+        db.PlayerSet.AsNoTracking()
+            .Where(p => p.UserId != null && p.DeletedAt == null)
+            .Select(p => new { p.Id, p.User!.Email })
+            .ToDictionaryAsync(x => x.Id, x => x.Email);
 
     public Task<Player?> GetAsync(int id) =>
         db.PlayerSet.FirstOrDefaultAsync(p =>
