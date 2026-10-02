@@ -64,7 +64,9 @@ builder.Services.AddScoped<CircuitHandler, BoardCircuitHandler>();
 builder.Services.Configure<RemoteSyncOptions>(builder.Configuration.GetSection("RemoteSync"));
 builder.Services.AddHttpClient(nameof(RemoteSyncService));
 builder.Services.AddHostedService<RemoteSyncService>();
-builder.Services.AddHttpClient(nameof(RemotePullService));
+builder.Services.AddSingleton<ServerClock>();
+builder.Services.AddTransient<ServerClockHandler>();
+builder.Services.AddHttpClient(nameof(RemotePullService)).AddHttpMessageHandler<ServerClockHandler>();
 builder.Services.AddHostedService<RemotePullService>();
 
 var app = builder.Build();

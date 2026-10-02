@@ -8,6 +8,7 @@
 @inject BoardSessionGuard BoardSession
 @inject BoardSessionTracker BoardTracker
 @inject LanguageSync LanguageSync
+@inject ServerClock Clock
 @inject Microsoft.Extensions.Logging.ILogger<Home> Logger
 @inject Microsoft.Extensions.Options.IOptions<RemoteSyncOptions> SyncOptions
 @using Scoreboard.Client.Models
@@ -28,6 +29,7 @@ else
 <div @ref="board" class="board" tabindex="0" @onkeydown="HandleKeyDown" @onkeyup="HandleKeyUp" @onclick="RequestFullscreenAsync">
 
     <header class="board-header">
+        <div class="header-clock">@Clock.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)</div>
         <div class="header-brand">
             <img class="header-logo" src="images/zeymera-ram.png" alt="Zeymera" />
             <span class="header-brand-label">Zeymera</span>
@@ -50,6 +52,7 @@ else
             <img class="header-logo" src="images/zeymera-ram.png" alt="Zeymera" />
             <span class="header-brand-label">Zeymera</span>
         </div>
+        <div class="header-clock right">@Clock.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)</div>
     </header>
 
     <main class="scores">
