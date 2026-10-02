@@ -4,11 +4,14 @@ using Scoreboard.WebApp.Middlewares;
 using Scoreboard.WebApp.Models;
 using Scoreboard.WebApp.Requests;
 using Scoreboard.WebApp.Responses;
+using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Endpoints;
 
 public static class MatchStatsEndpoints
 {
+    private const int MaxNameLength = 100;
+
     public static RouteGroupBuilder MapMatchStatsEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/stats").WithTags("MatchStats");
@@ -33,7 +36,7 @@ public static class MatchStatsEndpoints
             }
 
             var buckets = (request.ScoreDistribution ?? [])
-                .Where(b => b.PlayerSlot is 1 or 2 && b.BucketIndex >= 0)
+                .Where(b => b.PlayerSlot is 1 or 2 && b.BucketIndex is >= 0 and <= StatsService.MaxBucketIndex)
                 .GroupBy(b => (b.PlayerSlot, b.BucketIndex))
                 .Select(g => new MatchStatBucket
                 {
@@ -49,12 +52,12 @@ public static class MatchStatsEndpoints
                 TableId = tableId,
                 TableNo = context.GetTableNo(),
                 Player1ExternalId = request.Player1Id,
-                Player1Name = request.Player1Name,
+                Player1Name = ClampName(request.Player1Name),
                 Player1Score = request.Player1Score,
                 Player1Avg = request.Player1Avg,
                 Player1HighRun = request.Player1HighRun,
                 Player2ExternalId = request.Player2Id,
-                Player2Name = request.Player2Name,
+                Player2Name = ClampName(request.Player2Name),
                 Player2Score = request.Player2Score,
                 Player2Avg = request.Player2Avg,
                 Player2HighRun = request.Player2HighRun,
@@ -74,22 +77,13 @@ public static class MatchStatsEndpoints
             return Results.Ok(ToDto(stat));
         });
 
-        group.MapDelete("/{id:int}", async (int id, DataContext db, HttpContext context) =>
-        {
-            var stat = await db.MatchStatSet.Include(s => s.Buckets)
-                .FirstOrDefaultAsync(s => s.Id == id);
-            if (stat is null)
-            {
-                return Results.NotFound();
-            }
-
-            db.MatchStatBucketSet.RemoveRange(stat.Buckets);
-            db.MatchStatSet.Remove(stat);
-            await db.SaveChangesAsync();
-            return Results.NoContent();
-        });
-
         return group;
+    }
+
+    private static string ClampName(string? name)
+    {
+        var trimmed = (name ?? "").Trim();
+        return trimmed.Length > MaxNameLength ? trimmed[..MaxNameLength] : trimmed;
     }
 
     private static MatchStatDto ToDto(MatchStat s) => new(

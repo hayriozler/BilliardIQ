@@ -41,6 +41,8 @@ public record TeamStatDetail(Team Team, StatSummary Summary, IReadOnlyList<Playe
 
 public class StatsService(DataContext db)
 {
+    public const int MaxBucketIndex = 35;
+
     public async Task<List<PlayerStatRow>> PlayersAsync(DateTimeOffset? since = null)
     {
         var players = await RosterPlayersAsync();
@@ -184,7 +186,7 @@ public class StatsService(DataContext db)
         var buckets = Array.Empty<int>();
         if (s.Buckets.Count > 0)
         {
-            var mine = s.Buckets.Where(b => b.PlayerSlot == slot).ToList();
+            var mine = s.Buckets.Where(b => b.PlayerSlot == slot && b.BucketIndex <= MaxBucketIndex).ToList();
             if (mine.Count > 0)
             {
                 buckets = new int[mine.Max(b => b.BucketIndex) + 1];
