@@ -12,6 +12,7 @@ services:
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       Database__MigrateOnStartup: "true"
       DataProtection__KeysPath: /app/keys
+      Jwt__Key: ${JWT_KEY}
       ConnectionStrings__Default: Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${POSTGRES_PASSWORD}
     ports:
       - "${BIND_ADDRESS}:${HTTPS_PORT}:8443"
