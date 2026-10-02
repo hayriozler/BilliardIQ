@@ -8,6 +8,7 @@
 @inject BoardSessionGuard BoardSession
 @inject BoardSessionTracker BoardTracker
 @inject LanguageSync LanguageSync
+@inject Microsoft.Extensions.Logging.ILogger<Home> Logger
 @inject Microsoft.Extensions.Options.IOptions<RemoteSyncOptions> SyncOptions
 @using Scoreboard.Client.Models
 @using Scoreboard.Client.Services
@@ -1129,30 +1130,48 @@ else
         {
             using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
             var ticks = 0;
+            var last = System.Diagnostics.Stopwatch.GetTimestamp();
             while (await timer.WaitForNextTickAsync(token))
             {
-                if (SystemPower.IsShuttingDown) continue;
-
-                var refresh = ++ticks % 30 == 0;
-                if (!Current.ShotClockActive)
+                var elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(last).TotalSeconds;
+                last = System.Diagnostics.Stopwatch.GetTimestamp();
+                try
                 {
-                    if (refresh) await InvokeAsync(StateHasChanged);
-                    continue;
+                    await ShotClockTickAsync(elapsed, ++ticks % 30 == 0);
                 }
-
-                Current.ShotClockRemaining = Math.Max(0, Current.ShotClockRemaining - 0.1);
-                if (Current.ShotClockRemaining <= 0)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    Current.ShotClockActive = false;
-                    Current.ShotClockRemaining = Current.ShotClockSeconds;
-                    DbContext.SaveChanges();
+                    Logger.LogError(ex, "Shot clock tick failed.");
                 }
-                await InvokeAsync(StateHasChanged);
             }
         }
         catch (OperationCanceledException)
         {
         }
+    }
+
+    private async Task ShotClockTickAsync(double elapsedSeconds, bool refresh)
+    {
+        if (SystemPower.IsShuttingDown)
+        {
+            return;
+        }
+
+        if (!Current.ShotClockActive)
+        {
+            if (refresh) await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        Current.ShotClockRemaining = Math.Max(0, Current.ShotClockRemaining - elapsedSeconds);
+        if (Current.ShotClockRemaining <= 0)
+        {
+            Current.ShotClockActive = false;
+            Current.ShotClockRemaining = Current.ShotClockSeconds;
+            DbContext.SaveChanges();
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     public async ValueTask DisposeAsync()
