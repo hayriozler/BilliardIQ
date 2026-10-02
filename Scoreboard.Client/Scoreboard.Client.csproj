@@ -41,6 +41,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Scoreboard.WebApp\Common\AvatarGenerator.cs" Link="Common\AvatarGenerator.cs" />
+    <Using Include="Scoreboard.Common" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="wwwroot\Db\" />
   </ItemGroup>
 

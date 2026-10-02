@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Scoreboard.WebApp.Services;
+namespace Scoreboard.Common;
 
 public static class AvatarGenerator
 {
@@ -36,17 +36,6 @@ public static class AvatarGenerator
     public static int Count => _animals.Count * _palettes.Count;
 
     public static string GetColor(int seed) => Resolve(seed).Palette.C1;
-
-    public static int SeedFromName(string name)
-    {
-        var hash = 2166136261u;
-        foreach (var b in Encoding.UTF8.GetBytes(name))
-        {
-            hash = (hash ^ b) * 16777619u;
-        }
-
-        return (int)(hash % Count);
-    }
 
     public static string ToSvg(int seed, int size = 64)
     {
