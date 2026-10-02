@@ -860,6 +860,7 @@ else
             StartedAt = _gameStartedAt,
             EndedAt = DateTime.Now
         };
+        using var transaction = DbContext.Database.BeginTransaction();
         DbContext.MatchResultSet.Add(matchResult);
         DbContext.SaveChanges();
 
@@ -875,6 +876,8 @@ else
             });
         DbContext.MatchScoreStatSet.AddRange(buckets);
         DbContext.ScoreEventSet.RemoveRange(events);
+        DbContext.SaveChanges();
+        transaction.Commit();
 
         Current.ShotClockActive = false;
         _showMatchEnd = false;
