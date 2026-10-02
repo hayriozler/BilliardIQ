@@ -1,4 +1,4 @@
-namespace BillardIQ.Mobile.Services;
+namespace BilliardIQ.Mobile.Services;
 
 internal sealed class PiTransportFactory : IPiTransportFactory
 {

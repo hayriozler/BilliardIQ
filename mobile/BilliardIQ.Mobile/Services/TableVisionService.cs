@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace BillardIQ.Mobile.Services;
+namespace BilliardIQ.Mobile.Services;
 
 // Kısayol: LocalizationManager.Instance["key"]
 file static class L

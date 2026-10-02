@@ -3,7 +3,7 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>@L["Scoreboard bağlantısı"] • BillardIQ</PageTitle>
+<PageTitle>@L["Scoreboard bağlantısı"] • BilliardIQ</PageTitle>
 
 <div class="page-head">
     <div>
@@ -89,7 +89,7 @@
         _tenant = await TenantContext.GetAsync();
         var orgId = _tenant!.OrganizationId;
         _clientId = await Db.RunAsync((ClientIdService s) => s.GetAsync(orgId));
-        _scoreboardTables = (await Db.RunAsync((TableService s) => s.ListAsync(orgId)))
+        _scoreboardTables = (await Db.RunAsync((TableService s) => s.ListAsync()))
             .Where(v => v.Table.ScoreboardNo is not null)
             .OrderBy(v => v.Table.ScoreboardNo)
             .ToList();

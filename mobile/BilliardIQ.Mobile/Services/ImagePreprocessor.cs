@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace BillardIQ.Mobile.Services;
+namespace BilliardIQ.Mobile.Services;
 
 public static class ImagePreprocessor
 {

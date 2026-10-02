@@ -5,23 +5,30 @@ namespace Scoreboard.WebApp.Services;
 
 public class PlayerService(DataContext db, IWebHostEnvironment env)
 {
-    public Task<List<Player>> ListForOrganizationAsync(int organizationId) =>
+    public Task<List<Player>> ListForOrganizationAsync() =>
         db.PlayerSet
             .Include(p => p.Association)
             .Include(p => p.Region)
             .Include(p => p.CountryRef)
             .Include(p => p.CityRef)
-            .Where(p => (p.CreatedInOrganizationId == organizationId || p.IsSystem) && p.DeletedAt == null)
+            .Where(p => p.DeletedAt == null)
             .OrderBy(p => p.DisplayName)
             .ToListAsync();
 
-    public Task<Player?> GetAsync(int organizationId, int id) =>
-        db.PlayerSet.FirstOrDefaultAsync(p =>
-            p.Id == id && (p.CreatedInOrganizationId == organizationId || p.IsSystem) && p.DeletedAt == null);
+    public Task<List<Player>> ListByIdsAsync(IReadOnlyCollection<int> ids) =>
+        db.PlayerSet.AsNoTracking()
+            .Include(p => p.Association)
+            .Include(p => p.Region)
+            .Include(p => p.CountryRef)
+            .Include(p => p.CityRef)
+            .Where(p => ids.Contains(p.Id))
+            .ToListAsync();
 
-    public async Task<Player> UpsertAsync(
-        int organizationId,
-        int id,
+    public Task<Player?> GetAsync(int id) =>
+        db.PlayerSet.FirstOrDefaultAsync(p =>
+            p.Id == id && p.DeletedAt == null);
+
+    public async Task<Player> UpsertAsync(int id,
         string nickname,
         string name,
         int? avatarId,
@@ -49,7 +56,7 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         if (countryId is not null)
         {
             country = await db.OrganizationCountrySet
-                .Where(x => x.CountryId == countryId && x.OrganizationId == organizationId && x.DeletedAt == null)
+                .Where(x => x.CountryId == countryId && x.DeletedAt == null)
                 .Select(x => x.Country)
                 .FirstOrDefaultAsync()
                 ?? throw new ArgumentException("Ülke bulunamadı.");
@@ -58,7 +65,7 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         if (cityId is not null)
         {
             city = await db.OrganizationCitySet
-                .Where(x => x.CityId == cityId && x.OrganizationId == organizationId && x.DeletedAt == null)
+                .Where(x => x.CityId == cityId && x.DeletedAt == null)
                 .Select(x => x.City)
                 .FirstOrDefaultAsync()
                 ?? throw new ArgumentException("Şehir bulunamadı.");
@@ -69,13 +76,13 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         }
 
         if (regionId is not null && !await db.OrganizationRegionSet.AnyAsync(x =>
-                x.RegionId == regionId && x.OrganizationId == organizationId && x.DeletedAt == null))
+                x.RegionId == regionId && x.DeletedAt == null))
         {
             throw new ArgumentException("Bölge bulunamadı.");
         }
 
         if (associationId is not null && !await db.AssociationSet.AnyAsync(a =>
-                a.Id == associationId && a.OrganizationId == organizationId && a.DeletedAt == null))
+                a.Id == associationId && a.DeletedAt == null))
         {
             throw new ArgumentException("Dernek / federasyon bulunamadı.");
         }
@@ -98,12 +105,17 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         }
 
         if (shortcutNumber is not null && await db.PlayerSet.AnyAsync(p =>
-                p.CreatedInOrganizationId == organizationId && p.ShortcutNumber == shortcutNumber && p.Id != id))
+                p.ShortcutNumber == shortcutNumber && p.Id != id))
         {
             throw new LocalizedArgumentException("{0} numaralı kısayol başka bir oyuncuda kayıtlı.", shortcutNumber.Value);
         }
 
-        var player = id != 0 ? await GetAsync(organizationId, id) : null;
+        var player = id != 0 ? await GetAsync(id) : null;
+        if (id != 0 && player is null)
+        {
+            throw new ArgumentException("Oyuncu bulunamadı.");
+        }
+
         if (player is { IsSystem: true })
         {
             throw new ArgumentException("Sistem oyuncuları değiştirilemez.");
@@ -111,7 +123,7 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
 
         if (player is null)
         {
-            player = new Player { CreatedInOrganizationId = organizationId };
+            player = new Player { CreatedInOrganizationId = db.CurrentOrganizationId };
             db.PlayerSet.Add(player);
         }
 
@@ -153,11 +165,11 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             }
 
             var extension = string.IsNullOrWhiteSpace(photoExtension) ? "jpg" : photoExtension.TrimStart('.');
-            var folder = Path.Combine(env.WebRootPath, "Players", organizationId.ToString());
+            var folder = Path.Combine(env.WebRootPath, "Players", db.CurrentOrganizationId.ToString());
             Directory.CreateDirectory(folder);
             var fileName = $"{player.Id}.{extension}";
             await File.WriteAllBytesAsync(Path.Combine(folder, fileName), bytes);
-            player.PhotoUrl = $"Players/{organizationId}/{fileName}";
+            player.PhotoUrl = $"Players/{db.CurrentOrganizationId}/{fileName}";
 
             await db.SaveChangesAsync();
         }
@@ -165,9 +177,9 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         return player;
     }
 
-    public async Task<bool> DeleteAsync(int organizationId, int id)
+    public async Task<bool> DeleteAsync(int id)
     {
-        var player = await GetAsync(organizationId, id);
+        var player = await GetAsync(id);
         if (player is null)
         {
             return false;

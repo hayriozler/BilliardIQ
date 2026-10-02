@@ -3,7 +3,7 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>@L["Oyuncular"] • BillardIQ</PageTitle>
+<PageTitle>@L["Oyuncular"] • BilliardIQ</PageTitle>
 
 <div class="page-head">
     <div>
@@ -239,13 +239,12 @@
 
     private async Task LoadAsync()
     {
-        var orgId = _tenant!.OrganizationId;
-        _players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId));
-        _associations = await Db.RunAsync((AssociationService s) => s.ListAsync(orgId));
-        _regions = await Db.RunAsync((RegionService s) => s.ListAsync(orgId));
-        _countries = await Db.RunAsync((CountryService s) => s.ListAsync(orgId));
-        _cities = await Db.RunAsync((CityService s) => s.ListAsync(orgId));
-        var org = await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId));
+        _players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync());
+        _associations = await Db.RunAsync((AssociationService s) => s.ListAsync());
+        _regions = await Db.RunAsync((RegionService s) => s.ListAsync());
+        _countries = await Db.RunAsync((CountryService s) => s.ListAsync());
+        _cities = await Db.RunAsync((CityService s) => s.ListAsync());
+        var org = await Db.RunAsync((TableService s) => s.GetOrganizationAsync());
         _homeCountryId = _countries.FirstOrDefault(c => CountryCatalog.Find(org.CountryCode)?.HasName(c.Name) == true)?.Id.ToString() ?? "";
         if (_form.Id == 0 && _form.CountryId == "")
         {
@@ -315,8 +314,7 @@
         _busy = true;
         try
         {
-            await Db.RunAsync((PlayerService s) => s.UpsertAsync(
-                _tenant!.OrganizationId, _form.Id, _form.Nickname, _form.Name, _form.AvatarId,
+            await Db.RunAsync((PlayerService s) => s.UpsertAsync(_form.Id, _form.Nickname, _form.Name, _form.AvatarId,
                 _form.Email, _form.Level, _form.BaseCountry, _form.BaseCity,
                 _pendingPhotoBase64, _pendingPhotoExtension, _form.ShortcutNumber, _form.LicenseNo, _form.LicenseValidUntil,
                 int.TryParse(_form.AssociationId, out var associationId) ? associationId : null,
@@ -342,7 +340,7 @@
         _busy = true;
         try
         {
-            await Db.RunAsync((PlayerService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+            await Db.RunAsync((PlayerService s) => s.DeleteAsync(id));
             _confirmDelete = null;
         }
         finally

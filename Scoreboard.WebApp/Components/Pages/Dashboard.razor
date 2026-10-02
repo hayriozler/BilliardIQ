@@ -4,7 +4,7 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>@L["Masalar"] • BillardIQ</PageTitle>
+<PageTitle>@L["Masalar"] • BilliardIQ</PageTitle>
 
 <div class="page-head">
     <div>
@@ -406,13 +406,13 @@ else
     private async Task LoadAsync()
     {
         var orgId = _tenant!.OrganizationId;
-        _org = await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId));
+        _org = await Db.RunAsync((TableService s) => s.GetOrganizationAsync());
         _zone = PricingCalculator.ResolveTimeZone(_org.TimeZone);
-        _views = await Db.RunAsync((TableService s) => s.ListAsync(orgId));
-        _summary = await Db.RunAsync((TableService s) => s.SummaryAsync(orgId));
-        _unsettled = await Db.RunAsync((TableService s) => s.UnsettledSessionsAsync(orgId));
-        _recent = await Db.RunAsync((TableService s) => s.RecentSessionsAsync(orgId));
-        _voided = await Db.RunAsync((TableService s) => s.VoidedSessionsAsync(orgId));
+        _views = await Db.RunAsync((TableService s) => s.ListAsync());
+        _summary = await Db.RunAsync((TableService s) => s.SummaryAsync());
+        _unsettled = await Db.RunAsync((TableService s) => s.UnsettledSessionsAsync());
+        _recent = await Db.RunAsync((TableService s) => s.RecentSessionsAsync());
+        _voided = await Db.RunAsync((TableService s) => s.VoidedSessionsAsync());
         _now = DateTimeOffset.UtcNow;
     }
 
@@ -443,54 +443,54 @@ else
             _org!.BillingRoundingMinutes, _org.MinimumBillableMinutes, _zone!);
 
     private Task OpenAsync(int tableId) =>
-        RunAsync(() => Db.RunAsync((TableService s) => s.OpenSessionAsync(_tenant!.OrganizationId, tableId, _tenant.StaffMemberId)));
+        RunAsync(() => Db.RunAsync((TableService s) => s.OpenSessionAsync(tableId, _tenant!.StaffMemberId)));
 
     private Task VoidAsync(int sessionId) => RunAsync(async () =>
     {
-        await Db.RunAsync((TableService s) => s.VoidPendingCollectionAsync(_tenant!.OrganizationId, sessionId, _tenant.StaffMemberId));
+        await Db.RunAsync((TableService s) => s.VoidPendingCollectionAsync(sessionId, _tenant!.StaffMemberId));
         _confirmVoid = null;
     });
 
     private Task OpenOrderAsync(TableView view) => RunAsync(async () =>
     {
         var orgId = _tenant!.OrganizationId;
-        _menu = await Db.RunAsync((ProductService s) => s.ListProductsAsync(orgId));
-        _menuCategories = (await Db.RunAsync((ProductService s) => s.ListCategoriesAsync(orgId)))
+        _menu = await Db.RunAsync((ProductService s) => s.ListProductsAsync());
+        _menuCategories = (await Db.RunAsync((ProductService s) => s.ListCategoriesAsync()))
             .Where(c => _menu.Any(p => p.IsActive && p.CategoryId == c.Id)).ToList();
         _menuCategory = null;
-        _orderItems = await Db.RunAsync((OrderService s) => s.ListItemsAsync(orgId, view.Session!.Id));
+        _orderItems = await Db.RunAsync((OrderService s) => s.ListItemsAsync(view.Session!.Id));
         _ordering = view;
     });
 
     private Task AddItemAsync(int productId) => RunAsync(async () =>
     {
         var sessionId = _ordering!.Session!.Id;
-        await Db.RunAsync((OrderService s) => s.AddItemAsync(_tenant!.OrganizationId, sessionId, productId, _tenant.StaffMemberId));
-        _orderItems = await Db.RunAsync((OrderService s) => s.ListItemsAsync(_tenant!.OrganizationId, sessionId));
+        await Db.RunAsync((OrderService s) => s.AddItemAsync(sessionId, productId, _tenant!.StaffMemberId));
+        _orderItems = await Db.RunAsync((OrderService s) => s.ListItemsAsync(sessionId));
     });
 
     private Task RemoveOneAsync(int itemId) => RunAsync(async () =>
     {
         var sessionId = _ordering!.Session!.Id;
-        await Db.RunAsync((OrderService s) => s.RemoveOneAsync(_tenant!.OrganizationId, itemId));
-        _orderItems = await Db.RunAsync((OrderService s) => s.ListItemsAsync(_tenant!.OrganizationId, sessionId));
+        await Db.RunAsync((OrderService s) => s.RemoveOneAsync(itemId));
+        _orderItems = await Db.RunAsync((OrderService s) => s.ListItemsAsync(sessionId));
     });
 
     private void CloseOrder() => _ordering = null;
 
     private Task PauseAsync(int sessionId) =>
-        RunAsync(() => Db.RunAsync((TableService s) => s.PauseSessionAsync(_tenant!.OrganizationId, sessionId)));
+        RunAsync(() => Db.RunAsync((TableService s) => s.PauseSessionAsync(sessionId)));
 
     private Task ResumeAsync(int sessionId) =>
-        RunAsync(() => Db.RunAsync((TableService s) => s.ResumeSessionAsync(_tenant!.OrganizationId, sessionId)));
+        RunAsync(() => Db.RunAsync((TableService s) => s.ResumeSessionAsync(sessionId)));
 
     private Task SetStatusAsync(int tableId, TableStatus status) =>
-        RunAsync(() => Db.RunAsync((TableService s) => s.SetTableStatusAsync(_tenant!.OrganizationId, tableId, status)));
+        RunAsync(() => Db.RunAsync((TableService s) => s.SetTableStatusAsync(tableId, status)));
 
     private Task SettleAsync(int sessionId, PaymentMethod method) =>
         RunAsync(async () =>
         {
-            await Db.RunAsync((TableService s) => s.SettleSessionAsync(_tenant!.OrganizationId, sessionId, _tenant.StaffMemberId, method));
+            await Db.RunAsync((TableService s) => s.SettleSessionAsync(sessionId, _tenant!.StaffMemberId, method));
             _paying = null;
         });
 
@@ -498,7 +498,7 @@ else
         RunAsync(async () =>
         {
             var tableNumber = _closing!.Table.Number;
-            var closed = await Db.RunAsync((TableService s) => s.CloseSessionAsync(_tenant!.OrganizationId, sessionId, _tenant.StaffMemberId));
+            var closed = await Db.RunAsync((TableService s) => s.CloseSessionAsync(sessionId, _tenant!.StaffMemberId));
             _closing = null;
             _paying = closed;
             _paying.Table = new BilliardTable { Number = tableNumber };

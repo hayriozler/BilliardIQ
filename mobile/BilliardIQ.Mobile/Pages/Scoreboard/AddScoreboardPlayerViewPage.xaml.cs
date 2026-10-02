@@ -1,6 +1,6 @@
-using BillardIQ.Mobile.PageModels.ScoreboardPageModels;
+using BilliardIQ.Mobile.PageModels.ScoreboardPageModels;
 
-namespace BillardIQ.Mobile.Pages.Scoreboard;
+namespace BilliardIQ.Mobile.Pages.Scoreboard;
 
 public partial class AddScoreboardPlayerViewPage : BasePage
 {

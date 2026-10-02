@@ -5,18 +5,18 @@ namespace Scoreboard.WebApp.Services;
 
 public class OrderService(DataContext db)
 {
-    public Task<List<OrderItem>> ListItemsAsync(int organizationId, int sessionId) =>
+    public Task<List<OrderItem>> ListItemsAsync(int sessionId) =>
         db.OrderItemSet
             .AsNoTracking()
-            .Where(i => i.OrganizationId == organizationId && i.SessionId == sessionId && i.Status != OrderItemStatus.Cancelled)
+            .Where(i => i.SessionId == sessionId && i.Status != OrderItemStatus.Cancelled)
             .OrderBy(i => i.Id)
             .ToListAsync();
 
-    public async Task AddItemAsync(int organizationId, int sessionId, int productId, int staffId)
+    public async Task AddItemAsync(int sessionId, int productId, int staffId)
     {
-        var session = await FindOpenSessionAsync(organizationId, sessionId);
+        var session = await FindOpenSessionAsync(sessionId);
         var product = await db.ProductSet.FirstOrDefaultAsync(p =>
-            p.Id == productId && p.OrganizationId == organizationId && p.DeletedAt == null)
+            p.Id == productId && p.DeletedAt == null)
             ?? throw new InvalidOperationException("Ürün bulunamadı.");
         if (!product.IsActive)
         {
@@ -30,7 +30,7 @@ public class OrderService(DataContext db)
         {
             item = new OrderItem
             {
-                OrganizationId = organizationId,
+                OrganizationId = db.CurrentOrganizationId,
                 SessionId = sessionId,
                 ProductId = product.Id,
                 ProductNameSnapshot = product.Name,
@@ -48,12 +48,12 @@ public class OrderService(DataContext db)
         await RecalculateAsync(session);
     }
 
-    public async Task RemoveOneAsync(int organizationId, int itemId)
+    public async Task RemoveOneAsync(int itemId)
     {
         var item = await db.OrderItemSet.FirstOrDefaultAsync(i =>
-            i.Id == itemId && i.OrganizationId == organizationId && i.Status != OrderItemStatus.Cancelled)
+            i.Id == itemId && i.Status != OrderItemStatus.Cancelled)
             ?? throw new InvalidOperationException("Kalem bulunamadı.");
-        var session = await FindOpenSessionAsync(organizationId, item.SessionId ?? 0);
+        var session = await FindOpenSessionAsync(item.SessionId ?? 0);
 
         item.Quantity -= 1;
         if (item.Quantity <= 0)
@@ -67,9 +67,9 @@ public class OrderService(DataContext db)
         await RecalculateAsync(session);
     }
 
-    private async Task<TableSession> FindOpenSessionAsync(int organizationId, int sessionId)
+    private async Task<TableSession> FindOpenSessionAsync(int sessionId)
     {
-        var session = await db.TableSessionSet.FirstOrDefaultAsync(s => s.Id == sessionId && s.OrganizationId == organizationId)
+        var session = await db.TableSessionSet.FirstOrDefaultAsync(s => s.Id == sessionId)
             ?? throw new InvalidOperationException("Oturum bulunamadı.");
         if (session.Status is not (TableSessionStatus.Open or TableSessionStatus.Paused))
         {

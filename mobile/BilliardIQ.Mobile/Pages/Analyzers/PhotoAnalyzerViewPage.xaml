@@ -2,10 +2,10 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-    xmlns:basePages="clr-namespace:BillardIQ.Mobile.Pages.BasePages"
-    xmlns:vm="clr-namespace:BillardIQ.Mobile.PageModels.Analyzers"
-    xmlns:local="clr-namespace:BillardIQ.Mobile.Pages.Analyzers"
-    x:Class="BillardIQ.Mobile.Pages.Analyzers.PhotoAnalyzerViewPage"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:vm="clr-namespace:BilliardIQ.Mobile.PageModels.Analyzers"
+    xmlns:local="clr-namespace:BilliardIQ.Mobile.Pages.Analyzers"
+    x:Class="BilliardIQ.Mobile.Pages.Analyzers.PhotoAnalyzerViewPage"
     x:DataType="vm:PhotoAnalyzerPageModel">
 
     <Grid BackgroundColor="Black">

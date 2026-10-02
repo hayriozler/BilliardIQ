@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace BillardIQ.Mobile.Models;
+namespace BilliardIQ.Mobile.Models;
 
 public class Ball
 {

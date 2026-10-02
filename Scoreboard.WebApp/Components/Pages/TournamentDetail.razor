@@ -4,7 +4,7 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>@(_cup?.Name ?? L["Turnuva"]) • BillardIQ</PageTitle>
+<PageTitle>@(_cup?.Name ?? L["Turnuva"]) • BilliardIQ</PageTitle>
 
 @if (_notFound)
 {
@@ -597,8 +597,7 @@ else
 
     private async Task LoadAsync(bool resetEditors = false)
     {
-        var orgId = _tenant!.OrganizationId;
-        var cup = await Db.RunAsync((CupService s) => s.GetAsync(orgId, Id));
+        var cup = await Db.RunAsync((CupService s) => s.GetAsync(Id));
         if (cup is null)
         {
             _notFound = true;
@@ -607,7 +606,7 @@ else
 
         _cup = cup;
         _names = cup.Participants.ToDictionary(p => p.Id, p => p.Player.DisplayName);
-        _tables = (await Db.RunAsync((TableService s) => s.ListAsync(orgId))).Select(v => v.Table).ToList();
+        _tables = (await Db.RunAsync((TableService s) => s.ListAsync())).Select(v => v.Table).ToList();
         _standings = CupService.Standings(cup);
         var finalMatch = cup.Format == CupFormat.SingleElimination && cup.TotalRounds > 0
             ? cup.Matches.FirstOrDefault(m => m.Round == cup.TotalRounds) : null;
@@ -615,7 +614,7 @@ else
 
         if (cup.Status == CupStatus.Draft)
         {
-            _available = await Db.RunAsync((CupService s) => s.AvailablePlayersAsync(orgId, Id));
+            _available = await Db.RunAsync((CupService s) => s.AvailablePlayersAsync(Id));
             _selectedPlayers.IntersectWith(_available.Select(p => p.Id));
         }
 
@@ -696,18 +695,18 @@ else
     private Task AddParticipantsAsync() => RunAsync(async () =>
     {
         var ids = _selectedPlayers.ToList();
-        await Db.RunAsync((CupService s) => s.AddParticipantsAsync(_tenant!.OrganizationId, Id, ids));
+        await Db.RunAsync((CupService s) => s.AddParticipantsAsync(Id, ids));
         _selectedPlayers.Clear();
         _quickHandicapRounds = 0;
     });
 
     private Task RemoveParticipantAsync(int participantId) => RunAsync(() =>
-        Db.RunAsync((CupService s) => s.RemoveParticipantAsync(_tenant!.OrganizationId, Id, participantId)));
+        Db.RunAsync((CupService s) => s.RemoveParticipantAsync(Id, participantId)));
 
     private Task SaveParticipantAsync(int participantId) => RunAsync(() =>
     {
         var edit = _pedit[participantId];
-        return Db.RunAsync((CupService s) => s.SetParticipantAsync(_tenant!.OrganizationId, Id, participantId, edit.Handicap, edit.Seed));
+        return Db.RunAsync((CupService s) => s.SetParticipantAsync(Id, participantId, edit.Handicap, edit.Seed));
     });
 
     private void AddRuleRow()
@@ -720,26 +719,26 @@ else
     private Task SaveRulesAsync() => RunAsync(async () =>
     {
         var blocks = _rules.Select(r => new RuleBlockInput(r.FromRound, r.ToRound, r.Mode, r.FixedTarget)).ToList();
-        await Db.RunAsync((CupService s) => s.SetRuleBlocksAsync(_tenant!.OrganizationId, Id, blocks));
+        await Db.RunAsync((CupService s) => s.SetRuleBlocksAsync(Id, blocks));
     }, reloadEditors: true);
 
     private Task QuickAsync() => RunAsync(
-        () => Db.RunAsync((CupService s) => s.QuickRulesAsync(_tenant!.OrganizationId, Id, _quickHandicapRounds, _quickFixed)),
+        () => Db.RunAsync((CupService s) => s.QuickRulesAsync(Id, _quickHandicapRounds, _quickFixed)),
         reloadEditors: true);
 
     private Task AllHandicapAsync() => RunAsync(
-        () => Db.RunAsync((CupService s) => s.QuickRulesAsync(_tenant!.OrganizationId, Id, TotalRounds, null)),
+        () => Db.RunAsync((CupService s) => s.QuickRulesAsync(Id, TotalRounds, null)),
         reloadEditors: true);
 
     private Task StartAsync() => RunAsync(async () =>
     {
-        await Db.RunAsync((CupService s) => s.StartAsync(_tenant!.OrganizationId, Id));
+        await Db.RunAsync((CupService s) => s.StartAsync(Id));
         _tab = "fixtures";
     }, reloadEditors: true);
 
     private Task ResetAsync() => RunAsync(async () =>
     {
-        await Db.RunAsync((CupService s) => s.ResetAsync(_tenant!.OrganizationId, Id));
+        await Db.RunAsync((CupService s) => s.ResetAsync(Id));
         _confirmReset = false;
         _editMatchId = null;
         _tab = "participants";
@@ -765,17 +764,16 @@ else
 
     private Task SaveResultAsync(CupMatch match) => RunAsync(async () =>
     {
-        await Db.RunAsync((CupService s) => s.RecordResultAsync(
-            _tenant!.OrganizationId, match.Id, _res.ScoreA, _res.ScoreB, _res.Innings, _res.HighRunA, _res.HighRunB, _res.Winner));
+        await Db.RunAsync((CupService s) => s.RecordResultAsync(match.Id, _res.ScoreA, _res.ScoreB, _res.Innings, _res.HighRunA, _res.HighRunB, _res.Winner));
         _editMatchId = null;
     });
 
-    private Task ClearAsync(int matchId) => RunAsync(() => Db.RunAsync((CupService s) => s.ClearResultAsync(_tenant!.OrganizationId, matchId)));
+    private Task ClearAsync(int matchId) => RunAsync(() => Db.RunAsync((CupService s) => s.ClearResultAsync(matchId)));
 
     private Task SetTableAsync(int matchId, string? value) => RunAsync(() =>
     {
         int? tableId = int.TryParse(value, out var parsed) ? parsed : null;
-        return Db.RunAsync((CupService s) => s.SetTableAsync(_tenant!.OrganizationId, matchId, tableId));
+        return Db.RunAsync((CupService s) => s.SetTableAsync(matchId, tableId));
     });
 
     private async Task RunAsync(Func<Task> action, bool reloadEditors = false)

@@ -1,8 +1,8 @@
-using BillardIQ.Mobile.Models;
-using BillardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Models;
+using BilliardIQ.Mobile.Services;
 using Microsoft.Extensions.Logging;
 
-namespace BillardIQ.Mobile.Data;
+namespace BilliardIQ.Mobile.Data;
 
 internal class MatchResultRow
 {

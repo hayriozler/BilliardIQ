@@ -41,10 +41,10 @@ public record TeamStatDetail(Team Team, StatSummary Summary, IReadOnlyList<Playe
 
 public class StatsService(DataContext db)
 {
-    public async Task<List<PlayerStatRow>> PlayersAsync(int organizationId, DateTimeOffset? since = null)
+    public async Task<List<PlayerStatRow>> PlayersAsync(DateTimeOffset? since = null)
     {
-        var players = await RosterPlayersAsync(organizationId);
-        var entries = await EntriesByPlayerAsync(organizationId, since, includeBuckets: false);
+        var players = await RosterPlayersAsync();
+        var entries = await EntriesByPlayerAsync(since, includeBuckets: false);
         return players
             .Select(p => new PlayerStatRow(p, Summarize(entries.GetValueOrDefault(p.Id) ?? [])))
             .OrderByDescending(r => r.Summary.Wins).ThenByDescending(r => r.Summary.Matches)
@@ -52,11 +52,11 @@ public class StatsService(DataContext db)
             .ToList();
     }
 
-    public async Task<PlayerStatDetail?> PlayerAsync(int organizationId, int playerId, DateTimeOffset? since = null)
+    public async Task<PlayerStatDetail?> PlayerAsync(int playerId, DateTimeOffset? since = null)
     {
         var player = await db.PlayerSet.AsNoTracking()
             .Include(p => p.Association)
-            .FirstOrDefaultAsync(p => p.Id == playerId && (p.CreatedInOrganizationId == organizationId || p.IsSystem) && p.DeletedAt == null);
+            .FirstOrDefaultAsync(p => p.Id == playerId && p.DeletedAt == null);
         if (player is null)
         {
             return null;
@@ -64,22 +64,22 @@ public class StatsService(DataContext db)
 
         if (player.IsSystem && player.SystemSlot is int slot)
         {
-            var language = await db.OrganizationSet.Where(o => o.Id == organizationId).Select(o => o.Language).FirstOrDefaultAsync() ?? Loc.DefaultLanguage;
+            var language = await db.OrganizationSet.Where(o => o.Id == db.CurrentOrganizationId).Select(o => o.Language).FirstOrDefaultAsync() ?? Loc.DefaultLanguage;
             var name = SystemPlayerService.NameFor(slot, language);
             player.FirstName = name;
             player.DisplayName = name;
             player.Nickname = name;
         }
 
-        var entries = (await EntriesByPlayerAsync(organizationId, since, includeBuckets: true, onlyPlayerId: playerId))
+        var entries = (await EntriesByPlayerAsync(since, includeBuckets: true, onlyPlayerId: playerId))
             .GetValueOrDefault(playerId) ?? [];
         return new PlayerStatDetail(player, Summarize(entries), entries);
     }
 
-    public async Task<List<TeamStatRow>> TeamsAsync(int organizationId, DateTimeOffset? since = null)
+    public async Task<List<TeamStatRow>> TeamsAsync(DateTimeOffset? since = null)
     {
-        var teams = await TeamsWithMembersAsync(organizationId);
-        var entries = await EntriesByPlayerAsync(organizationId, since, includeBuckets: false);
+        var teams = await TeamsWithMembersAsync();
+        var entries = await EntriesByPlayerAsync(since, includeBuckets: false);
         return teams
             .Select(t =>
             {
@@ -91,15 +91,15 @@ public class StatsService(DataContext db)
             .ToList();
     }
 
-    public async Task<TeamStatDetail?> TeamAsync(int organizationId, int teamId, DateTimeOffset? since = null)
+    public async Task<TeamStatDetail?> TeamAsync(int teamId, DateTimeOffset? since = null)
     {
-        var team = (await TeamsWithMembersAsync(organizationId)).FirstOrDefault(t => t.Id == teamId);
+        var team = (await TeamsWithMembersAsync()).FirstOrDefault(t => t.Id == teamId);
         if (team is null)
         {
             return null;
         }
 
-        var entries = await EntriesByPlayerAsync(organizationId, since, includeBuckets: false);
+        var entries = await EntriesByPlayerAsync(since, includeBuckets: false);
         var members = team.Members.Select(m => m.Player).DistinctBy(p => p.Id).ToList();
         var memberRows = members
             .Select(p => new PlayerStatRow(p, Summarize(entries.GetValueOrDefault(p.Id) ?? [])))
@@ -114,11 +114,11 @@ public class StatsService(DataContext db)
         return new TeamStatDetail(team, Summarize(all), memberRows, recent);
     }
 
-    private async Task<List<Player>> RosterPlayersAsync(int organizationId)
+    private async Task<List<Player>> RosterPlayersAsync()
     {
-        var language = await db.OrganizationSet.Where(o => o.Id == organizationId).Select(o => o.Language).FirstOrDefaultAsync() ?? Loc.DefaultLanguage;
+        var language = await db.OrganizationSet.Where(o => o.Id == db.CurrentOrganizationId).Select(o => o.Language).FirstOrDefaultAsync() ?? Loc.DefaultLanguage;
         var players = await db.PlayerSet.AsNoTracking()
-            .Where(p => (p.CreatedInOrganizationId == organizationId || p.IsSystem) && p.DeletedAt == null)
+            .Where(p => p.DeletedAt == null)
             .ToListAsync();
         foreach (var player in players.Where(p => p.IsSystem && p.SystemSlot is not null))
         {
@@ -131,18 +131,17 @@ public class StatsService(DataContext db)
         return players;
     }
 
-    private Task<List<Team>> TeamsWithMembersAsync(int organizationId) =>
+    private Task<List<Team>> TeamsWithMembersAsync() =>
         db.TeamSet.AsNoTracking()
             .Include(t => t.Club)
             .Include(t => t.Members.Where(m => m.LeftAt == null)).ThenInclude(m => m.Player)
-            .Where(t => t.Club.OrganizationId == organizationId && t.DeletedAt == null)
+            .Where(t => t.DeletedAt == null)
             .OrderBy(t => t.Name)
             .ToListAsync();
 
-    private async Task<Dictionary<int, List<PlayerMatchEntry>>> EntriesByPlayerAsync(
-        int organizationId, DateTimeOffset? since, bool includeBuckets, int? onlyPlayerId = null)
+    private async Task<Dictionary<int, List<PlayerMatchEntry>>> EntriesByPlayerAsync(DateTimeOffset? since, bool includeBuckets, int? onlyPlayerId = null)
     {
-        var query = db.MatchStatSet.AsNoTracking().Where(s => s.OrganizationId == organizationId);
+        var query = db.MatchStatSet.AsNoTracking();
         if (since is not null)
         {
             query = query.Where(s => s.PlayedAt >= since);

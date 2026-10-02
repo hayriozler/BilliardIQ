@@ -3,7 +3,7 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>@L["Masa yönetimi"] • BillardIQ</PageTitle>
+<PageTitle>@L["Masa yönetimi"] • BilliardIQ</PageTitle>
 
 <div class="page-head">
     <div>
@@ -150,10 +150,9 @@
 
     private async Task LoadAsync()
     {
-        var orgId = _tenant!.OrganizationId;
-        _views = await Db.RunAsync((TableService s) => s.ListAsync(orgId));
-        _rules = await Db.RunAsync((PricingService s) => s.ListAsync(orgId));
-        _currency = (await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId))).Currency;
+        _views = await Db.RunAsync((TableService s) => s.ListAsync());
+        _rules = await Db.RunAsync((PricingService s) => s.ListAsync());
+        _currency = (await Db.RunAsync((TableService s) => s.GetOrganizationAsync())).Currency;
     }
 
     private string RuleName(int? ruleId) =>
@@ -177,16 +176,16 @@
     {
         int? ruleId = int.TryParse(_form.PricingRuleId, out var parsed) ? parsed : null;
         await Db.RunAsync((TableService s) =>
-            s.UpsertTableAsync(_tenant!.OrganizationId, _form.Id, _form.Number, _form.Label, _form.Type, ruleId, _form.HasScoreboard));
+            s.UpsertTableAsync(_form.Id, _form.Number, _form.Label, _form.Type, ruleId, _form.HasScoreboard));
         ResetForm();
     });
 
     private Task SetStatusAsync(int tableId, TableStatus status) =>
-        RunAsync(() => Db.RunAsync((TableService s) => s.SetTableStatusAsync(_tenant!.OrganizationId, tableId, status)));
+        RunAsync(() => Db.RunAsync((TableService s) => s.SetTableStatusAsync(tableId, status)));
 
     private Task DeleteAsync(int tableId) => RunAsync(async () =>
     {
-        await Db.RunAsync((TableService s) => s.DeleteTableAsync(_tenant!.OrganizationId, tableId));
+        await Db.RunAsync((TableService s) => s.DeleteTableAsync(tableId));
         _confirmDelete = null;
     });
 

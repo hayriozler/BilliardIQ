@@ -3,7 +3,7 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>@L["Takım istatistikleri"] • BillardIQ</PageTitle>
+<PageTitle>@L["Takım istatistikleri"] • BilliardIQ</PageTitle>
 
 <div class="page-head">
     <div>
@@ -87,8 +87,7 @@
 
     private async Task LoadAsync()
     {
-        var orgId = _tenant!.OrganizationId;
         var since = StatsRangeSelect.Since(_range);
-        _rows = await Db.RunAsync((StatsService s) => s.TeamsAsync(orgId, since));
+        _rows = await Db.RunAsync((StatsService s) => s.TeamsAsync(since));
     }
 }

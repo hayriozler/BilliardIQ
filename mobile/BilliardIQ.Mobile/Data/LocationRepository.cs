@@ -1,8 +1,8 @@
-using BillardIQ.Mobile.Models;
-using BillardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Models;
+using BilliardIQ.Mobile.Services;
 using Microsoft.Data.Sqlite;
 
-namespace BillardIQ.Mobile.Data;
+namespace BilliardIQ.Mobile.Data;
 
 public class LocationRepository(DatabaseExecutor dbExecutor) : BaseRepo
 {

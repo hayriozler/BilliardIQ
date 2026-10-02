@@ -1,9 +1,9 @@
-using BillardIQ.Mobile.Models;
-using BillardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Models;
+using BilliardIQ.Mobile.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
-namespace BillardIQ.Mobile.Data;
+namespace BilliardIQ.Mobile.Data;
 
 // SQLite integer columns come back as Int64 and DatabaseExecutor's reflection mapper only
 // special-cases non-nullable Int32, so nullable int columns (TeamId, ShortcutNumber, RemoteId) are read

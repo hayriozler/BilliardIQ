@@ -23,6 +23,8 @@ namespace Scoreboard.WebApp.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.HasSequence("EntityChangeSeq");
+
             modelBuilder.Entity("Scoreboard.WebApp.Domain.Association", b =>
                 {
                     b.Property<int>("Id")
@@ -270,6 +272,37 @@ namespace Scoreboard.WebApp.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("City");
+                });
+
+            modelBuilder.Entity("Scoreboard.WebApp.Domain.ClientSync", b =>
+                {
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TableId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("InstanceId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("LastFullSyncAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("LastSyncAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("PendingFull")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PendingKeys")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("OrganizationId", "TableId");
+
+                    b.ToTable("ClientSync");
                 });
 
             modelBuilder.Entity("Scoreboard.WebApp.Domain.Club", b =>
@@ -748,6 +781,37 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.ToTable("Device");
                 });
 
+            modelBuilder.Entity("Scoreboard.WebApp.Domain.EntityChange", b =>
+                {
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TableId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EntityName")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("Seq")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("nextval('\"EntityChangeSeq\"')");
+
+                    b.HasKey("OrganizationId", "TableId", "EntityName", "EntityId");
+
+                    b.ToTable("EntityChange");
+                });
+
             modelBuilder.Entity("Scoreboard.WebApp.Domain.Inning", b =>
                 {
                     b.Property<int>("Id")
@@ -1215,11 +1279,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
-
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)");
@@ -1294,9 +1353,6 @@ namespace Scoreboard.WebApp.Data.Migrations
                     b.HasIndex("ClientId")
                         .IsUnique()
                         .HasFilter("\"ClientId\" IS NOT NULL");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
 
                     b.HasIndex("DefaultRuleSetId");
 

@@ -6,7 +6,7 @@ The app opens its SQLite database at `FileSystem.AppDataDirectory` + the filenam
 `BilliardIQ.Mobile/Services/Constants.cs`:
 
 ```csharp
-internal const string DatabaseFileName = "BillardIQ.db3";   // note: missing the second "i"
+internal const string DatabaseFileName = "BilliardIQ.db3";   // note: missing the second "i"
 internal static string DatabasePath => $"Data Source={Path.Combine(FileSystem.AppDataDirectory, DatabaseFileName)}";
 ```
 
@@ -15,7 +15,7 @@ directory (`Context.FilesDir`). With `ApplicationId` = `com.billiardiq.mobile`
 (`BilliardIQ.Mobile.csproj`), the full on-device path is:
 
 ```
-/data/data/com.billiardiq.mobile/files/BillardIQ.db3
+/data/data/com.billiardiq.mobile/files/BilliardIQ.db3
 ```
 
 This is private app storage: not on `/sdcard`, not visible in a normal file manager, and not
@@ -45,7 +45,7 @@ ADB="/c/Program Files (x86)/Android/android-sdk/platform-tools/adb.exe"
 "$ADB" shell pm list packages | grep billiard
 
 # 3. Pull the file
-"$ADB" exec-out run-as com.billiardiq.mobile cat files/BillardIQ.db3 > BillardIQ.db3
+"$ADB" exec-out run-as com.billiardiq.mobile cat files/BilliardIQ.db3 > BilliardIQ.db3
 ```
 
 ### Why `run-as` and `exec-out` specifically
@@ -65,9 +65,9 @@ Once pulled, open the `.db3` file with any SQLite browser (e.g. DB Browser for S
 ## Pushing a database back onto the device (if ever needed)
 
 ```bash
-"$ADB" push BillardIQ.db3 /data/local/tmp/BillardIQ.db3
-"$ADB" shell run-as com.billiardiq.mobile cp /data/local/tmp/BillardIQ.db3 files/BillardIQ.db3
-"$ADB" shell rm /data/local/tmp/BillardIQ.db3
+"$ADB" push BilliardIQ.db3 /data/local/tmp/BilliardIQ.db3
+"$ADB" shell run-as com.billiardiq.mobile cp /data/local/tmp/BilliardIQ.db3 files/BilliardIQ.db3
+"$ADB" shell rm /data/local/tmp/BilliardIQ.db3
 ```
 
 `run-as` can't read from `/sdcard` or arbitrary paths directly for a push, so the file has to

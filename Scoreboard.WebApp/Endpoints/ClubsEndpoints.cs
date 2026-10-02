@@ -18,8 +18,7 @@ public static class ClubsEndpoints
         {
             try
             {
-                var club = await clubs.UpsertAsync(
-                    context.GetOrganizationId(), request.Id, request.Name, request.ShortName, request.City, request.PrimaryColor);
+                var club = await clubs.UpsertAsync(request.Id, request.Name, request.ShortName, request.City, request.PrimaryColor);
                 return Results.Ok(ToDto(club));
             }
             catch (ArgumentException ex)
@@ -32,7 +31,7 @@ public static class ClubsEndpoints
         {
             try
             {
-                return await clubs.DeleteAsync(context.GetOrganizationId(), id) ? Results.NoContent() : Results.NotFound();
+                return await clubs.DeleteAsync(id) ? Results.NoContent() : Results.NotFound();
             }
             catch (InvalidOperationException ex)
             {

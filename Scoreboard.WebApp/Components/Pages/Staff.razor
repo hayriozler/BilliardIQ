@@ -3,7 +3,7 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>@L["Kullanıcılar"] • BillardIQ</PageTitle>
+<PageTitle>@L["Kullanıcılar"] • BilliardIQ</PageTitle>
 
 <div class="page-head">
     <div>
@@ -109,7 +109,7 @@
     {
         var orgId = _tenant!.OrganizationId;
         _staff = await Db.RunAsync((AuthService s) => s.ListStaffAsync(orgId));
-        _zone = PricingCalculator.ResolveTimeZone((await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId))).TimeZone);
+        _zone = PricingCalculator.ResolveTimeZone((await Db.RunAsync((TableService s) => s.GetOrganizationAsync())).TimeZone);
     }
 
     private Task AddAsync() => RunAsync(async () =>

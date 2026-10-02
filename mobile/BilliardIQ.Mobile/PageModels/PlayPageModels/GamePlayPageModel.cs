@@ -1,8 +1,8 @@
-using BillardIQ.Mobile.Data;
-using BillardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Data;
+using BilliardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.Input;
 
-namespace BillardIQ.Mobile.PageModels.PlayPageModels;
+namespace BilliardIQ.Mobile.PageModels.PlayPageModels;
 
 public partial class GamePlayPageModel(IUnityBridgeService Bridge, IAlertHandler AlertHandler, PlayerRepository PlayerRepo) : BasePageModel
 {

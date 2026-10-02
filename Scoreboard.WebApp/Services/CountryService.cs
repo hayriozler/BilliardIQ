@@ -15,44 +15,44 @@ public class CountryService(DataContext db)
         return country;
     }
 
-    public async Task<List<Country>> ListAsync(int organizationId) =>
+    public async Task<List<Country>> ListAsync() =>
         (await db.OrganizationCountrySet
             .AsNoTracking()
-            .Where(x => x.OrganizationId == organizationId && x.DeletedAt == null)
+            .Where(x => x.DeletedAt == null)
             .Select(x => x.Country)
             .ToListAsync())
         .Select(Localized)
         .OrderBy(c => c.Name)
         .ToList();
 
-    public async Task<List<Country>> AvailableAsync(int organizationId)
+    public async Task<List<Country>> AvailableAsync()
     {
-        var selected = db.OrganizationCountrySet.Where(x => x.OrganizationId == organizationId && x.DeletedAt == null).Select(x => x.CountryId);
+        var selected = db.OrganizationCountrySet.Where(x => x.DeletedAt == null).Select(x => x.CountryId);
         return (await db.CountrySet.AsNoTracking().Where(c => !selected.Contains(c.Id)).ToListAsync())
             .Select(Localized)
             .OrderBy(c => c.Name)
             .ToList();
     }
 
-    public async Task AddAsync(int organizationId, int countryId)
+    public async Task AddAsync(int countryId)
     {
         if (!await db.CountrySet.AnyAsync(c => c.Id == countryId))
         {
             throw new ArgumentException("Katalogda ülke bulunamadı.");
         }
 
-        if (await db.OrganizationCountrySet.AnyAsync(x => x.OrganizationId == organizationId && x.CountryId == countryId && x.DeletedAt == null))
+        if (await db.OrganizationCountrySet.AnyAsync(x => x.CountryId == countryId && x.DeletedAt == null))
         {
             throw new ArgumentException("Bu ülke zaten ekli.");
         }
 
-        db.OrganizationCountrySet.Add(new OrganizationCountry { OrganizationId = organizationId, CountryId = countryId });
+        db.OrganizationCountrySet.Add(new OrganizationCountry { OrganizationId = db.CurrentOrganizationId, CountryId = countryId });
         await db.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int organizationId, int countryId)
+    public async Task DeleteAsync(int countryId)
     {
-        var link = await db.OrganizationCountrySet.FirstOrDefaultAsync(x => x.CountryId == countryId && x.OrganizationId == organizationId && x.DeletedAt == null)
+        var link = await db.OrganizationCountrySet.FirstOrDefaultAsync(x => x.CountryId == countryId && x.DeletedAt == null)
             ?? throw new InvalidOperationException("Ülke bulunamadı.");
         if (await db.OrganizationCitySet.AnyAsync(x => x.City.CountryId == countryId && x.DeletedAt == null))
         {

@@ -1,7 +1,7 @@
 using Plugin.Maui.OCR;
 using System.Text.RegularExpressions;
 
-namespace BillardIQ.Mobile.Services;
+namespace BilliardIQ.Mobile.Services;
 
 /// <summary>
 /// Ball the user plays with — null means the scoreboard didn't indicate.

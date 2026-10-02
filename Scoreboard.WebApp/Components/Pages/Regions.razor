@@ -3,7 +3,7 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>@L["Bölgeler"] • BillardIQ</PageTitle>
+<PageTitle>@L["Bölgeler"] • BilliardIQ</PageTitle>
 
 <div class="page-head">
     <div>
@@ -95,10 +95,9 @@
 
     private async Task LoadAsync()
     {
-        var orgId = _tenant!.OrganizationId;
-        _regions = await Db.RunAsync((RegionService s) => s.ListAsync(orgId));
-        _available = await Db.RunAsync((RegionService s) => s.AvailableAsync(orgId));
-        var players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId));
+        _regions = await Db.RunAsync((RegionService s) => s.ListAsync());
+        _available = await Db.RunAsync((RegionService s) => s.AvailableAsync());
+        var players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync());
         _playerCounts = players.Where(p => p.RegionId != null)
             .GroupBy(p => p.RegionId!.Value)
             .ToDictionary(g => g.Key, g => g.Count());
@@ -106,13 +105,13 @@
 
     private Task AddAsync() => RunAsync(async () =>
     {
-        await Db.RunAsync((RegionService s) => s.AddAsync(_tenant!.OrganizationId, _selectedId));
+        await Db.RunAsync((RegionService s) => s.AddAsync(_selectedId));
         _selectedId = 0;
     });
 
     private Task DeleteAsync(int id) => RunAsync(async () =>
     {
-        await Db.RunAsync((RegionService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+        await Db.RunAsync((RegionService s) => s.DeleteAsync(id));
         _confirmDelete = null;
     });
 

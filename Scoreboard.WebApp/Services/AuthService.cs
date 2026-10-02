@@ -113,7 +113,6 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         {
             Name = organizationName,
             Slug = await UniqueSlugAsync(organizationName),
-            Code = await UniqueCodeAsync(),
             ClientId = await clientIds.GenerateUniqueAsync(),
             Address = new Address { Line1 = "", City = "", CountryCode = country.Code },
             Language = language,
@@ -199,17 +198,6 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
     }
 
     private static string NormalizeEmail(string? email) => (email ?? "").Trim().ToLowerInvariant();
-
-    private async Task<string> UniqueCodeAsync()
-    {
-        string code;
-        do
-        {
-            code = PairingCodeGenerator.Generate();
-        } while (await db.OrganizationSet.AnyAsync(o => o.Code == code));
-
-        return code;
-    }
 
     private async Task<string> UniqueSlugAsync(string name)
     {

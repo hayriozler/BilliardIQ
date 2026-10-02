@@ -1,6 +1,6 @@
-using BillardIQ.Mobile.PageModels.ConnectionPageModels;
+using BilliardIQ.Mobile.PageModels.ConnectionPageModels;
 
-namespace BillardIQ.Mobile.Pages.Connection;
+namespace BilliardIQ.Mobile.Pages.Connection;
 
 public partial class ConnectionViewPage : BasePage
 {

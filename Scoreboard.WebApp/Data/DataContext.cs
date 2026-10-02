@@ -13,6 +13,8 @@ public class DataContext : DbContext
         _organizationId = organizationService.GetCurrentOrganizationId();
     }
 
+    public int CurrentOrganizationId => _organizationId ?? throw new InvalidOperationException("No organization for this request.");
+
     public DbSet<User> UserSet => Set<User>();
     public DbSet<Organization> OrganizationSet => Set<Organization>();
     public DbSet<StaffMember> StaffMemberSet => Set<StaffMember>();
@@ -25,6 +27,8 @@ public class DataContext : DbContext
     public DbSet<Region> RegionSet => Set<Region>();
     public DbSet<Country> CountrySet => Set<Country>();
     public DbSet<City> CitySet => Set<City>();
+    public DbSet<EntityChange> EntityChangeSet => Set<EntityChange>();
+    public DbSet<ClientSync> ClientSyncSet => Set<ClientSync>();
     public DbSet<OrganizationCountry> OrganizationCountrySet => Set<OrganizationCountry>();
     public DbSet<OrganizationCity> OrganizationCitySet => Set<OrganizationCity>();
     public DbSet<OrganizationRegion> OrganizationRegionSet => Set<OrganizationRegion>();
@@ -80,14 +84,12 @@ public class DataContext : DbContext
             e.OwnsOne(o => o.Address, a => a.ToJson());
             e.OwnsMany(o => o.OpeningHours, h => h.ToJson());
             e.HasIndex(o => o.Slug).IsUnique();
-            e.HasIndex(o => o.Code).IsUnique();
             e.HasIndex(o => o.ClientId).IsUnique().HasFilter("\"ClientId\" IS NOT NULL");
             e.Property(o => o.ClientId).HasMaxLength(20);
             e.Property(o => o.Language).HasMaxLength(5);
             e.Property(o => o.CountryCode).HasMaxLength(2);
             e.Property(o => o.Name).HasMaxLength(200);
             e.Property(o => o.Slug).HasMaxLength(100);
-            e.Property(o => o.Code).HasMaxLength(10);
             e.HasOne(o => o.DefaultRuleSet).WithMany().HasForeignKey(o => o.DefaultRuleSetId);
         });
 
@@ -172,6 +174,20 @@ public class DataContext : DbContext
             e.HasOne(m => m.ParticipantA).WithMany().HasForeignKey(m => m.ParticipantAId);
             e.HasOne(m => m.ParticipantB).WithMany().HasForeignKey(m => m.ParticipantBId);
             e.HasOne(m => m.Table).WithMany().HasForeignKey(m => m.TableId);
+        });
+
+        modelBuilder.HasSequence<long>("EntityChangeSeq");
+        modelBuilder.Entity<EntityChange>(e =>
+        {
+            e.HasKey(x => new { x.OrganizationId, x.TableId, x.EntityName, x.EntityId });
+            e.Property(x => x.EntityName).HasMaxLength(30);
+            e.Property(x => x.Seq).HasDefaultValueSql("nextval('\"EntityChangeSeq\"')");
+        });
+
+        modelBuilder.Entity<ClientSync>(e =>
+        {
+            e.HasKey(x => new { x.OrganizationId, x.TableId });
+            e.Property(x => x.InstanceId).HasMaxLength(40);
         });
 
         modelBuilder.Entity<Country>(e =>
@@ -326,12 +342,14 @@ public class DataContext : DbContext
         modelBuilder.Entity<BilliardTable>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<Device>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<Association>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<EntityChange>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<ClientSync>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<OrganizationCountry>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<OrganizationCity>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<OrganizationRegion>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<Player>().HasQueryFilter(e => e.CreatedInOrganizationId == _organizationId || e.IsSystem);
         modelBuilder.Entity<Club>().HasQueryFilter(e => e.OrganizationId == _organizationId);
-        modelBuilder.Entity<Team>().HasQueryFilter(e => e.HomeOrganizationId == _organizationId);
+        modelBuilder.Entity<Team>().HasQueryFilter(e => e.Club.OrganizationId == _organizationId);
         modelBuilder.Entity<CustomerMembership>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<RuleSet>().HasQueryFilter(e => e.OrganizationId == _organizationId || e.OrganizationId == null);
         modelBuilder.Entity<Match>().HasQueryFilter(e => e.OrganizationId == _organizationId);
@@ -364,13 +382,78 @@ public class DataContext : DbContext
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         StampAudit();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
+        var pending = CollectChanges();
+        var result = base.SaveChanges(acceptAllChangesOnSuccess);
+        foreach (var change in ResolveChanges(pending))
+        {
+            Database.ExecuteSqlInterpolated(EntityChangeSql.Upsert(change.OrganizationId, change.Entity, change.Id, change.Deleted));
+        }
+
+        return result;
     }
 
-    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         StampAudit();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        var pending = CollectChanges();
+        var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        foreach (var change in ResolveChanges(pending))
+        {
+            await Database.ExecuteSqlInterpolatedAsync(EntityChangeSql.Upsert(change.OrganizationId, change.Entity, change.Id, change.Deleted), cancellationToken);
+        }
+
+        return result;
+    }
+
+    private sealed record PendingChange(object Entity, bool Deleted);
+
+    private List<PendingChange> CollectChanges()
+    {
+        var pending = new List<PendingChange>();
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.Entity is not (Player or Team or Club or TeamMember) || entry.State is EntityState.Unchanged or EntityState.Detached)
+            {
+                continue;
+            }
+
+            var deleted = entry.State == EntityState.Deleted || (entry.Entity is BaseEntity baseEntity && baseEntity.DeletedAt != null);
+            pending.Add(new PendingChange(entry.Entity, deleted));
+        }
+
+        return pending;
+    }
+
+    private List<(int OrganizationId, string Entity, int Id, bool Deleted)> ResolveChanges(List<PendingChange> pending)
+    {
+        var resolved = new Dictionary<(int, string, int), bool>();
+        foreach (var change in pending)
+        {
+            switch (change.Entity)
+            {
+                case Club { OrganizationId: int organizationId } club:
+                    resolved[(organizationId, nameof(Club), club.Id)] = change.Deleted;
+                    break;
+                case Player { IsSystem: true } systemPlayer:
+                    foreach (var id in OrganizationSet.AsNoTracking().Select(o => o.Id).ToList())
+                    {
+                        resolved[(id, nameof(Player), systemPlayer.Id)] = change.Deleted;
+                    }
+
+                    break;
+                case Player player when (player.CreatedInOrganizationId ?? _organizationId) is int playerOrganizationId:
+                    resolved[(playerOrganizationId, nameof(Player), player.Id)] = change.Deleted;
+                    break;
+                case Team team when _organizationId is int teamOrganizationId:
+                    resolved[(teamOrganizationId, nameof(Team), team.Id)] = change.Deleted;
+                    break;
+                case TeamMember member when _organizationId is int memberOrganizationId:
+                    resolved.TryAdd((memberOrganizationId, nameof(Team), member.TeamId), false);
+                    break;
+            }
+        }
+
+        return resolved.Select(r => (r.Key.Item1, r.Key.Item2, r.Key.Item3, r.Value)).ToList();
     }
 
     private void StampAudit()

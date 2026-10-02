@@ -1,7 +1,7 @@
-using BillardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace BillardIQ.Mobile.PageModels.BasePageModels;
+namespace BilliardIQ.Mobile.PageModels.BasePageModels;
 
 public abstract class BasePageModel : ObservableValidator
 {

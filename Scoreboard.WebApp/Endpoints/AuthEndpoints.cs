@@ -48,9 +48,9 @@ public static class AuthEndpoints
                 $"<button type=\"submit\" name=\"organizationId\" value=\"{m.OrganizationId}\" class=\"primary\" style=\"display:block;width:100%;margin-bottom:.6rem\">{WebUtility.HtmlEncode(m.Organization.Name)}</button>"));
             var html = $$"""
                 <!DOCTYPE html><html lang="{{Loc.Current}}"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <title>{{WebUtility.HtmlEncode(loc["Salon seçin"])}} • BillardIQ</title><link rel="stylesheet" href="/app.css" /><link rel="icon" type="image/png" href="/images/zeymera-ram.png" /></head>
+                <title>{{WebUtility.HtmlEncode(loc["Salon seçin"])}} • BilliardIQ</title><link rel="stylesheet" href="/app.css" /><link rel="icon" type="image/png" href="/images/zeymera-ram.png" /></head>
                 <body><div class="auth-card">
-                <div class="brand-row"><img class="brand-logo" src="/images/zeymera-ram.png" alt="Zeymera" /><span>BillardIQ</span></div>
+                <div class="brand-row"><img class="brand-logo" src="/images/zeymera-ram.png" alt="Zeymera" /><span>BilliardIQ</span></div>
                 <h1>{{WebUtility.HtmlEncode(loc["Salon seçin"])}}</h1>
                 <p class="muted">{{WebUtility.HtmlEncode(loc["Hangi salona giriş yapmak istiyorsunuz?"])}}</p>
                 <form method="post" action="/login/organization"><input type="hidden" name="returnUrl" value="{{WebUtility.HtmlEncode(IsLocal(returnUrl) ? returnUrl : "")}}" />{{items}}</form>
@@ -120,7 +120,7 @@ public static class AuthEndpoints
     private const string PickCookie = "bq_pick";
 
     private static ITimeLimitedDataProtector PickProtector(IDataProtectionProvider provider) =>
-        provider.CreateProtector("BillardIQ.LoginOrganizationPicker").ToTimeLimitedDataProtector();
+        provider.CreateProtector("BilliardIQ.LoginOrganizationPicker").ToTimeLimitedDataProtector();
 
     private static int? PickedUserId(HttpContext context, IDataProtectionProvider provider)
     {

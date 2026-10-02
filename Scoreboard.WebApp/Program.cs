@@ -17,7 +17,13 @@ const string clientCorsPolicy = "Client";
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<DataContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default"));
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging().EnableDetailedErrors();
+    }
+});
 
 builder.Services.AddSingleton<Loc>();
 builder.Services.AddScoped<AuthService>();
@@ -56,9 +62,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     .AddCookie(options =>
     {
         options.LoginPath = "/login";
-        options.Cookie.Name = "BillardIQAuth";
+        options.Cookie.Name = "BilliardIQAuth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = context =>
@@ -89,7 +96,7 @@ if (!string.IsNullOrWhiteSpace(keysPath))
 {
     builder.Services.AddDataProtection()
         .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
-        .SetApplicationName("BillardIQ");
+        .SetApplicationName("BilliardIQ");
 }
 
 var app = builder.Build();
@@ -140,6 +147,10 @@ foreach (var account in app.Configuration.GetSection("Seed:Accounts").GetChildre
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+}
+else
+{
+    app.UseHsts();
 }
 
 if (app.Configuration.GetValue<bool>("Api:AllowHttp"))

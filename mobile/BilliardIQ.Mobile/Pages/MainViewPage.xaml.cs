@@ -1,6 +1,6 @@
-using BillardIQ.Mobile.PageModels;
+using BilliardIQ.Mobile.PageModels;
 
-namespace BillardIQ.Mobile.Pages;
+namespace BilliardIQ.Mobile.Pages;
 
 public partial class MainViewPage : BasePage
 {

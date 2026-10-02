@@ -1,11 +1,11 @@
-using BillardIQ.Mobile.Data;
-using BillardIQ.Mobile.Models;
-using BillardIQ.Mobile.Pages.Analyzers;
-using BillardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Data;
+using BilliardIQ.Mobile.Models;
+using BilliardIQ.Mobile.Pages.Analyzers;
+using BilliardIQ.Mobile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace BillardIQ.Mobile.PageModels.GamePageModels;
+namespace BilliardIQ.Mobile.PageModels.GamePageModels;
 
 public partial class GameListPageModel(GameRepository GameRepo, PlayerRepository PlayerRepo, IAlertHandler AlertHandler, IServiceProvider Services) : BasePageModel
 {

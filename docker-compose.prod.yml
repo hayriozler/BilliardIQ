@@ -1,18 +1,23 @@
 services:
   webapp:
     image: ghcr.io/${GITHUB_REPOSITORY}/webapp:${IMAGE_TAG}
-    container_name: billardiq-webapp
+    container_name: billiardiq-webapp
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTP_PORTS: "8080"
+      ASPNETCORE_HTTPS_PORTS: "8443"
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/${CERT_NAME}.pem
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/${CERT_NAME}.key
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       Database__MigrateOnStartup: "true"
       DataProtection__KeysPath: /app/keys
       ConnectionStrings__Default: Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${POSTGRES_PASSWORD}
     ports:
-      - "${BIND_ADDRESS}:${APP_PORT}:8080"
+      - "${BIND_ADDRESS}:${HTTPS_PORT}:8443"
+      - "127.0.0.1:${APP_PORT}:8080"
     volumes:
+      - ${CERT_DIR}:/certs:ro
       - webapp-players:/app/wwwroot/Players
       - webapp-keys:/app/keys
     networks:

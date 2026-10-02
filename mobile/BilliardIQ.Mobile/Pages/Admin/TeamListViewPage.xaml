@@ -3,11 +3,11 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-    xmlns:basePages="clr-namespace:BillardIQ.Mobile.Pages.BasePages"
-    xmlns:pageModels="clr-namespace:BillardIQ.Mobile.PageModels.Admin"
-    xmlns:models="clr-namespace:BillardIQ.Mobile.Models"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Admin"
+    xmlns:models="clr-namespace:BilliardIQ.Mobile.Models"
     x:DataType="pageModels:TeamListPageModel"
-    x:Class="BillardIQ.Mobile.Pages.Admin.TeamListViewPage"
+    x:Class="BilliardIQ.Mobile.Pages.Admin.TeamListViewPage"
     x:Name="TeamList"
     Title="{Binding L[Admin_Teams]}">
 

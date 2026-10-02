@@ -29,5 +29,10 @@
   "BoardOccupiedElsewhere": "This board is already open in another window.",
   "PlayerAlreadySelected": "This player is already selected on the other side.",
   "OtherSide": "other side",
-  "TakeOverBoard": "Open here"
+  "TakeOverBoard": "Open here",
+  "MatchTargetReached": "Match target reached",
+  "MatchTargetReachedText": "{0} reached {1} points. Extend the match or end it?",
+  "EndMatch": "End match",
+  "ShortcutNumberHint": "Type a shortcut number, Enter to choose, arrows to move",
+  "NoPlayerWithShortcut": "No player with that shortcut number."
 }

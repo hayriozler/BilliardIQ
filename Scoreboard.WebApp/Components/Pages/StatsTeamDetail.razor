@@ -3,7 +3,7 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>@(_detail?.Team.Name ?? L["Takım istatistikleri"]) • BillardIQ</PageTitle>
+<PageTitle>@(_detail?.Team.Name ?? L["Takım istatistikleri"]) • BilliardIQ</PageTitle>
 
 @if (_loaded && _detail is null)
 {
@@ -137,11 +137,10 @@ else if (_detail is not null)
 
     private async Task LoadAsync()
     {
-        var orgId = _tenant!.OrganizationId;
         var since = StatsRangeSelect.Since(_range);
         var id = Id;
-        _zone = PricingCalculator.ResolveTimeZone((await Db.RunAsync((TableService s) => s.GetOrganizationAsync(orgId))).TimeZone);
-        _detail = await Db.RunAsync((StatsService s) => s.TeamAsync(orgId, id, since));
+        _zone = PricingCalculator.ResolveTimeZone((await Db.RunAsync((TableService s) => s.GetOrganizationAsync())).TimeZone);
+        _detail = await Db.RunAsync((StatsService s) => s.TeamAsync(id, since));
         _loaded = true;
     }
 }

@@ -1,8 +1,8 @@
 using Android.Content;
-using BillardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Services;
 using System.Text.Json;
 
-namespace BillardIQ.Mobile.Platforms.Android;
+namespace BilliardIQ.Mobile.Platforms.Android;
 
 public class UnityBridgeService : IUnityBridgeService
 {

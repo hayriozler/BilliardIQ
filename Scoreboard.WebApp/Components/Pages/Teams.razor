@@ -3,7 +3,7 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>@L["Takımlar"] • BillardIQ</PageTitle>
+<PageTitle>@L["Takımlar"] • BilliardIQ</PageTitle>
 
 <div class="page-head">
     <div>
@@ -124,10 +124,9 @@ else
 
     private async Task LoadAsync()
     {
-        var orgId = _tenant!.OrganizationId;
-        _teams = await Db.RunAsync((TeamService s) => s.ListForOrganizationAsync(orgId));
-        _players = (await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId))).Where(p => !p.IsSystem).ToList();
-        _clubs = await Db.RunAsync((ClubService s) => s.ListAsync(orgId));
+        _teams = await Db.RunAsync((TeamService s) => s.ListForOrganizationAsync());
+        _players = (await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync())).Where(p => !p.IsSystem).ToList();
+        _clubs = await Db.RunAsync((ClubService s) => s.ListAsync());
     }
 
     private void Edit(Team team) =>
@@ -142,7 +141,7 @@ else
         try
         {
             int? clubId = int.TryParse(_form.ClubId, out var parsed) ? parsed : null;
-            await Db.RunAsync((TeamService s) => s.UpsertAsync(_tenant!.OrganizationId, _form.Id, _form.Name, clubId, _form.AvatarId));
+            await Db.RunAsync((TeamService s) => s.UpsertAsync(_form.Id, _form.Name, clubId, _form.AvatarId));
             ResetForm();
         }
         catch (ArgumentException ex)
@@ -162,7 +161,7 @@ else
         _busy = true;
         try
         {
-            await Db.RunAsync((TeamService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+            await Db.RunAsync((TeamService s) => s.DeleteAsync(id));
             _confirmDelete = null;
         }
         finally
@@ -188,7 +187,7 @@ else
         _error = null;
         try
         {
-            await Db.RunAsync((TeamService s) => s.SetPlayersAsync(_tenant!.OrganizationId, team.Id, currentIds.ToArray()));
+            await Db.RunAsync((TeamService s) => s.SetPlayersAsync(team.Id, currentIds.ToArray()));
         }
         catch (ArgumentException ex)
         {

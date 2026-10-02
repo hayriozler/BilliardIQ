@@ -1,7 +1,7 @@
-using BillardIQ.Mobile.Pages.Analyzers;
+using BilliardIQ.Mobile.Pages.Analyzers;
 using CommunityToolkit.Mvvm.Input;
 
-namespace BillardIQ.Mobile.PageModels;
+namespace BilliardIQ.Mobile.PageModels;
 
 public partial class MainPageModel : BasePageModel
 {

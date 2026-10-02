@@ -3,7 +3,7 @@
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
-<PageTitle>@L["Dernekler / federasyonlar"] • BillardIQ</PageTitle>
+<PageTitle>@L["Dernekler / federasyonlar"] • BilliardIQ</PageTitle>
 
 <div class="page-head">
     <div>
@@ -93,9 +93,8 @@
 
     private async Task LoadAsync()
     {
-        var orgId = _tenant!.OrganizationId;
-        _associations = await Db.RunAsync((AssociationService s) => s.ListAsync(orgId));
-        var players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync(orgId));
+        _associations = await Db.RunAsync((AssociationService s) => s.ListAsync());
+        var players = await Db.RunAsync((PlayerService s) => s.ListForOrganizationAsync());
         _playerCounts = players.Where(p => p.AssociationId != null)
             .GroupBy(p => p.AssociationId!.Value)
             .ToDictionary(g => g.Key, g => g.Count());
@@ -103,13 +102,13 @@
 
     private Task SaveAsync() => RunAsync(async () =>
     {
-        await Db.RunAsync((AssociationService s) => s.UpsertAsync(_tenant!.OrganizationId, _form.Id, _form.Name));
+        await Db.RunAsync((AssociationService s) => s.UpsertAsync(_form.Id, _form.Name));
         _form = new FormModel();
     });
 
     private Task DeleteAsync(int id) => RunAsync(async () =>
     {
-        await Db.RunAsync((AssociationService s) => s.DeleteAsync(_tenant!.OrganizationId, id));
+        await Db.RunAsync((AssociationService s) => s.DeleteAsync(id));
         _confirmDelete = null;
     });
 

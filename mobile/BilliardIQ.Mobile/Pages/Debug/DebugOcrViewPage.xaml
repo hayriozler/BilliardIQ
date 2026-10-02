@@ -2,10 +2,10 @@
 <basePages:BasePage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:basePages="clr-namespace:BillardIQ.Mobile.Pages.BasePages"
-    xmlns:vm="clr-namespace:BillardIQ.Mobile.PageModels.Debug"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:vm="clr-namespace:BilliardIQ.Mobile.PageModels.Debug"
     x:DataType="vm:DebugOcrPageModel"
-    x:Class="BillardIQ.Mobile.Pages.Debug.DebugOcrViewPage"
+    x:Class="BilliardIQ.Mobile.Pages.Debug.DebugOcrViewPage"
     Title="Debug · OCR &amp; Analiz">
 
     <ScrollView>

@@ -1,6 +1,6 @@
-using BillardIQ.Mobile.PageModels.Ssh;
+using BilliardIQ.Mobile.PageModels.Ssh;
 
-namespace BillardIQ.Mobile.Pages.Ssh;
+namespace BilliardIQ.Mobile.Pages.Ssh;
 
 public partial class SshConsoleViewPage : BasePage
 {

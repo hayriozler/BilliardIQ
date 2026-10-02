@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Shell
-    x:Class="BillardIQ.Mobile.AppShell"
+    x:Class="BilliardIQ.Mobile.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:games="clr-namespace:BillardIQ.Mobile.Pages.Games"
-    xmlns:players="clr-namespace:BillardIQ.Mobile.Pages.Players"
-    xmlns:play="clr-namespace:BillardIQ.Mobile.Pages.Play"
-    xmlns:connection="clr-namespace:BillardIQ.Mobile.Pages.Connection"
-    xmlns:scoreboard="clr-namespace:BillardIQ.Mobile.Pages.Scoreboard"
-    xmlns:admin="clr-namespace:BillardIQ.Mobile.Pages.Admin"
-    xmlns:stats="clr-namespace:BillardIQ.Mobile.Pages.Stats"
-    xmlns:ssh="clr-namespace:BillardIQ.Mobile.Pages.Ssh"
+    xmlns:games="clr-namespace:BilliardIQ.Mobile.Pages.Games"
+    xmlns:players="clr-namespace:BilliardIQ.Mobile.Pages.Players"
+    xmlns:play="clr-namespace:BilliardIQ.Mobile.Pages.Play"
+    xmlns:connection="clr-namespace:BilliardIQ.Mobile.Pages.Connection"
+    xmlns:scoreboard="clr-namespace:BilliardIQ.Mobile.Pages.Scoreboard"
+    xmlns:admin="clr-namespace:BilliardIQ.Mobile.Pages.Admin"
+    xmlns:stats="clr-namespace:BilliardIQ.Mobile.Pages.Stats"
+    xmlns:ssh="clr-namespace:BilliardIQ.Mobile.Pages.Ssh"
     Shell.FlyoutBehavior="Flyout"
     Title="BilliardIQ">
 
