@@ -33,7 +33,7 @@
                 else
                 {
                     <div>@L["Davet kodu"]: <strong>@_accountResult.InviteCode</strong></div>
-                    <div class="hint">@L["Davet kodu {0} tarihine kadar geçerli. Oyuncu mobil uygulamada bu kodla kendi hesabını açar.", Format.DateTime(_accountResult.InviteExpiresAt!.Value, TimeZoneInfo.Local)]</div>
+                    <div class="hint">@L["Davet kodu {0} tarihine kadar geçerli. Oyuncu mobil uygulamada bu kodla kendi hesabını açar.", Format.DateTime(_accountResult.InviteExpiresAt!.Value, _zone)]</div>
                 }
             </div>
         }
@@ -345,6 +345,7 @@
         _accountPlayer = _players?.FirstOrDefault(p => p.Id == _accountPlayer.Id);
     }
     private string _homeCountryId = "";
+    private TimeZoneInfo _zone = TimeZoneInfo.Utc;
     private string? _pendingPhotoBase64;
     private string? _pendingPhotoExtension;
 
@@ -363,6 +364,7 @@
         _countries = await Db.RunAsync((CountryService s) => s.ListAsync());
         _cities = await Db.RunAsync((CityService s) => s.ListAsync());
         var org = await Db.RunAsync((TableService s) => s.GetOrganizationAsync());
+        _zone = PricingCalculator.ResolveTimeZone(org.TimeZone);
         _homeCountryId = _countries.FirstOrDefault(c => CountryCatalog.Find(org.CountryCode)?.HasName(c.Name) == true)?.Id.ToString() ?? "";
         if (_form.Id == 0 && _form.CountryId == "")
         {
