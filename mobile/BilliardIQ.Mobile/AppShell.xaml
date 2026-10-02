@@ -3,6 +3,7 @@
     x:Class="BilliardIQ.Mobile.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:auth="clr-namespace:BilliardIQ.Mobile.Pages.Auth"
     xmlns:games="clr-namespace:BilliardIQ.Mobile.Pages.Games"
     xmlns:players="clr-namespace:BilliardIQ.Mobile.Pages.Players"
     xmlns:play="clr-namespace:BilliardIQ.Mobile.Pages.Play"
@@ -15,16 +16,45 @@
     Title="BilliardIQ">
 
     <ShellContent
+        x:Name="LoginContent"
+        Title="Login"
+        ContentTemplate="{DataTemplate auth:LoginViewPage}"
+        Route="login"
+        Shell.FlyoutItemIsVisible="False" />
+
+    <ShellContent
+        x:Name="OrganizationContent"
+        Title="Organization"
+        ContentTemplate="{DataTemplate auth:OrganizationViewPage}"
+        Route="organization"
+        Shell.FlyoutItemIsVisible="False" />
+
+    <ShellContent
+        x:Name="ChangePasswordContent"
+        Title="Password"
+        ContentTemplate="{DataTemplate auth:ChangePasswordViewPage}"
+        Route="changepassword"
+        Shell.FlyoutItemIsVisible="False" />
+
+    <ShellContent
+        x:Name="PlayerHomeContent"
+        Title="My stats"
+        ContentTemplate="{DataTemplate players:PlayerHomeViewPage}"
+        Route="playerhome" />
+
+    <ShellContent
+        x:Name="HomeContent"
         Title="Home"
         ContentTemplate="{DataTemplate games:GameListViewPage}"
         Route="home" />
 
     <ShellContent
+        x:Name="GameContent"
         Title="Game"
         ContentTemplate="{DataTemplate play:GamePlayViewPage}"
         Route="game" />
 
-    <FlyoutItem Title="Scoreboard Admin">
+    <FlyoutItem x:Name="ScoreboardItem" Title="Scoreboard Admin">
         <Tab Title="Score">
             <ShellContent
                 ContentTemplate="{DataTemplate scoreboard:ScoreboardViewPage}"
@@ -45,7 +75,7 @@
                 ContentTemplate="{DataTemplate stats:PlayerStatsListViewPage}"
                 Route="admin-stats" />
         </Tab>
-        <Tab Title="SSH">
+        <Tab x:Name="SshTab" Title="SSH">
             <ShellContent
                 ContentTemplate="{DataTemplate ssh:SshConsoleViewPage}"
                 Route="admin-ssh" />
@@ -53,14 +83,22 @@
     </FlyoutItem>
 
     <ShellContent
+        x:Name="ConnectionContent"
         Title="Connection"
         ContentTemplate="{DataTemplate connection:ConnectionViewPage}"
         Route="connect"
         Shell.FlyoutItemIsVisible="False" />
 
     <ShellContent
+        x:Name="ProfileContent"
         Title="Profile"
         ContentTemplate="{DataTemplate players:PlayerProfileViewPage}"
         Route="profile" />
+
+    <ShellContent
+        x:Name="AccountContent"
+        Title="Account"
+        ContentTemplate="{DataTemplate auth:AccountViewPage}"
+        Route="account" />
 
 </Shell>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Auth"
+    x:DataType="pageModels:LoginPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Auth.LoginViewPage"
+    x:Name="LoginPage"
+    Shell.FlyoutBehavior="Disabled"
+    Shell.NavBarIsVisible="False"
+    Title="BilliardIQ">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=LoginPage}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </ContentPage.Behaviors>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="14" VerticalOptions="Center">
+
+            <Label Text="BilliardIQ" FontSize="32" FontAttributes="Bold" HorizontalOptions="Center" />
+            <Label Text="{Binding L[Auth_Title]}" FontSize="18" TextColor="Gray" HorizontalOptions="Center" />
+
+            <Entry Text="{Binding Email, Mode=TwoWay}"
+                   Placeholder="{Binding L[Auth_Email]}"
+                   Keyboard="Email"
+                   IsEnabled="{Binding IsIdle}" />
+            <Entry Text="{Binding Password, Mode=TwoWay}"
+                   Placeholder="{Binding L[Auth_Password]}"
+                   IsPassword="True"
+                   IsEnabled="{Binding IsIdle}"
+                   ReturnCommand="{Binding SignInCommand}" />
+
+            <Label Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13"
+                   IsVisible="{Binding HasError}" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+            <Button Text="{Binding L[Auth_SignIn]}"
+                    Command="{Binding SignInCommand}"
+                    IsEnabled="{Binding IsIdle}" />
+            <Button Text="{Binding L[Auth_HaveInvite]}"
+                    Command="{Binding RegisterCommand}"
+                    IsEnabled="{Binding IsIdle}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</basePages:BasePage>
