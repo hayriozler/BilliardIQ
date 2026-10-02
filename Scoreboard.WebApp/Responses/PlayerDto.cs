@@ -9,7 +9,6 @@ public record PlayerDto(
     string Name,
     string? PhotoPath,
     int? AvatarId,
-    string Email,
     Level Level,
     string BaseCountry,
     string BaseCity,
