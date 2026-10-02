@@ -17,6 +17,49 @@
     <div class="alert error">@_error</div>
 }
 
+@if (_accountPlayer is { } accountPlayer)
+{
+    <div class="card">
+        <h2>@L["Giriş hesabı"]: @accountPlayer.DisplayName</h2>
+        @if (_accountResult is not null)
+        {
+            <div class="alert success">
+                @if (_accountResult.TemporaryPassword is not null)
+                {
+                    <div>@L["E-posta"]: <strong>@_accountResult.Email</strong></div>
+                    <div>@L["Geçici parola"]: <strong>@_accountResult.TemporaryPassword</strong></div>
+                    <div class="hint">@L["Bu bilgiyi oyuncuya iletin. Geçici parola bir daha gösterilmez; oyuncu ilk girişte parolasını değiştirecek."]</div>
+                }
+                else
+                {
+                    <div>@L["Davet kodu"]: <strong>@_accountResult.InviteCode</strong></div>
+                    <div class="hint">@L["Davet kodu {0} tarihine kadar geçerli. Oyuncu mobil uygulamada bu kodla kendi hesabını açar.", Format.DateTime(_accountResult.InviteExpiresAt!.Value, TimeZoneInfo.Local)]</div>
+                }
+            </div>
+        }
+        else if (accountPlayer.User is not null)
+        {
+            <p>@L["Hesap"]: <strong>@accountPlayer.User.Email</strong></p>
+            <div class="form-actions">
+                <button type="button" class="primary" disabled="@_busy" @onclick="ResetAccountPasswordAsync">@L["Parolayı sıfırla"]</button>
+            </div>
+        }
+        else
+        {
+            <div class="form-grid">
+                <label class="field">@L["E-posta"]<InputText @bind-Value="_accountEmail" /></label>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="primary" disabled="@_busy" @onclick="CreateAccountAsync">@L["Hesap oluştur"]</button>
+                <button type="button" disabled="@_busy" @onclick="CreateInviteAsync">@L["Davet kodu üret"]</button>
+            </div>
+        }
+        <div class="form-actions">
+            <button type="button" class="ghost" @onclick="CloseAccount">@L["Kapat"]</button>
+        </div>
+    </div>
+}
+
 <div class="card">
     <h2>@(_form.Id == 0 ? L["Yeni oyuncu"] : L["Oyuncuyu düzenle"])</h2>
     <EditForm Model="_form" OnValidSubmit="SaveAsync" FormName="player-form">
@@ -182,6 +225,7 @@
                                 else
                                 {
                                     <button class="small" @onclick="() => Edit(player)">@L["Düzenle"]</button>
+                                    <button class="small" @onclick="() => OpenAccount(player)">🔑 @L["Giriş hesabı"]</button>
                                     <a class="small-link" href="/teams" title="@L["Takımlar"]">👥 @L["Takımlar"]</a>
                                     @if (!string.IsNullOrWhiteSpace(player.Email))
                                     {
@@ -227,6 +271,78 @@
         _form.CityId = "";
     }
     private PlayerFormModel _form = new();
+    private Player? _accountPlayer;
+    private string _accountEmail = string.Empty;
+    private AccountResult? _accountResult;
+
+    private sealed record AccountResult(string? Email, string? TemporaryPassword, string? InviteCode, DateTimeOffset? InviteExpiresAt);
+
+    private void OpenAccount(Player player)
+    {
+        _accountPlayer = player;
+        _accountEmail = player.Email ?? string.Empty;
+        _accountResult = null;
+        _error = null;
+    }
+
+    private void CloseAccount()
+    {
+        _accountPlayer = null;
+        _accountResult = null;
+    }
+
+    private async Task CreateAccountAsync()
+    {
+        await RunAccountAsync(async id =>
+        {
+            var account = await Db.RunAsync((MobileAuthService s) => s.CreatePlayerAccountAsync(id, _accountEmail));
+            return new AccountResult(account.Email, account.TemporaryPassword, null, null);
+        });
+    }
+
+    private async Task ResetAccountPasswordAsync()
+    {
+        await RunAccountAsync(async id =>
+        {
+            var account = await Db.RunAsync((MobileAuthService s) => s.ResetPlayerPasswordAsync(id));
+            return new AccountResult(account.Email, account.TemporaryPassword, null, null);
+        });
+    }
+
+    private async Task CreateInviteAsync()
+    {
+        await RunAccountAsync(async id =>
+        {
+            var invite = await Db.RunAsync((MobileAuthService s) => s.CreateInviteAsync(id));
+            return new AccountResult(null, null, invite.Code, invite.ExpiresAt);
+        });
+    }
+
+    private async Task RunAccountAsync(Func<int, Task<AccountResult>> action)
+    {
+        if (_accountPlayer is null)
+        {
+            return;
+        }
+
+        _error = null;
+        _busy = true;
+        try
+        {
+            _accountResult = await action(_accountPlayer.Id);
+        }
+        catch (ArgumentException ex)
+        {
+            _error = L.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+        _accountPlayer = _players?.FirstOrDefault(p => p.Id == _accountPlayer.Id);
+    }
     private string _homeCountryId = "";
     private string? _pendingPhotoBase64;
     private string? _pendingPhotoExtension;
