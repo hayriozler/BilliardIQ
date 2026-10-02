@@ -79,6 +79,7 @@ public partial class SystemPowerService(IDbContextFactory<DataContext> dbFactory
         if (!OperatingSystem.IsLinux() || Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
         {
             LogPowerActionSkipped(label);
+            IsShuttingDown = false;
             return;
         }
 
