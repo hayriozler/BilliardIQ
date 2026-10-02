@@ -35,3 +35,6 @@ Thumbs.db
 
 # local docker-compose settings (client id etc.)
 .env
+
+# machine-specific client settings (client id)
+appsettings.Local.json

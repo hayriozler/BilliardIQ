@@ -46,6 +46,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Update="appsettings.Local.json" CopyToPublishDirectory="Never" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="wwwroot\Db\" />
   </ItemGroup>
 
