@@ -401,12 +401,19 @@ public class DataContext : DbContext
     {
         StampAudit();
         var pending = CollectChanges();
+        if (pending.Count == 0)
+        {
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        using var transaction = Database.CurrentTransaction is null ? Database.BeginTransaction() : null;
         var result = base.SaveChanges(acceptAllChangesOnSuccess);
         foreach (var change in ResolveChanges(pending))
         {
             Database.ExecuteSqlInterpolated(EntityChangeSql.Upsert(change.OrganizationId, change.Entity, change.Id, change.Deleted));
         }
 
+        transaction?.Commit();
         return result;
     }
 
@@ -414,10 +421,21 @@ public class DataContext : DbContext
     {
         StampAudit();
         var pending = CollectChanges();
+        if (pending.Count == 0)
+        {
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        await using var transaction = Database.CurrentTransaction is null ? await Database.BeginTransactionAsync(cancellationToken) : null;
         var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         foreach (var change in ResolveChanges(pending))
         {
             await Database.ExecuteSqlInterpolatedAsync(EntityChangeSql.Upsert(change.OrganizationId, change.Entity, change.Id, change.Deleted), cancellationToken);
+        }
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
         }
 
         return result;
