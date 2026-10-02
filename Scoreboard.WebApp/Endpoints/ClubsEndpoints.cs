@@ -1,6 +1,4 @@
-using Scoreboard.WebApp.Middlewares;
 using Scoreboard.WebApp.Requests;
-using Scoreboard.WebApp.Responses;
 using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Endpoints;
@@ -14,12 +12,12 @@ public static class ClubsEndpoints
         group.MapGet("/", (ScoreboardDataService data) =>
             data.ListClubsAsync());
 
-        group.MapPost("/", async (UpsertClubRequest request, ClubService clubs, HttpContext context) =>
+        group.MapPost("/", async (UpsertClubRequest request, ClubService clubs) =>
         {
             try
             {
                 var club = await clubs.UpsertAsync(request.Id, request.Name, request.ShortName, request.City, request.PrimaryColor);
-                return Results.Ok(ToDto(club));
+                return Results.Ok(ScoreboardDataService.ToDto(club));
             }
             catch (ArgumentException ex)
             {
@@ -27,7 +25,7 @@ public static class ClubsEndpoints
             }
         });
 
-        group.MapDelete("/{id:int}", async (int id, ClubService clubs, HttpContext context) =>
+        group.MapDelete("/{id:int}", async (int id, ClubService clubs) =>
         {
             try
             {
@@ -41,6 +39,4 @@ public static class ClubsEndpoints
 
         return group;
     }
-
-    private static ClubDto ToDto(Club club) => ScoreboardDataService.ToDto(club);
 }
