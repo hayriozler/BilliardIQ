@@ -2,12 +2,13 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
+using Scoreboard.WebApp.Security;
 
 namespace Scoreboard.WebApp.Services;
 
 public record LoginResult(User User, StaffMember Staff, Organization Organization);
 
-public class AuthService(DataContext db, ClientIdService clientIds, OrganizationRunner runner, LoginThrottle throttle)
+public class AuthService(DataContext db, ClientIdService clientIds, OrganizationRunner runner, LoginThrottle throttle, SessionRevalidator sessions)
 {
     private static readonly PasswordHasher<User> _hasher = new();
 
@@ -182,6 +183,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
 
         staff.IsActive = active;
         await db.SaveChangesAsync();
+        sessions.Invalidate(staff.UserId);
     }
 
     public async Task ChangePasswordAsync(int userId, string currentPassword, string newPassword)
@@ -195,7 +197,9 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         }
 
         user.PasswordHash = _hasher.HashPassword(user, newPassword);
+        user.RotateSecurityStamp();
         await db.SaveChangesAsync();
+        sessions.Invalidate(userId);
     }
 
     private static void ValidatePassword(string password)

@@ -5,6 +5,7 @@ public class User : BaseEntity
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string? PasswordHash { get; set; }
+    public string SecurityStamp { get; set; } = NewSecurityStamp();
     public string DisplayName { get; set; } = default!;
     public string? AvatarUrl { get; set; }
     public string Locale { get; set; } = "tr-TR";
@@ -18,6 +19,10 @@ public class User : BaseEntity
 
     public Player? Player { get; set; }
     public ICollection<StaffMember> StaffAssignments { get; set; } = [];
+
+    public void RotateSecurityStamp() => SecurityStamp = NewSecurityStamp();
+
+    private static string NewSecurityStamp() => Guid.NewGuid().ToString("N");
 }
 
 public class Organization : BaseEntity

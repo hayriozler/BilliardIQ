@@ -27,7 +27,7 @@ public record PlayerAccount(int PlayerId, string Email, string TemporaryPassword
 
 public record PlayerInviteInfo(string Code, DateTimeOffset ExpiresAt);
 
-public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService tokens, JwtSettings settings)
+public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService tokens, JwtSettings settings, SessionRevalidator sessions)
 {
     private static readonly PasswordHasher<User> _hasher = new();
     private const string PasswordAlphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -219,8 +219,10 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
 
         var password = RandomText(PasswordAlphabet, 8);
         user.PasswordHash = _hasher.HashPassword(user, password);
+        user.RotateSecurityStamp();
         user.MustChangePassword = true;
         await db.SaveChangesAsync();
+        sessions.Invalidate(user.Id);
         await RevokeAllAsync(user.Id, null);
         return new PlayerAccount(player.Id, user.Email ?? "", password);
     }

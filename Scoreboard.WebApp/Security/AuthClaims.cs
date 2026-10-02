@@ -8,6 +8,7 @@ public static class AuthClaims
     public const string OrganizationId = "OrganizationId";
     public const string StaffMemberId = "StaffMemberId";
     public const string OrganizationName = "OrganizationName";
+    public const string SecurityStamp = "SecurityStamp";
     public const string ManagePolicy = "CanManage";
 
     public static ClaimsPrincipal CreatePrincipal(User user, StaffMember staff, Organization organization, string scheme)
@@ -18,7 +19,8 @@ public static class AuthClaims
             new(ClaimTypes.Name, user.DisplayName),
             new(OrganizationId, organization.Id.ToString()),
             new(OrganizationName, organization.Name),
-            new(StaffMemberId, staff.Id.ToString())
+            new(StaffMemberId, staff.Id.ToString()),
+            new(SecurityStamp, user.SecurityStamp)
         };
         claims.AddRange(staff.Roles.Select(r => new Claim(ClaimTypes.Role, r.ToString())));
         return new ClaimsPrincipal(new ClaimsIdentity(claims, scheme));

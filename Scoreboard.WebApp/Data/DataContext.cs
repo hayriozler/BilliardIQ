@@ -122,6 +122,7 @@ public class DataContext : DbContext
             e.HasIndex(u => u.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
             e.HasIndex(u => u.Phone).IsUnique().HasFilter("\"Phone\" IS NOT NULL");
             e.Property(u => u.Email).HasMaxLength(200);
+            e.Property(u => u.SecurityStamp).HasMaxLength(64);
             e.HasOne(u => u.Organization).WithMany().HasForeignKey(u => u.OrganizationId);
             e.Property(u => u.DisplayName).HasMaxLength(200);
             e.HasOne(u => u.Player).WithOne(p => p.User).HasForeignKey<Player>(p => p.UserId);

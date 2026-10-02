@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using Microsoft.AspNetCore.DataProtection;
@@ -30,6 +31,8 @@ builder.Services.AddDbContext<DataContext>(options =>
 
 builder.Services.AddSingleton<Loc>();
 builder.Services.AddSingleton<LoginThrottle>();
+builder.Services.AddSingleton<SessionRevalidator>();
+builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingAuthenticationStateProvider>();
 builder.Services.AddCredentialRateLimiting();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<MobileAuthService>();
@@ -88,6 +91,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
+        options.Events.OnValidatePrincipal = CookieSessionValidation.ValidateAsync;
         options.Events.OnRedirectToLogin = context =>
         {
             if (context.Request.Path.StartsWithSegments("/api"))
