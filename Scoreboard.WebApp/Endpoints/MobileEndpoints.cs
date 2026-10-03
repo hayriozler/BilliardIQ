@@ -16,7 +16,6 @@ public record MobileInviteRegisterRequest(string Code, string Email, string Pass
 public record MobileProfileRequest(string? DisplayName, string? Locale, string? Phone);
 public record MobileEmailRequest(string Email, string Password);
 public record MobilePlayerAccountRequest(string Email);
-public record MobilePlayerProfileRequest(string Name, string? Nickname, int? AvatarId, string? PhotoBase64);
 
 public record MobilePlayerProfile(int Id, string Name, string? Nickname, string DisplayName, int? AvatarId, string? PhotoUrl, Level Level, int? ShortcutNumber);
 
@@ -148,22 +147,6 @@ public static class MobileEndpoints
                 .Select(m => new MobileMatch(m.MatchId, m.PlayedAt, m.OpponentName, m.PlayerScore, m.OpponentScore, m.Inning, m.HighRun, m.Average, m.Won))
                 .ToList();
             return Results.Ok(new MobilePlayerHome(ToProfile(detail.Player), detail.Summary, last));
-        });
-
-        player.MapGet("/profile", async (HttpContext context, PlayerService players) =>
-            await players.GetAsync(context.User.GetPlayerId()) is { } p ? Results.Ok(ToProfile(p)) : Results.NotFound());
-
-        player.MapPut("/profile", async (MobilePlayerProfileRequest request, HttpContext context, PlayerService players, Loc loc) =>
-        {
-            try
-            {
-                var updated = await players.UpdateOwnProfileAsync(context.User.GetPlayerId(), request.Name, request.Nickname, request.AvatarId, request.PhotoBase64);
-                return Results.Ok(ToProfile(updated));
-            }
-            catch (ArgumentException ex)
-            {
-                return Results.BadRequest(loc.Error(ex));
-            }
         });
 
         var manage = group.MapGroup("/players").RequireAuthorization(JwtSettings.MobileManagerPolicy);

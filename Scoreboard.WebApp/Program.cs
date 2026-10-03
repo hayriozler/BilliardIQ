@@ -67,6 +67,7 @@ builder.Services.AddSingleton<OrganizationRunner>();
 builder.Services.AddScoped<Scoreboard.WebApp.Services.Tournaments.CupService>();
 builder.Services.AddScoped<StatsService>();
 builder.Services.AddScoped<ExternalMatchService>();
+builder.Services.AddScoped<PlayerProfileService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ClientIdService>();
 builder.Services.AddScoped<DevelopmentSeedService>();
@@ -279,6 +280,7 @@ app.MapMobileEndpoints();
 app.MapMobileManageEndpoints();
 app.MapMobileExternalMatchEndpoints();
 app.MapMobileStatsEndpoints();
+app.MapMobileProfileEndpoints();
 
 app.MapPost("/culture", async (HttpContext context, DataContext db, SystemPlayerService systemPlayers, [FromForm] string lang, [FromForm] string? returnUrl) =>
 {

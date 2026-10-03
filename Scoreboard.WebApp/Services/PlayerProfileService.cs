@@ -1,0 +1,133 @@
+using Microsoft.EntityFrameworkCore;
+using Scoreboard.Common;
+using Scoreboard.WebApp.Data;
+
+namespace Scoreboard.WebApp.Services;
+
+public record PlayerDetailsUpdate(
+    string? FirstName, string? LastName, string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
+    Level? Level, string? LicenseNo, DateOnly? LicenseValidUntil, DateOnly? BirthDate, Gender? Gender, Handedness? Handedness,
+    string? Phone, string? Locale);
+
+public record MobileFullProfile(
+    int Id, string FirstName, string LastName, string? Nickname, string DisplayName, int? AvatarId, string? PhotoUrl,
+    Level Level, int? ShortcutNumber, DateOnly? BirthDate, Gender? Gender, Handedness? Handedness,
+    string? LicenseNo, DateOnly? LicenseValidUntil, string? AssociationName, string? RegionName, string? CountryName, string? CityName,
+    string? Email, string? Phone, string? Locale, bool HasAccount, IReadOnlyList<string> Clubs, IReadOnlyList<string> Teams);
+
+public class PlayerProfileService(DataContext db, PlayerService players, MobileAuthService mobile)
+{
+    public async Task<MobileFullProfile?> GetAsync(int playerId)
+    {
+        var player = await db.PlayerSet.AsNoTracking()
+            .Include(p => p.User)
+            .Include(p => p.Association)
+            .Include(p => p.Region)
+            .Include(p => p.CountryRef)
+            .Include(p => p.CityRef)
+            .FirstOrDefaultAsync(p => p.Id == playerId && p.DeletedAt == null && !p.IsSystem);
+        if (player is null)
+        {
+            return null;
+        }
+
+        var clubs = await db.Set<ClubMembership>().AsNoTracking()
+            .Where(m => m.PlayerId == playerId && m.LeftAt == null)
+            .Select(m => m.Club.Name)
+            .ToListAsync();
+        var teams = await db.TeamMemberSet.AsNoTracking()
+            .Where(m => m.PlayerId == playerId && m.LeftAt == null)
+            .Select(m => m.Team.Name)
+            .ToListAsync();
+
+        return new MobileFullProfile(
+            player.Id, player.FirstName, player.LastName, player.Nickname, player.DisplayName, player.AvatarId, player.PhotoUrl,
+            player.Level, player.ShortcutNumber, player.BirthDate, player.Gender, player.Handedness,
+            player.FederationLicenseNo, player.LicenseValidUntil, player.Association?.Name, player.Region?.Name, player.CountryRef?.Name, player.CityRef?.Name,
+            player.User?.Email ?? player.Email, player.User?.Phone, player.User?.Locale, player.UserId is not null, clubs, teams);
+    }
+
+    public async Task<MobileFullProfile> UpdateAsync(int playerId, PlayerDetailsUpdate update, bool canChangeName)
+    {
+        if (update.AvatarId is < 0 || update.AvatarId >= AvatarGenerator.Count)
+        {
+            throw new ArgumentException("Geçersiz avatar.");
+        }
+
+        if (update.Level is { } level && !Enum.IsDefined(level))
+        {
+            throw new ArgumentException("Geçersiz seviye.");
+        }
+
+        if (update.Gender is { } gender && !Enum.IsDefined(gender))
+        {
+            throw new ArgumentException("Geçersiz cinsiyet.");
+        }
+
+        if (update.Handedness is { } hand && !Enum.IsDefined(hand))
+        {
+            throw new ArgumentException("Geçersiz değer.");
+        }
+
+        if (update.BirthDate is { } birth && (birth > DateOnly.FromDateTime(DateTime.UtcNow) || birth.Year < 1900))
+        {
+            throw new ArgumentException("Doğum tarihi geçersiz.");
+        }
+
+        if (update.LicenseNo is { Length: > 50 })
+        {
+            throw new ArgumentException("Lisans numarası en fazla 50 karakter olabilir.");
+        }
+
+        if (update.Nickname is { Length: > 50 })
+        {
+            throw new ArgumentException("Takma ad en fazla 50 karakter olabilir.");
+        }
+
+        var player = await players.GetAsync(playerId);
+        if (player is null || player.IsSystem)
+        {
+            throw new ArgumentException("Oyuncu bulunamadı.");
+        }
+
+        if (canChangeName && (update.FirstName is not null || update.LastName is not null))
+        {
+            var first = (update.FirstName ?? player.FirstName).Trim();
+            var last = (update.LastName ?? player.LastName).Trim();
+            if (first.Length == 0 && last.Length == 0)
+            {
+                throw new ArgumentException("Ad gerekli.");
+            }
+
+            player.FirstName = first;
+            player.LastName = last;
+        }
+
+        player.Nickname = string.IsNullOrWhiteSpace(update.Nickname) ? null : update.Nickname.Trim();
+        player.DisplayName = player.Nickname ?? $"{player.FirstName} {player.LastName}".Trim();
+        player.AvatarId = update.AvatarId;
+        player.Level = update.Level ?? player.Level;
+        player.FederationLicenseNo = string.IsNullOrWhiteSpace(update.LicenseNo) ? null : update.LicenseNo.Trim();
+        player.LicenseValidUntil = update.LicenseValidUntil;
+        player.BirthDate = update.BirthDate;
+        player.Gender = update.Gender;
+        player.Handedness = update.Handedness;
+        await db.SaveChangesAsync();
+
+        if (update.RemovePhoto)
+        {
+            await players.RemovePhotoAsync(player);
+        }
+        else
+        {
+            await players.SavePhotoAsync(player, update.PhotoBase64);
+        }
+
+        if (player.UserId is int userId && (update.Phone is not null || update.Locale is not null))
+        {
+            await mobile.UpdateProfileAsync(userId, null, update.Locale, update.Phone);
+        }
+
+        return await GetAsync(playerId) ?? throw new ArgumentException("Oyuncu bulunamadı.");
+    }
+}

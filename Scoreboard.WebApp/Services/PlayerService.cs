@@ -157,31 +157,6 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         return player;
     }
 
-    public async Task<Player> UpdateOwnProfileAsync(int playerId, string name, string? nickname, int? avatarId, string? photoBase64)
-    {
-        if (avatarId is < 0 || avatarId >= AvatarGenerator.Count)
-        {
-            throw new ArgumentException("Geçersiz avatar.");
-        }
-
-        name = name.Trim();
-        if (name.Length == 0 && string.IsNullOrWhiteSpace(nickname))
-        {
-            throw new ArgumentException("Ad veya takma ad gerekli.");
-        }
-
-        var player = await GetAsync(playerId) ?? throw new ArgumentException("Oyuncu bulunamadı.");
-        var (first, last) = SplitName(name);
-        player.FirstName = first;
-        player.LastName = last;
-        player.Nickname = string.IsNullOrWhiteSpace(nickname) ? null : nickname.Trim();
-        player.DisplayName = player.Nickname ?? name;
-        player.AvatarId = avatarId;
-        await db.SaveChangesAsync();
-        await SavePhotoAsync(player, photoBase64);
-        return player;
-    }
-
     private const int MaxPhotoBytes = 5 * 1024 * 1024;
 
     private static string? DetectImageExtension(byte[] bytes) => bytes switch
@@ -193,7 +168,22 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         _ => null
     };
 
-    private async Task SavePhotoAsync(Player player, string? photoBase64)
+    public async Task RemovePhotoAsync(Player player)
+    {
+        var folder = Path.Combine(env.WebRootPath, "Players", db.CurrentOrganizationId.ToString());
+        if (Directory.Exists(folder))
+        {
+            foreach (var previous in Directory.GetFiles(folder, $"{player.Id}.*"))
+            {
+                File.Delete(previous);
+            }
+        }
+
+        player.PhotoUrl = null;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task SavePhotoAsync(Player player, string? photoBase64)
     {
         if (string.IsNullOrEmpty(photoBase64))
         {
