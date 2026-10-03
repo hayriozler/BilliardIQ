@@ -19,7 +19,9 @@ public record PlayerMatchEntry(
     bool Won,
     int PlayerSlot,
     int BucketMinutes,
-    IReadOnlyList<int> PaceBuckets);
+    IReadOnlyList<int> PaceBuckets,
+    int PlayerTarget = 0,
+    int OpponentTarget = 0);
 
 public record StatSummary(
     int Matches,
@@ -33,7 +35,7 @@ public record StatSummary(
 
 public record PlayerStatRow(Player Player, StatSummary Summary);
 
-public record PlayerStatDetail(Player Player, StatSummary Summary, IReadOnlyList<PlayerMatchEntry> Matches);
+public record PlayerStatDetail(Player Player, StatSummary Summary, IReadOnlyList<PlayerMatchEntry> Matches, IReadOnlyList<PlayerMatchEntry> HandicapMatches);
 
 public record TeamStatRow(Team Team, int MemberCount, StatSummary Summary);
 
@@ -75,7 +77,9 @@ public class StatsService(DataContext db)
 
         var entries = (await EntriesByPlayerAsync(since, until, includeBuckets: true, onlyPlayerId: playerId))
             .GetValueOrDefault(playerId) ?? [];
-        return new PlayerStatDetail(player, Summarize(entries), entries);
+        var handicapEntries = (await EntriesByPlayerAsync(since, until, includeBuckets: false, onlyPlayerId: playerId, handicap: true))
+            .GetValueOrDefault(playerId) ?? [];
+        return new PlayerStatDetail(player, Summarize(entries), entries, handicapEntries);
     }
 
     public async Task<List<TeamStatRow>> TeamsAsync(DateTimeOffset? since = null, DateTimeOffset? until = null)
@@ -141,9 +145,9 @@ public class StatsService(DataContext db)
             .OrderBy(t => t.Name)
             .ToListAsync();
 
-    private async Task<Dictionary<int, List<PlayerMatchEntry>>> EntriesByPlayerAsync(DateTimeOffset? since, DateTimeOffset? until, bool includeBuckets, int? onlyPlayerId = null)
+    private async Task<Dictionary<int, List<PlayerMatchEntry>>> EntriesByPlayerAsync(DateTimeOffset? since, DateTimeOffset? until, bool includeBuckets, int? onlyPlayerId = null, bool handicap = false)
     {
-        var query = db.MatchStatSet.AsNoTracking();
+        var query = db.MatchStatSet.AsNoTracking().Where(s => s.IsHandicap == handicap);
         if (since is not null)
         {
             query = query.Where(s => s.PlayedAt >= since);
@@ -216,7 +220,9 @@ public class StatsService(DataContext db)
             first ? s.Player1HighRun : s.Player2HighRun,
             first ? s.Player1Avg : s.Player2Avg,
             s.Winner == slot,
-            slot, s.BucketMinutes, buckets));
+            slot, s.BucketMinutes, buckets,
+            first ? s.Player1Target : s.Player2Target,
+            first ? s.Player2Target : s.Player1Target));
     }
 
     public static StatSummary Summarize(IReadOnlyCollection<PlayerMatchEntry> entries)

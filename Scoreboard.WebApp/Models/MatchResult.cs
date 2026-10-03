@@ -19,5 +19,8 @@ public class MatchResult
     public int Player2HighRun { get; set; }
     public int Inning { get; set; }
     public int MatchTarget { get; set; }
+    public bool IsHandicap { get; set; }
+    public int Player1Target { get; set; }
+    public int Player2Target { get; set; }
     public int Winner { get; set; }
 }
