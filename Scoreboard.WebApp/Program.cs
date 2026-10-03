@@ -66,6 +66,7 @@ builder.Services.AddScoped<Scoreboard.WebApp.Services.Tournaments.CupService>();
 builder.Services.AddScoped<StatsService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ClientIdService>();
+builder.Services.AddScoped<DevelopmentSeedService>();
 builder.Services.AddScoped<SystemPlayerService>();
 builder.Services.AddScoped<ScoreboardDataService>();
 builder.Services.AddHttpContextAccessor();
@@ -201,6 +202,21 @@ foreach (var account in app.Configuration.GetSection("Seed:Accounts").GetChildre
     {
         await seedDb.UserSet.Where(u => u.Id == registered.User.Id)
             .ExecuteUpdateAsync(u => u.SetProperty(x => x.OrganizationId, (int?)null).SetProperty(x => x.IsPlatformAdmin, true));
+    }
+}
+
+if (app.Environment.IsDevelopment())
+{
+    foreach (var account in app.Configuration.GetSection("Seed:Accounts").GetChildren())
+    {
+        if (string.IsNullOrWhiteSpace(account["Email"]) || string.IsNullOrWhiteSpace(account["ClientId"]))
+        {
+            continue;
+        }
+
+        using var scope = app.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<DevelopmentSeedService>()
+            .EnsureClientAsync(account["Email"]!, account["ClientId"]!, account.GetValue("ScoreboardTableNo", 1));
     }
 }
 
