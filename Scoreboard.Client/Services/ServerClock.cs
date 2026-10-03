@@ -2,7 +2,7 @@ namespace Scoreboard.Client.Services;
 
 public sealed class ServerClock
 {
-    private static readonly TimeSpan Tolerance = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan _tolerance = TimeSpan.FromSeconds(15);
 
     private long _offsetTicks;
 
@@ -11,7 +11,7 @@ public sealed class ServerClock
     public void Observe(DateTimeOffset serverTime)
     {
         var difference = serverTime - DateTimeOffset.UtcNow;
-        Interlocked.Exchange(ref _offsetTicks, difference.Duration() > Tolerance ? difference.Ticks : 0);
+        Interlocked.Exchange(ref _offsetTicks, difference.Duration() > _tolerance ? difference.Ticks : 0);
     }
 }
 
