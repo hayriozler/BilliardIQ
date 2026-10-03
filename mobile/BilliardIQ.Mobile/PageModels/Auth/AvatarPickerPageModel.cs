@@ -13,7 +13,7 @@ public partial class AvatarCell(int id) : ObservableObject
     public partial ImageSource? Image { get; set; }
 }
 
-public partial class AvatarPickerPageModel(ApiClient api, AvatarImageService avatars, AccountPageModel account) : BasePageModel
+public partial class AvatarPickerPageModel(ApiClient api, AvatarImageService avatars, AvatarPickerSession picker) : BasePageModel
 {
     private bool _loaded;
 
@@ -66,7 +66,7 @@ public partial class AvatarPickerPageModel(ApiClient api, AvatarImageService ava
     [RelayCommand]
     private async Task Select(AvatarCell cell)
     {
-        account.SelectAvatar(cell.Id);
+        picker.Complete(cell.Id);
         await Shell.Current.GoToAsync("..");
     }
 

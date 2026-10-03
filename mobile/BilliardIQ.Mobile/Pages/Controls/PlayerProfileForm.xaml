@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Auth"
+    x:DataType="pageModels:PlayerProfileFormModel"
+    x:Class="BilliardIQ.Mobile.Pages.Controls.PlayerProfileForm">
+
+    <VerticalStackLayout Spacing="10">
+        <Grid WidthRequest="110" HeightRequest="110" HorizontalOptions="Center">
+            <Image Source="{Binding Picture}" IsVisible="{Binding HasPicture}" Aspect="AspectFill" />
+            <Border IsVisible="{Binding HasNoPicture}" StrokeThickness="0" BackgroundColor="#90A4AE">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="55" />
+                </Border.StrokeShape>
+            </Border>
+        </Grid>
+        <Grid ColumnDefinitions="*, *" RowDefinitions="Auto, Auto" ColumnSpacing="8" RowSpacing="8">
+            <Button Grid.Row="0" Grid.Column="0" Text="{Binding L[Account_TakePhoto]}" Command="{Binding TakePhotoCommand}" />
+            <Button Grid.Row="0" Grid.Column="1" Text="{Binding L[Account_ChoosePhoto]}" Command="{Binding ChoosePhotoCommand}" />
+            <Button Grid.Row="1" Grid.Column="0" Text="{Binding L[Account_ChooseAvatar]}" Command="{Binding PickAvatarCommand}" />
+            <Button Grid.Row="1" Grid.Column="1" Text="{Binding L[Account_RemovePhoto]}" Command="{Binding RemovePhotoCommand}"
+                    BackgroundColor="Gray" />
+        </Grid>
+
+        <Label Text="{Binding L[Account_Nickname]}" FontSize="12" TextColor="Gray" />
+        <Entry Text="{Binding Nickname, Mode=TwoWay}" MaxLength="50" />
+        <Label Text="{Binding L[Account_Level]}" FontSize="12" TextColor="Gray" />
+        <Picker ItemsSource="{Binding LevelNames}" SelectedIndex="{Binding LevelIndex, Mode=TwoWay}" />
+        <Label Text="{Binding L[Account_LicenseNo]}" FontSize="12" TextColor="Gray" />
+        <Entry Text="{Binding LicenseNo, Mode=TwoWay}" MaxLength="50" />
+        <Label Text="{Binding L[Account_LicenseValidUntil]}" FontSize="12" TextColor="Gray" />
+        <Entry Text="{Binding LicenseValidUntil, Mode=TwoWay}" Placeholder="yyyy-MM-dd" Keyboard="Numeric" />
+        <Label Text="{Binding L[Account_BirthDate]}" FontSize="12" TextColor="Gray" />
+        <Entry Text="{Binding BirthDate, Mode=TwoWay}" Placeholder="yyyy-MM-dd" Keyboard="Numeric" />
+        <Label Text="{Binding L[Account_Gender]}" FontSize="12" TextColor="Gray" />
+        <Picker ItemsSource="{Binding GenderNames}" SelectedIndex="{Binding GenderIndex, Mode=TwoWay}" />
+        <Label Text="{Binding L[Account_Handedness]}" FontSize="12" TextColor="Gray" />
+        <Picker ItemsSource="{Binding HandednessNames}" SelectedIndex="{Binding HandednessIndex, Mode=TwoWay}" />
+
+        <Label Text="{Binding L[Account_ShortcutNumber]}" FontSize="12" TextColor="Gray" />
+        <Label Text="{Binding ShortcutNumber}" FontSize="16" />
+        <Label Text="{Binding L[Account_Association]}" FontSize="12" TextColor="Gray" />
+        <Label Text="{Binding Association}" FontSize="16" />
+        <Label Text="{Binding L[Account_Location]}" FontSize="12" TextColor="Gray" />
+        <Label Text="{Binding Location}" FontSize="16" />
+        <Label Text="{Binding L[Account_Clubs]}" FontSize="12" TextColor="Gray" />
+        <Label Text="{Binding Clubs}" FontSize="16" />
+        <Label Text="{Binding L[Account_Teams]}" FontSize="12" TextColor="Gray" />
+        <Label Text="{Binding Teams}" FontSize="16" />
+    </VerticalStackLayout>
+</ContentView>

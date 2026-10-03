@@ -65,8 +65,8 @@ public sealed record FullProfileDto(
     string? LicenseNo, string? LicenseValidUntil, string? AssociationName, string? RegionName, string? CountryName, string? CityName,
     string? Email, string? Phone, string? Locale, bool HasAccount, List<string> Clubs, List<string> Teams);
 
-public sealed record OwnProfileRequest(
-    string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
+public sealed record ProfileUpdateRequest(
+    string? FirstName, string? LastName, string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
     int? Level, string? LicenseNo, string? LicenseValidUntil, string? BirthDate, int? Gender, int? Handedness,
     string? Phone, string? Locale);
 
