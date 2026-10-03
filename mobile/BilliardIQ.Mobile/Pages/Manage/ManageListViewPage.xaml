@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Manage"
+    x:DataType="pageModels:ManageListPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Manage.ManageListViewPage"
+    x:Name="ManageListPage"
+    Title="{Binding L[Manage_Title]}">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=ManageListPage}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </ContentPage.Behaviors>
+
+    <Grid RowDefinitions="Auto, Auto, *" RowSpacing="8">
+
+        <Grid Grid.Row="0" ColumnDefinitions="*, *, *" ColumnSpacing="6">
+            <Button Grid.Column="0" Text="{Binding L[Manage_Tables]}"
+                    Command="{Binding ShowCommand}"
+                    CommandParameter="{x:Static pageModels:ManageKind.Tables}" />
+            <Button Grid.Column="1" Text="{Binding L[Manage_Players]}"
+                    Command="{Binding ShowCommand}"
+                    CommandParameter="{x:Static pageModels:ManageKind.Players}" />
+            <Button Grid.Column="2" Text="{Binding L[Manage_Teams]}"
+                    Command="{Binding ShowCommand}"
+                    CommandParameter="{x:Static pageModels:ManageKind.Teams}" />
+        </Grid>
+
+        <Label Grid.Row="1" Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13"
+               IsVisible="{Binding HasError}" />
+
+        <RefreshView Grid.Row="2" IsRefreshing="{Binding IsLoading, Mode=OneWay}" Command="{Binding LoadCommand}">
+            <CollectionView ItemsSource="{Binding Rows}" SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="6" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.EmptyView>
+                    <Label Text="{Binding L[Manage_Empty]}" TextColor="Gray" HorizontalOptions="Center" Margin="0,30" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="pageModels:ManageRow">
+                        <Border Padding="12,10" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F2F2F2, Dark=#2A2A2A}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
+                                <Grid Grid.Column="0" WidthRequest="44" HeightRequest="44" VerticalOptions="Center">
+                                    <Image Source="{Binding Image}" IsVisible="{Binding HasImage}" Aspect="AspectFill" />
+                                    <Border IsVisible="{Binding HasNoImage}" StrokeThickness="0" BackgroundColor="#90A4AE">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="22" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding Initial}" TextColor="White" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                </Grid>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold" />
+                                    <Label Text="{Binding Subtitle}" FontSize="12" TextColor="Gray" />
+                                </VerticalStackLayout>
+                                <Border Grid.Column="2" Padding="10,4" StrokeThickness="0"
+                                        BackgroundColor="{Binding BadgeColor}" VerticalOptions="Center"
+                                        IsVisible="{Binding HasBadge}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding Badge}" TextColor="White" FontSize="12" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</basePages:BasePage>

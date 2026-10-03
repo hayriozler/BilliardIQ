@@ -47,6 +47,14 @@ public sealed record PlayerMatchDto(int MatchId, DateTimeOffset PlayedAt, string
 
 public sealed record PlayerHomeDto(PlayerProfileDto Player, StatSummaryDto Summary, List<PlayerMatchDto> LastMatches);
 
+public sealed record ManageTableDto(int Id, int Number, int? ScoreboardNo, string? Label, int Type, int Status, DateTimeOffset? SessionOpenedAt);
+
+public sealed record ManagePlayerDto(int Id, string Nickname, string Name, string? PhotoPath, int? AvatarId, int Level, int? ShortcutNumber, string? AssociationName, bool IsSystem);
+
+public sealed record ManageTeamPlayerDto(int Id, string Nickname, string Name);
+
+public sealed record ManageTeamDto(int Id, string Name, List<ManageTeamPlayerDto> Players, int? AvatarId);
+
 public sealed class ApiException(int statusCode, string message) : Exception(message)
 {
     public int StatusCode { get; } = statusCode;

@@ -10,6 +10,7 @@
     xmlns:connection="clr-namespace:BilliardIQ.Mobile.Pages.Connection"
     xmlns:scoreboard="clr-namespace:BilliardIQ.Mobile.Pages.Scoreboard"
     xmlns:admin="clr-namespace:BilliardIQ.Mobile.Pages.Admin"
+    xmlns:manage="clr-namespace:BilliardIQ.Mobile.Pages.Manage"
     xmlns:stats="clr-namespace:BilliardIQ.Mobile.Pages.Stats"
     xmlns:ssh="clr-namespace:BilliardIQ.Mobile.Pages.Ssh"
     Shell.FlyoutBehavior="Flyout"
@@ -54,6 +55,12 @@
         ContentTemplate="{DataTemplate play:GamePlayViewPage}"
         Route="game" />
 
+    <ShellContent
+        x:Name="ManageContent"
+        Title="Management"
+        ContentTemplate="{DataTemplate manage:ManageListViewPage}"
+        Route="manage" />
+
     <FlyoutItem x:Name="ScoreboardItem" Title="Scoreboard Admin">
         <Tab Title="Score">
             <ShellContent
@@ -88,12 +95,6 @@
         ContentTemplate="{DataTemplate connection:ConnectionViewPage}"
         Route="connect"
         Shell.FlyoutItemIsVisible="False" />
-
-    <ShellContent
-        x:Name="ProfileContent"
-        Title="Profile"
-        ContentTemplate="{DataTemplate players:PlayerProfileViewPage}"
-        Route="profile" />
 
     <ShellContent
         x:Name="AccountContent"

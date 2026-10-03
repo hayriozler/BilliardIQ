@@ -44,9 +44,9 @@ public partial class AppShell : Shell
         HomeContent.IsVisible = ready;
         HomeContent.Title = _session.IsPlayer ? "Games" : "Home";
         GameContent.IsVisible = ready;
-        ProfileContent.IsVisible = ready;
         AccountContent.IsVisible = ready;
-        ScoreboardItem.IsVisible = ready && _session.CanControlScoreboard;
+        ManageContent.IsVisible = ready && _session.CanControlScoreboard;
+        ScoreboardItem.IsVisible =ready && _session.CanControlScoreboard;
         ConnectionContent.IsVisible = ready && _session.CanControlScoreboard;
         SshTab.IsVisible = _session.CanUseSsh;
     }
