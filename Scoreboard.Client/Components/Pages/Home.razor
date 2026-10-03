@@ -297,7 +297,7 @@ else
                 <div class="warmup-picker-options match-end-options">
                     <button @onclick="() => DispatchAsync(ScoreboardCommand.ExtendMatch, 5)">+5 &rarr; @ExtendedLabel(5) <small>[5]</small></button>
                     <button @onclick="() => DispatchAsync(ScoreboardCommand.ExtendMatch, 10)">+10 &rarr; @ExtendedLabel(10) <small>[0]</small></button>
-                    <button @onclick="() => DispatchAsync(ScoreboardCommand.EndGame)">@L.T("EndMatch") <small>[E]</small></button>
+                    <button @onclick="() => DispatchAsync(ScoreboardCommand.EndGame)">@L.T("EndMatch") <small>[Del]</small></button>
                 </div>
             </div>
         </div>
@@ -1062,7 +1062,7 @@ else
                 case "0" or "Insert":
                     await DispatchAsync(ScoreboardCommand.ExtendMatch, 10);
                     break;
-                case "e" or "E" or "4" or "ArrowLeft":
+                case "Delete" or ".":
                     await DispatchAsync(ScoreboardCommand.EndGame);
                     break;
             }
