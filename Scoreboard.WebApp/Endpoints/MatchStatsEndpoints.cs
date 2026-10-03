@@ -68,9 +68,9 @@ public static class MatchStatsEndpoints
                 Player1Target = request.IsHandicap ? Math.Clamp(request.Player1Target, 0, MaxTarget) : 0,
                 Player2Target = request.IsHandicap ? Math.Clamp(request.Player2Target, 0, MaxTarget) : 0,
                 Winner = request.Winner,
-                PlayedAt = request.PlayedAt,
-                StartedAt = request.StartedAt,
-                EndedAt = request.EndedAt,
+                PlayedAt = request.PlayedAt.ToUniversalTime(),
+                StartedAt = request.StartedAt?.ToUniversalTime(),
+                EndedAt = request.EndedAt?.ToUniversalTime(),
                 BucketMinutes = buckets.Count == 0 ? 0 : Math.Max(1, request.ScoreDistributionBucketMinutes),
                 Buckets = buckets
             };
