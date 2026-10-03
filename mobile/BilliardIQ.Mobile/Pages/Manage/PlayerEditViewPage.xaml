@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:controls="clr-namespace:BilliardIQ.Mobile.Pages.Controls"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Manage"
+    x:DataType="pageModels:PlayerEditPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Manage.PlayerEditViewPage"
+    x:Name="PlayerEditPage"
+    Shell.FlyoutBehavior="Disabled"
+    Title="{Binding L[Manage_EditPlayer]}">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=PlayerEditPage}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </ContentPage.Behaviors>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="10">
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+            <Label Text="{Binding L[Manage_FirstName]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding FirstName, Mode=TwoWay}" MaxLength="100" />
+            <Label Text="{Binding L[Manage_LastName]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding LastName, Mode=TwoWay}" MaxLength="100" />
+
+            <controls:PlayerProfileForm />
+
+            <Label Text="{Binding L[Account_Phone]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding Phone, Mode=TwoWay}" Keyboard="Telephone" MaxLength="30" />
+            <Label Text="{Binding L[Account_Language]}" FontSize="12" TextColor="Gray" />
+            <Picker ItemsSource="{Binding LanguageNames}" SelectedIndex="{Binding LanguageIndex, Mode=TwoWay}" />
+
+            <Label Text="{Binding Message}" FontSize="13" IsVisible="{Binding HasMessage}">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label" Binding="{Binding MessageIsError}" Value="True">
+                        <Setter Property="TextColor" Value="Red" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Label" Binding="{Binding MessageIsError}" Value="False">
+                        <Setter Property="TextColor" Value="Green" />
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+
+            <Button Text="{Binding L[Account_Save]}"
+                    Command="{Binding SaveCommand}"
+                    IsEnabled="{Binding IsIdle}"
+                    BackgroundColor="#2E7D32" TextColor="White" />
+            <Button Text="{Binding L[Forgot_Back]}"
+                    Command="{Binding BackCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</basePages:BasePage>

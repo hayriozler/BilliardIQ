@@ -11,7 +11,7 @@ public enum ManageKind
     Teams
 }
 
-public sealed record ManageRow(string Title, string Subtitle, string Badge, Color BadgeColor, ImageSource? Image = null)
+public sealed record ManageRow(string Title, string Subtitle, string Badge, Color BadgeColor, ImageSource? Image = null, int Id = 0)
 {
     public bool HasBadge => Badge.Length > 0;
 
@@ -46,6 +46,10 @@ public partial class ManageListPageModel(ApiClient api, AvatarImageService avata
 
     [RelayCommand]
     private Task Appearing() => LoadAsync();
+
+    [RelayCommand]
+    private Task Open(ManageRow row) =>
+        Kind == ManageKind.Players && row.Id > 0 ? Shell.Current.GoToAsync($"playeredit?playerId={row.Id}") : Task.CompletedTask;
 
     [RelayCommand]
     private Task Show(ManageKind kind)
@@ -98,7 +102,7 @@ public partial class ManageListPageModel(ApiClient api, AvatarImageService avata
     {
         var subtitle = p.Name == p.Nickname ? "" : p.Name;
         var badge = p.ShortcutNumber is { } n ? $"#{n}" : "";
-        return new ManageRow(p.Nickname, subtitle, badge, _blue, await avatars.GetAsync(p.AvatarId, p.PhotoPath));
+        return new ManageRow(p.Nickname, subtitle, badge, _blue, await avatars.GetAsync(p.AvatarId, p.PhotoPath), p.Id);
     }
 
     private async Task<ManageRow> ToRowAsync(ManageTeamDto t) =>
