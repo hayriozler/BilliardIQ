@@ -22,6 +22,7 @@ public class DataContext : DbContext
     public DbSet<Player> PlayerSet => Set<Player>();
     public DbSet<RefreshToken> RefreshTokenSet => Set<RefreshToken>();
     public DbSet<PlayerInvite> PlayerInviteSet => Set<PlayerInvite>();
+    public DbSet<ExternalMatch> ExternalMatchSet => Set<ExternalMatch>();
     public DbSet<Club> ClubSet => Set<Club>();
     public DbSet<Association> AssociationSet => Set<Association>();
     public DbSet<Region> RegionSet => Set<Region>();
@@ -116,6 +117,14 @@ public class DataContext : DbContext
             e.HasIndex(i => i.Code).IsUnique();
             e.Property(i => i.Code).HasMaxLength(20);
             e.HasOne(i => i.Player).WithMany().HasForeignKey(i => i.PlayerId);
+        });
+
+        modelBuilder.Entity<ExternalMatch>(e =>
+        {
+            e.HasIndex(m => new { m.OrganizationId, m.PlayerId, m.PlayedOn });
+            e.Property(m => m.OpponentName).HasMaxLength(100);
+            e.Property(m => m.Venue).HasMaxLength(100);
+            e.HasOne(m => m.Player).WithMany().HasForeignKey(m => m.PlayerId);
         });
 
         modelBuilder.Entity<StaffMember>(e =>
@@ -336,6 +345,7 @@ public class DataContext : DbContext
         modelBuilder.Entity<Device>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<Association>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<PlayerInvite>().HasQueryFilter(e => e.OrganizationId == _organizationId);
+        modelBuilder.Entity<ExternalMatch>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<EntityChange>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<ClientSync>().HasQueryFilter(e => e.OrganizationId == _organizationId);
         modelBuilder.Entity<OrganizationCountry>().HasQueryFilter(e => e.OrganizationId == _organizationId);

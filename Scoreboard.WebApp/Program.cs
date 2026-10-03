@@ -64,6 +64,7 @@ builder.Services.AddScoped<GeoSeedService>();
 builder.Services.AddSingleton<OrganizationRunner>();
 builder.Services.AddScoped<Scoreboard.WebApp.Services.Tournaments.CupService>();
 builder.Services.AddScoped<StatsService>();
+builder.Services.AddScoped<ExternalMatchService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ClientIdService>();
 builder.Services.AddScoped<DevelopmentSeedService>();
@@ -273,6 +274,7 @@ app.MapAuthEndpoints();
 app.MapOrganizationEndpoints();
 app.MapScoreboardEndpoints();
 app.MapMobileEndpoints();
+app.MapMobileExternalMatchEndpoints();
 
 app.MapPost("/culture", async (HttpContext context, DataContext db, SystemPlayerService systemPlayers, [FromForm] string lang, [FromForm] string? returnUrl) =>
 {
