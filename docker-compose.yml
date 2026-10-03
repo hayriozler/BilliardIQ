@@ -41,7 +41,7 @@ services:
       dockerfile: Scoreboard.Client/Dockerfile
     # No restart policy here on purpose: Visual Studio stops and restarts this container while it attaches the debugger.
     # Add `restart: unless-stopped` in a production compose file.
-    # No depends_on: the client serves its own UI and keeps its own SQLite data, so it starts and runs even when the
+    # No depends_on here (the debug override only orders the start): the client serves its own UI and keeps its own SQLite data, so it starts and runs even when the
     # panel is down. The panel is only contacted in the background to pull clubs/teams/players and push match results.
     environment:
       ASPNETCORE_HTTP_PORTS: "8080"

@@ -18,5 +18,7 @@ services:
   # Visual Studio runs this service in container fast mode (the project folder is mounted over /app). The static web
   # assets (blazor.web.js, scoped CSS bundle) are only resolved in Development there, the same as the panel above.
   zeymera.billiardiq.scoreboard.client:
+    depends_on:
+      - zeymera.billiardiq.webapp
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
