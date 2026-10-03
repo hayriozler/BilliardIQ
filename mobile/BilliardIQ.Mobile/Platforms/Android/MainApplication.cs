@@ -3,7 +3,11 @@ using Android.Runtime;
 
 namespace BilliardIQ.Mobile.Platforms.Android;
 
+#if DEBUG
+[Application(UsesCleartextTraffic = true)]
+#else
 [Application]
+#endif
 public class MainApplication(IntPtr handle, JniHandleOwnership ownership) : MauiApplication(handle, ownership)
 {
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
