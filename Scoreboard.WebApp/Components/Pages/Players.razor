@@ -347,7 +347,6 @@
     private string _homeCountryId = "";
     private TimeZoneInfo _zone = TimeZoneInfo.Utc;
     private string? _pendingPhotoBase64;
-    private string? _pendingPhotoExtension;
 
     protected override async Task OnInitializedAsync()
     {
@@ -408,14 +407,12 @@
             BaseCity = player.City ?? string.Empty
         };
         _pendingPhotoBase64 = null;
-        _pendingPhotoExtension = null;
     }
 
     private void ResetForm()
     {
         _form = new PlayerFormModel { CountryId = _homeCountryId };
         _pendingPhotoBase64 = null;
-        _pendingPhotoExtension = null;
     }
 
     private async Task OnPhotoSelectedAsync(InputFileChangeEventArgs e)
@@ -432,7 +429,6 @@
         using var memory = new MemoryStream();
         await stream.CopyToAsync(memory);
         _pendingPhotoBase64 = Convert.ToBase64String(memory.ToArray());
-        _pendingPhotoExtension = Path.GetExtension(e.File.Name).TrimStart('.');
     }
 
     private async Task SaveAsync()
@@ -443,7 +439,7 @@
         {
             await Db.RunAsync((PlayerService s) => s.UpsertAsync(_form.Id, _form.Nickname, _form.Name, _form.AvatarId,
                 _form.Email, _form.Level, _form.BaseCountry, _form.BaseCity,
-                _pendingPhotoBase64, _pendingPhotoExtension, _form.ShortcutNumber, _form.LicenseNo, _form.LicenseValidUntil,
+                _pendingPhotoBase64, _form.ShortcutNumber, _form.LicenseNo, _form.LicenseValidUntil,
                 int.TryParse(_form.AssociationId, out var associationId) ? associationId : null,
                 int.TryParse(_form.RegionId, out var regionId) ? regionId : null,
                 int.TryParse(_form.CountryId, out var countryId) ? countryId : null,

@@ -13,7 +13,7 @@ public record MobileInviteRegisterRequest(string Code, string Email, string Pass
 public record MobileProfileRequest(string? DisplayName, string? Locale, string? Phone);
 public record MobileEmailRequest(string Email, string Password);
 public record MobilePlayerAccountRequest(string Email);
-public record MobilePlayerProfileRequest(string Name, string? Nickname, int? AvatarId, string? PhotoBase64, string? PhotoExtension);
+public record MobilePlayerProfileRequest(string Name, string? Nickname, int? AvatarId, string? PhotoBase64);
 
 public record MobilePlayerProfile(int Id, string Name, string? Nickname, string DisplayName, int? AvatarId, string? PhotoUrl, Level Level, int? ShortcutNumber);
 
@@ -131,7 +131,7 @@ public static class MobileEndpoints
         {
             try
             {
-                var updated = await players.UpdateOwnProfileAsync(context.User.GetPlayerId(), request.Name, request.Nickname, request.AvatarId, request.PhotoBase64, request.PhotoExtension);
+                var updated = await players.UpdateOwnProfileAsync(context.User.GetPlayerId(), request.Name, request.Nickname, request.AvatarId, request.PhotoBase64);
                 return Results.Ok(ToProfile(updated));
             }
             catch (ArgumentException ex)

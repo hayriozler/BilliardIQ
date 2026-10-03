@@ -20,7 +20,7 @@ public static class PlayersEndpoints
             {
                 var player = await players.UpsertAsync(request.Id, request.Nickname, request.Name, request.AvatarId,
                     request.Email, request.Level, request.BaseCountry, request.BaseCity,
-                    request.PhotoBase64, request.PhotoExtension, request.ShortcutNumber,
+                    request.PhotoBase64, request.ShortcutNumber,
                     request.LicenseNo, request.LicenseValidUntil, request.AssociationId, request.RegionId, request.CountryId, request.CityId);
                 return Results.Ok(ScoreboardDataService.ToDto(player, await data.LanguageOfAsync()));
             }

@@ -43,7 +43,6 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         string baseCountry,
         string baseCity,
         string? photoBase64,
-        string? photoExtension,
         int? shortcutNumber = null,
         string? licenseNo = null,
         DateOnly? licenseValidUntil = null,
@@ -153,12 +152,12 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
 
         await db.SaveUniqueAsync("ShortcutNumber", () => new LocalizedArgumentException("{0} numaralı kısayol başka bir oyuncuda kayıtlı.", shortcutNumber!.Value));
 
-        await SavePhotoAsync(player, photoBase64, photoExtension);
+        await SavePhotoAsync(player, photoBase64);
 
         return player;
     }
 
-    public async Task<Player> UpdateOwnProfileAsync(int playerId, string name, string? nickname, int? avatarId, string? photoBase64, string? photoExtension)
+    public async Task<Player> UpdateOwnProfileAsync(int playerId, string name, string? nickname, int? avatarId, string? photoBase64)
     {
         if (avatarId is < 0 || avatarId >= AvatarGenerator.Count)
         {
@@ -179,15 +178,31 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         player.DisplayName = player.Nickname ?? name;
         player.AvatarId = avatarId;
         await db.SaveChangesAsync();
-        await SavePhotoAsync(player, photoBase64, photoExtension);
+        await SavePhotoAsync(player, photoBase64);
         return player;
     }
 
-    private async Task SavePhotoAsync(Player player, string? photoBase64, string? photoExtension)
+    private const int MaxPhotoBytes = 5 * 1024 * 1024;
+
+    private static string? DetectImageExtension(byte[] bytes) => bytes switch
+    {
+        [0xFF, 0xD8, 0xFF, ..] => "jpg",
+        [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, ..] => "png",
+        [0x47, 0x49, 0x46, 0x38, 0x37 or 0x39, 0x61, ..] => "gif",
+        [0x52, 0x49, 0x46, 0x46, _, _, _, _, 0x57, 0x45, 0x42, 0x50, ..] => "webp",
+        _ => null
+    };
+
+    private async Task SavePhotoAsync(Player player, string? photoBase64)
     {
         if (string.IsNullOrEmpty(photoBase64))
         {
             return;
+        }
+
+        if (photoBase64.Length > MaxPhotoBytes / 3 * 4 + 4)
+        {
+            throw new ArgumentException("Fotoğraf en fazla 5 MB olabilir.");
         }
 
         byte[] bytes;
@@ -200,9 +215,19 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             throw new ArgumentException("Geçersiz fotoğraf verisi.");
         }
 
-        var extension = string.IsNullOrWhiteSpace(photoExtension) ? "jpg" : photoExtension.TrimStart('.');
+        if (bytes.Length > MaxPhotoBytes)
+        {
+            throw new ArgumentException("Fotoğraf en fazla 5 MB olabilir.");
+        }
+
+        var extension = DetectImageExtension(bytes) ?? throw new ArgumentException("Fotoğraf JPEG, PNG, GIF veya WebP biçiminde olmalı.");
         var folder = Path.Combine(env.WebRootPath, "Players", db.CurrentOrganizationId.ToString());
         Directory.CreateDirectory(folder);
+        foreach (var previous in Directory.GetFiles(folder, $"{player.Id}.*"))
+        {
+            File.Delete(previous);
+        }
+
         var fileName = $"{player.Id}.{extension}";
         await File.WriteAllBytesAsync(Path.Combine(folder, fileName), bytes);
         player.PhotoUrl = $"Players/{db.CurrentOrganizationId}/{fileName}";

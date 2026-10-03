@@ -234,6 +234,12 @@ app.UseCors(clientCorsPolicy);
 
 app.UseAntiforgery();
 
+app.Use((context, next) =>
+{
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    return next(context);
+});
+
 app.UseStaticFiles();
 app.MapStaticAssets();
 
