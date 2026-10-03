@@ -22,6 +22,9 @@ public enum ScoreboardCommand
     SelectRosterPlayer2,
     ClearRosterPlayer1,
     ClearRosterPlayer2,
+    ToggleHandicap,
+    SetPlayer1Target,
+    SetPlayer2Target,
 }
 
 public record ScoreboardCommandMessage(ScoreboardCommand Command, JsonElement? Payload = null);

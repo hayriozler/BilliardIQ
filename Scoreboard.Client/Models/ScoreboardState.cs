@@ -11,6 +11,9 @@ public class ScoreboardState
     public int Player2Score { get; set; }
     public int Inning { get; set; } = 1;
     public int MatchTarget { get; set; } = 40;
+    public bool IsHandicap { get; set; }
+    public int Player1Target { get; set; }
+    public int Player2Target { get; set; }
     public double Player1Avg { get; set; }
     public int Player1HighRun { get; set; }
     public int CurrentPoints { get; set; }

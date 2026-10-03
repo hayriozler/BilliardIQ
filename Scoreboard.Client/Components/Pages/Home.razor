@@ -89,7 +89,7 @@ else
                 </div>
             }
             <div class="player-score">@Current.Player1Score</div>
-            @if (Current.ActivePlayer == 1 && PointsToGo(1) is int nog1)
+            @if ((Current.IsHandicap || Current.ActivePlayer == 1) && PointsToGo(1) is int nog1)
             {
                 <div class="nog-indicator">@string.Format(L.T("PointsToGo"), nog1)</div>
             }
@@ -140,7 +140,7 @@ else
                 </div>
             }
             <div class="player-score yellow">@Current.Player2Score</div>
-            @if (Current.ActivePlayer == 2 && PointsToGo(2) is int nog2)
+            @if ((Current.IsHandicap || Current.ActivePlayer == 2) && PointsToGo(2) is int nog2)
             {
                 <div class="nog-indicator">@string.Format(L.T("PointsToGo"), nog2)</div>
             }
@@ -160,8 +160,17 @@ else
         </div>
         <div class="stat-group">
             <div class="stat">
-                <span class="stat-label">@L.T("Match")</span>
-                <span class="stat-value current">@Current.MatchTarget</span>
+                <span class="stat-label">@L.T("Match")@if (Current.IsHandicap){<span class="hcp-badge">@L.T("HandicapShort")</span>}</span>
+                @if (Current.IsHandicap)
+                {
+                    <span class="stat-value current handicap-targets">
+                        <span>@Current.Player1Target</span><span class="handicap-divider"></span><span>@Current.Player2Target</span>
+                    </span>
+                }
+                else
+                {
+                    <span class="stat-value current">@Current.MatchTarget</span>
+                }
             </div>
         </div>
         <div class="stat-group">
@@ -213,9 +222,24 @@ else
             </div>
             <div class="control-group">
                 <span>@L.T("Match")</span>
-                <input type="number" class="match-target" min="@MinMatchTarget" max="@MaxMatchTarget" step="5" inputmode="numeric"
-                       @key="_matchInputKey" value="@Current.MatchTarget"
-                       @onchange="e => SetMatchTargetFromInputAsync(e.Value?.ToString())" />
+                @if (Current.IsHandicap)
+                {
+                    <span>@L.T("P1")</span>
+                    <input type="number" class="match-target" min="@MinHandicapTarget" max="@MaxHandicapTarget" step="1" inputmode="numeric"
+                           @key="(1, _matchInputKey)" value="@Current.Player1Target"
+                           @onchange="e => SetPlayerTargetFromInputAsync(1, e.Value?.ToString())" />
+                    <span>@L.T("P2")</span>
+                    <input type="number" class="match-target" min="@MinHandicapTarget" max="@MaxHandicapTarget" step="1" inputmode="numeric"
+                           @key="(2, _matchInputKey)" value="@Current.Player2Target"
+                           @onchange="e => SetPlayerTargetFromInputAsync(2, e.Value?.ToString())" />
+                }
+                else
+                {
+                    <input type="number" class="match-target" min="@MinMatchTarget" max="@MaxMatchTarget" step="1" inputmode="numeric"
+                           @key="_matchInputKey" value="@Current.MatchTarget"
+                           @onchange="e => SetMatchTargetFromInputAsync(e.Value?.ToString())" />
+                }
+                <button class="@(Current.IsHandicap ? "active" : "")" @onclick="() => DispatchAsync(ScoreboardCommand.ToggleHandicap)">@L.T("HandicapShort")</button>
             </div>
             <div class="control-group">
                 <span>@L.T("CurrentPoints")</span>
@@ -269,10 +293,10 @@ else
         <div class="player-picker-overlay" @onclick:stopPropagation="true">
             <div class="player-picker-dialog">
                 <h3>@L.T("MatchTargetReached")</h3>
-                <p class="picker-empty">@string.Format(L.T("MatchTargetReachedText"), GetDisplayName(MatchLeaderSlot), Current.MatchTarget)</p>
+                <p class="picker-empty">@string.Format(L.T("MatchTargetReachedText"), GetDisplayName(MatchLeaderSlot), TargetOf(MatchLeaderSlot))</p>
                 <div class="warmup-picker-options match-end-options">
-                    <button @onclick="() => DispatchAsync(ScoreboardCommand.ExtendMatch, 5)">+5 &rarr; @ExtendedTarget(5) <small>[5]</small></button>
-                    <button @onclick="() => DispatchAsync(ScoreboardCommand.ExtendMatch, 10)">+10 &rarr; @ExtendedTarget(10) <small>[0]</small></button>
+                    <button @onclick="() => DispatchAsync(ScoreboardCommand.ExtendMatch, 5)">+5 &rarr; @ExtendedLabel(5) <small>[5]</small></button>
+                    <button @onclick="() => DispatchAsync(ScoreboardCommand.ExtendMatch, 10)">+10 &rarr; @ExtendedLabel(10) <small>[0]</small></button>
                     <button @onclick="() => DispatchAsync(ScoreboardCommand.EndGame)">@L.T("EndMatch") <small>[E]</small></button>
                 </div>
             </div>
@@ -736,17 +760,93 @@ else
 
     private void SetMatchTarget(int target) => Current.MatchTarget = Math.Clamp(target, MinMatchTarget, MaxMatchTarget);
 
+    private const int MinHandicapTarget = 5;
+    private const int MaxHandicapTarget = 100;
+
+    private void ToggleHandicap()
+    {
+        Current.IsHandicap = !Current.IsHandicap;
+        if (Current.IsHandicap && Current.Player1Target == 0 && Current.Player2Target == 0)
+        {
+            Current.Player1Target = Current.Player2Target = Math.Clamp(Current.MatchTarget, MinHandicapTarget, MaxHandicapTarget);
+        }
+
+        _matchInputKey++;
+    }
+
+    private void SetPlayerTarget(int slot, int target)
+    {
+        var clamped = Math.Clamp(target, MinHandicapTarget, MaxHandicapTarget);
+        if (slot == 1)
+        {
+            Current.Player1Target = clamped;
+        }
+        else
+        {
+            Current.Player2Target = clamped;
+        }
+    }
+
+    private int TargetOf(int slot) =>
+        Current.IsHandicap ? (slot == 1 ? Current.Player1Target : Current.Player2Target) : Current.MatchTarget;
+
+    private int ScoreOf(int slot) => slot == 1 ? Current.Player1Score : Current.Player2Score;
+
+    private bool ReachedTarget(int slot) => TargetOf(slot) > 0 && ScoreOf(slot) >= TargetOf(slot);
+
+    private bool TargetReached => Current.IsHandicap
+        ? ReachedTarget(1) || ReachedTarget(2)
+        : Current.MatchTarget > 0 && Math.Max(Current.Player1Score, Current.Player2Score) >= Current.MatchTarget;
+
+    private double TargetProgress(int slot) => TargetOf(slot) > 0 ? (double)ScoreOf(slot) / TargetOf(slot) : 0;
+
     private bool _showMatchEnd;
 
-    private int MatchLeaderSlot => Current.Player1Score >= Current.Player2Score ? 1 : 2;
+    private int MatchLeaderSlot => Current.IsHandicap
+        ? (ReachedTarget(1) && !ReachedTarget(2) ? 1 : ReachedTarget(2) && !ReachedTarget(1) ? 2 : TargetProgress(1) >= TargetProgress(2) ? 1 : 2)
+        : Current.Player1Score >= Current.Player2Score ? 1 : 2;
+
+    private int ExtendedTargetOf(int slot, int extraPoints) =>
+        Math.Max(TargetOf(slot), ScoreOf(slot)) + extraPoints;
 
     private int ExtendedTarget(int extraPoints) =>
         Math.Max(Current.MatchTarget, Math.Max(Current.Player1Score, Current.Player2Score)) + extraPoints;
 
+    private string ExtendedLabel(int extraPoints) => Current.IsHandicap
+        ? $"{ExtendedTargetOf(1, extraPoints)} │ {ExtendedTargetOf(2, extraPoints)}"
+        : ExtendedTarget(extraPoints).ToString();
+
     private void ExtendMatch(int extraPoints)
     {
-        Current.MatchTarget = ExtendedTarget(extraPoints);
+        if (Current.IsHandicap)
+        {
+            var player1Target = ExtendedTargetOf(1, extraPoints);
+            Current.Player2Target = ExtendedTargetOf(2, extraPoints);
+            Current.Player1Target = player1Target;
+        }
+        else
+        {
+            Current.MatchTarget = ExtendedTarget(extraPoints);
+        }
+
         _showMatchEnd = false;
+    }
+
+    private int DetermineWinner()
+    {
+        if (Current.IsHandicap)
+        {
+            if (ReachedTarget(1) != ReachedTarget(2))
+            {
+                return ReachedTarget(1) ? 1 : 2;
+            }
+
+            return TargetProgress(1) > TargetProgress(2) ? 1 : TargetProgress(2) > TargetProgress(1) ? 2 : 0;
+        }
+
+        return Current.Player1Score > Current.Player2Score ? 1
+            : Current.Player2Score > Current.Player1Score ? 2
+            : 0;
     }
 
     private void StopShotClock() => Current.ShotClockActive = false;
@@ -778,8 +878,7 @@ else
 
     private int? PointsToGo(int slot)
     {
-        var score = slot == 1 ? Current.Player1Score : Current.Player2Score;
-        var remaining = Current.MatchTarget - score;
+        var remaining = TargetOf(slot) - ScoreOf(slot);
         return remaining is > 0 and <= PointsToGoThreshold ? remaining : null;
     }
 
@@ -824,7 +923,7 @@ else
             Points = points
         });
 
-        if (!_gameEnded && Current.MatchTarget > 0 && Math.Max(Current.Player1Score, Current.Player2Score) >= Current.MatchTarget)
+        if (!_gameEnded && TargetReached)
         {
             _showMatchEnd = true;
             Current.ShotClockActive = false;
@@ -843,9 +942,7 @@ else
             return;
         }
 
-        var winner = Current.Player1Score > Current.Player2Score ? 1
-            : Current.Player2Score > Current.Player1Score ? 2
-            : 0;
+        var winner = DetermineWinner();
         var matchResult = new MatchResult
         {
             PlayedAt = DateTime.Now,
@@ -861,6 +958,9 @@ else
             Player2HighRun = Current.Player2HighRun,
             Inning = Current.Inning,
             MatchTarget = Current.MatchTarget,
+            IsHandicap = Current.IsHandicap,
+            Player1Target = Current.IsHandicap ? Current.Player1Target : 0,
+            Player2Target = Current.IsHandicap ? Current.Player2Target : 0,
             Winner = winner,
             StartedAt = _gameStartedAt,
             EndedAt = DateTime.Now
@@ -912,7 +1012,10 @@ else
         Current.Player1Id = DefaultPlayerId(1);
         Current.Player2Id = DefaultPlayerId(2);
         Current.Player1Name = "";
-        Current.Player2Name = "";        
+        Current.Player2Name = "";
+        Current.IsHandicap = false;
+        Current.Player1Target = 0;
+        Current.Player2Target = 0;
         Current.ShotClockActive = false;
         Current.ShotClockRemaining = Current.ShotClockSeconds;
         ResolvePlayers();
@@ -1076,6 +1179,21 @@ else
                     SetMatchTarget(matchTarget);
                 }
                 break;
+            case ScoreboardCommand.ToggleHandicap:
+                ToggleHandicap();
+                break;
+            case ScoreboardCommand.SetPlayer1Target:
+                if (GetIntPayload(payload) is int player1Target)
+                {
+                    SetPlayerTarget(1, player1Target);
+                }
+                break;
+            case ScoreboardCommand.SetPlayer2Target:
+                if (GetIntPayload(payload) is int player2Target)
+                {
+                    SetPlayerTarget(2, player2Target);
+                }
+                break;
             case ScoreboardCommand.SelectRosterPlayer1:
                 if (GetIntPayload(payload) is int rosterPlayer1Id)
                 {
@@ -1120,6 +1238,16 @@ else
 
     private Task DispatchAsync(ScoreboardCommand command, object? payload = null) =>
         ApplyCommandsAsync([new ScoreboardCommandMessage(command, payload is null ? null : JsonSerializer.SerializeToElement(payload))]);
+
+    private async Task SetPlayerTargetFromInputAsync(int slot, string? value)
+    {
+        if (int.TryParse(value, out var target))
+        {
+            await DispatchAsync(slot == 1 ? ScoreboardCommand.SetPlayer1Target : ScoreboardCommand.SetPlayer2Target, target);
+        }
+
+        _matchInputKey++;
+    }
 
     private async Task SetMatchTargetFromInputAsync(string? value)
     {

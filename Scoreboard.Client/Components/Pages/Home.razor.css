@@ -461,6 +461,30 @@
     color: var(--red);
 }
 
+.hcp-badge {
+    margin-left: 0.5em;
+    padding: 0 0.4em;
+    border: 1px solid var(--red);
+    border-radius: 3px;
+    color: var(--red);
+    font-size: 0.7em;
+    letter-spacing: 0.08em;
+}
+
+.stat-value.handicap-targets {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-size: clamp(1.1rem, 2.2vw, 2rem);
+}
+
+.handicap-divider {
+    width: 2px;
+    align-self: stretch;
+    min-height: 1.1em;
+    background: var(--red-dark);
+}
+
 .controls-overlay {
     position: fixed;
     left: 1.2vw;

@@ -134,7 +134,26 @@ public static class DbInitializerExtension
         );
         """);
 
+        foreach (var table in new[] { "scoreboard_state", "match_result" })
+        {
+            AddColumnIfMissing(db, table, "IsHandicap", "INTEGER NOT NULL DEFAULT 0");
+            AddColumnIfMissing(db, table, "Player1Target", "INTEGER NOT NULL DEFAULT 0");
+            AddColumnIfMissing(db, table, "Player2Target", "INTEGER NOT NULL DEFAULT 0");
+        }
+
         return sp;
+    }
+
+    private static void AddColumnIfMissing(DataContext db, string table, string column, string definition)
+    {
+        if (Count(db, $"SELECT COUNT(*) AS Value FROM pragma_table_info('{table}') WHERE name = '{column}'") > 0)
+        {
+            return;
+        }
+
+#pragma warning disable EF1002
+        db.Database.ExecuteSqlRaw($"ALTER TABLE {table} ADD COLUMN {column} {definition}");
+#pragma warning restore EF1002
     }
 
     private static int Count(DataContext db, string sql) =>
