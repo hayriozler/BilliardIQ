@@ -10,7 +10,7 @@ public static class ApiRoles
 
 public sealed record ApiOrganization(int Id, string Name);
 
-public sealed record ApiUser(int Id, string DisplayName, string? Email, string Locale, int? PlayerId);
+public sealed record ApiUser(int Id, string DisplayName, string? Email, string Locale, int? PlayerId, string? Phone = null);
 
 public sealed record ApiSession(
     string AccessToken,
@@ -58,6 +58,19 @@ public sealed record ManagePlayerDto(int Id, string Nickname, string Name, strin
 public sealed record ManageTeamPlayerDto(int Id, string Nickname, string Name);
 
 public sealed record ManageTeamDto(int Id, string Name, List<ManageTeamPlayerDto> Players, int? AvatarId);
+
+public sealed record FullProfileDto(
+    int Id, string FirstName, string LastName, string? Nickname, string DisplayName, int? AvatarId, string? PhotoUrl,
+    int Level, int? ShortcutNumber, string? BirthDate, int? Gender, int? Handedness,
+    string? LicenseNo, string? LicenseValidUntil, string? AssociationName, string? RegionName, string? CountryName, string? CityName,
+    string? Email, string? Phone, string? Locale, bool HasAccount, List<string> Clubs, List<string> Teams);
+
+public sealed record OwnProfileRequest(
+    string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
+    int? Level, string? LicenseNo, string? LicenseValidUntil, string? BirthDate, int? Gender, int? Handedness,
+    string? Phone, string? Locale);
+
+public sealed record AvatarCountDto(int Count);
 
 public sealed record RankingRowDto(int Rank, int PlayerId, string Name, int? AvatarId, string? PhotoUrl, int Matches, int Wins, int Losses, double WinPercent, double AveragePerInning, double BestAverage, int BestHighRun);
 

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Auth"
+    x:DataType="pageModels:AvatarPickerPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Auth.AvatarPickerViewPage"
+    x:Name="AvatarPickerPage"
+    Shell.FlyoutBehavior="Disabled"
+    Title="{Binding L[Account_ChooseAvatar]}">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=AvatarPickerPage}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </ContentPage.Behaviors>
+
+    <Grid RowDefinitions="Auto, Auto, *" RowSpacing="8">
+        <Label Grid.Row="0" Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13" IsVisible="{Binding HasError}" />
+        <ProgressBar Grid.Row="1" IsVisible="{Binding IsLoading}" Progress="0.5" />
+
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Cells}" SelectionMode="None">
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout Orientation="Vertical" Span="4" HorizontalItemSpacing="8" VerticalItemSpacing="8" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="pageModels:AvatarCell">
+                    <Border StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F2F2F2, Dark=#2A2A2A}" HeightRequest="76">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectCommand}"
+                                CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <Image Source="{Binding Image}" Aspect="AspectFit" Margin="4" />
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</basePages:BasePage>
