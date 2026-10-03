@@ -22,7 +22,16 @@ public partial class LoginPageModel(AuthService auth) : BasePageModel
     [NotifyPropertyChangedFor(nameof(IsIdle))]
     public partial bool IsBusy { get; set; }
 
-    public bool HasError => ErrorMessage.Length > 0;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPasswordHidden))]
+    [NotifyPropertyChangedFor(nameof(PasswordToggleGlyph))]
+    public partial bool ShowPassword { get; set; }
+
+    public bool IsPasswordHidden => !ShowPassword;
+
+    public string PasswordToggleGlyph => ShowPassword ? "🙈" : "👁";
+
+    public bool HasError =>ErrorMessage.Length > 0;
 
     public bool IsIdle => !IsBusy;
 
@@ -75,6 +84,9 @@ public partial class LoginPageModel(AuthService auth) : BasePageModel
             IsBusy = false;
         }
     }
+
+    [RelayCommand]
+    private void TogglePassword() => ShowPassword = !ShowPassword;
 
     [RelayCommand]
     private Task Register() => Shell.Current.GoToAsync("register");
