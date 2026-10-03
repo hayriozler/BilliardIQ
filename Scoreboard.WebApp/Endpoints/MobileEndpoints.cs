@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Scoreboard.Common;
 using Scoreboard.WebApp.Data;
 using Scoreboard.WebApp.Security;
 using Scoreboard.WebApp.Services;
@@ -28,6 +29,10 @@ public static class MobileEndpoints
     public static IEndpointRouteBuilder MapMobileEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/mobile").WithTags("Mobile");
+
+        group.MapGet("/avatars/{seed:int}", (int seed) =>
+            Results.Text(AvatarGenerator.ToSvg(seed, 128), "image/svg+xml"))
+            .AllowAnonymous();
 
         var auth = group.MapGroup("/auth");
 
