@@ -63,11 +63,12 @@ builder.Services.AddSingleton<LanguageSync>();
 builder.Services.AddScoped<BoardSessionTracker>();
 builder.Services.AddScoped<CircuitHandler, BoardCircuitHandler>();
 builder.Services.Configure<RemoteSyncOptions>(builder.Configuration.GetSection("RemoteSync"));
-builder.Services.AddHttpClient(nameof(RemoteSyncService), c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddTransient<TransientRetryHandler>();
+builder.Services.AddHttpClient(nameof(RemoteSyncService), c => c.Timeout = Timeout.InfiniteTimeSpan).AddHttpMessageHandler<TransientRetryHandler>();
 builder.Services.AddHostedService<RemoteSyncService>();
 builder.Services.AddSingleton<ServerClock>();
 builder.Services.AddTransient<ServerClockHandler>();
-builder.Services.AddHttpClient(nameof(RemotePullService), c => c.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ServerClockHandler>();
+builder.Services.AddHttpClient(nameof(RemotePullService), c => c.Timeout = Timeout.InfiniteTimeSpan).AddHttpMessageHandler<TransientRetryHandler>().AddHttpMessageHandler<ServerClockHandler>();
 builder.Services.AddHostedService<RemotePullService>();
 
 var app = builder.Build();
