@@ -11,6 +11,7 @@
     xmlns:scoreboard="clr-namespace:BilliardIQ.Mobile.Pages.Scoreboard"
     xmlns:admin="clr-namespace:BilliardIQ.Mobile.Pages.Admin"
     xmlns:manage="clr-namespace:BilliardIQ.Mobile.Pages.Manage"
+    xmlns:ranking="clr-namespace:BilliardIQ.Mobile.Pages.Ranking"
     xmlns:stats="clr-namespace:BilliardIQ.Mobile.Pages.Stats"
     xmlns:ssh="clr-namespace:BilliardIQ.Mobile.Pages.Ssh"
     Shell.FlyoutBehavior="Flyout"
@@ -60,6 +61,12 @@
         Title="Management"
         ContentTemplate="{DataTemplate manage:ManageListViewPage}"
         Route="manage" />
+
+    <ShellContent
+        x:Name="RankingContent"
+        Title="Ranking"
+        ContentTemplate="{DataTemplate ranking:RankingViewPage}"
+        Route="ranking" />
 
     <FlyoutItem x:Name="ScoreboardItem" Title="Scoreboard Admin">
         <Tab Title="Score">

@@ -59,7 +59,9 @@ public sealed record ManageTeamPlayerDto(int Id, string Nickname, string Name);
 
 public sealed record ManageTeamDto(int Id, string Name, List<ManageTeamPlayerDto> Players, int? AvatarId);
 
+public sealed record RankingRowDto(int Rank, int PlayerId, string Name, int? AvatarId, string? PhotoUrl, int Matches, int Wins, int Losses, double WinPercent, double AveragePerInning, double BestAverage, int BestHighRun);
 
+public sealed record StatsOverviewDto(int ActivePlayers, int PlayerMatches, double AveragePerInning, RankingRowDto? TopAverage, RankingRowDto? TopHighRun, RankingRowDto? MostWins, RankingRowDto? MostMatches);
 
 public sealed class ApiException(int statusCode, string message) : Exception(message)
 {

@@ -5,6 +5,8 @@ using BilliardIQ.Mobile.Pages.Auth;
 using BilliardIQ.Mobile.Services.Api;
 using BilliardIQ.Mobile.PageModels.Admin;
 using BilliardIQ.Mobile.PageModels.Manage;
+using BilliardIQ.Mobile.PageModels.Ranking;
+using BilliardIQ.Mobile.Pages.Ranking;
 using BilliardIQ.Mobile.Pages.Manage;
 using BilliardIQ.Mobile.PageModels.Analyzers;
 using BilliardIQ.Mobile.PageModels.ConnectionPageModels;
@@ -117,6 +119,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<AvatarImageService>();
         builder.Services.AddSingleton<PlayerHomePageModel>();
         builder.Services.AddSingleton<PlayerHomeViewPage>();
+        builder.Services.AddSingleton<RankingPageModel>();
+        builder.Services.AddSingleton<RankingViewPage>();
         builder.Services.AddSingleton<ManageListPageModel>();
         builder.Services.AddSingleton<ManageListViewPage>();
         builder.Services.AddSingleton<AppShell>();
