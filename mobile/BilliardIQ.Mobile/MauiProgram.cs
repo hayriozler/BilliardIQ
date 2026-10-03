@@ -121,6 +121,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ManageListViewPage>();
         builder.Services.AddSingleton<AppShell>();
         builder.Services.AddTransientWithShellRoute<RegisterViewPage, RegisterPageModel>("register");
+        builder.Services.AddTransientWithShellRoute<ForgotPasswordViewPage, ForgotPasswordPageModel>("forgotpassword");
         builder.Services.AddTransientWithShellRoute<NewGameViewPage, NewGamePageModel>("newgame");
         builder.Services.AddTransientWithShellRoute<AddScoreboardPlayerViewPage, AddScoreboardPlayerPageModel>("addscoreboardplayer");
         builder.Services.AddTransientWithShellRoute<PlayerStatsDetailViewPage, PlayerStatsDetailPageModel>("playerstatsdetail");

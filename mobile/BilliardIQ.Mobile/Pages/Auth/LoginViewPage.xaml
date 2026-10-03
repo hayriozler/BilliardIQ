@@ -53,6 +53,11 @@
             <Button Text="{Binding L[Auth_SignIn]}"
                     Command="{Binding SignInCommand}"
                     IsEnabled="{Binding IsIdle}" />
+            <Button Text="{Binding L[Forgot_Link]}"
+                    Command="{Binding ForgotPasswordCommand}"
+                    IsEnabled="{Binding IsIdle}"
+                    BackgroundColor="Transparent"
+                    TextColor="Gray" />
             <Button Text="{Binding L[Auth_HaveInvite]}"
                     Command="{Binding RegisterCommand}"
                     IsEnabled="{Binding IsIdle}"

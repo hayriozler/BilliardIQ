@@ -50,6 +50,12 @@ public sealed class AuthService(ApiClient api, SessionStore session)
         return session.Current!;
     }
 
+    public Task RequestPasswordResetAsync(string email) =>
+        api.PostAsync("api/mobile/auth/forgot-password", new ForgotPasswordRequest(email), authorize: false);
+
+    public Task ResetPasswordAsync(string email, string code, string newPassword) =>
+        api.PostAsync("api/mobile/auth/reset-password", new ResetPasswordRequest(email, code, newPassword), authorize: false);
+
     public async Task<ApiSession> ChangePasswordAsync(string currentPassword, string newPassword)
     {
         var result = await api.PostAsync<ApiSession>("api/mobile/auth/password", new ChangePasswordRequest(currentPassword, newPassword));

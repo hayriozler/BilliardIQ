@@ -33,6 +33,10 @@ public sealed record ChangePasswordRequest(string CurrentPassword, string NewPas
 
 public sealed record InviteRegisterRequest(string Code, string Email, string Password, string? DeviceName);
 
+public sealed record ForgotPasswordRequest(string Email);
+
+public sealed record ResetPasswordRequest(string Email, string Code, string NewPassword);
+
 public sealed record ChangeEmailRequest(string Email, string Password);
 
 public sealed record UpdateProfileRequest(string? DisplayName, string? Locale, string? Phone);
@@ -54,6 +58,8 @@ public sealed record ManagePlayerDto(int Id, string Nickname, string Name, strin
 public sealed record ManageTeamPlayerDto(int Id, string Nickname, string Name);
 
 public sealed record ManageTeamDto(int Id, string Name, List<ManageTeamPlayerDto> Players, int? AvatarId);
+
+
 
 public sealed class ApiException(int statusCode, string message) : Exception(message)
 {

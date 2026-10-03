@@ -89,5 +89,8 @@ public partial class LoginPageModel(AuthService auth) : BasePageModel
     private void TogglePassword() => ShowPassword = !ShowPassword;
 
     [RelayCommand]
+    private Task ForgotPassword() => Shell.Current.GoToAsync("forgotpassword");
+
+    [RelayCommand]
     private Task Register() => Shell.Current.GoToAsync("register");
 }
