@@ -196,6 +196,16 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         sessions.Invalidate(userId);
     }
 
+    public async Task SetPasswordAsync(User user, string newPassword)
+    {
+        ValidatePassword(newPassword);
+        user.PasswordHash = _hasher.HashPassword(user, newPassword);
+        user.RotateSecurityStamp();
+        user.MustChangePassword = false;
+        await db.SaveChangesAsync();
+        sessions.Invalidate(user.Id);
+    }
+
     private static void ValidatePassword(string password)
     {
         if (string.IsNullOrEmpty(password) || password.Length < MinPasswordLength)

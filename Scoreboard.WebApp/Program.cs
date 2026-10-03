@@ -36,6 +36,8 @@ builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingAuthenticati
 builder.Services.AddCredentialRateLimiting();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<MobileAuthService>();
+builder.Services.AddScoped<PasswordResetService>();
+builder.Services.AddSingleton<IPasswordResetNotifier, LoggingPasswordResetNotifier>();
 
 var jwt = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
 if (string.IsNullOrWhiteSpace(jwt.Key) && builder.Environment.IsDevelopment())

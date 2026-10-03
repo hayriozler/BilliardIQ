@@ -42,3 +42,14 @@ public class ExternalMatch : BaseEntity, ITenantScoped
 
     public Player Player { get; set; } = default!;
 }
+
+public class PasswordResetCode : BaseEntity
+{
+    public int UserId { get; set; }
+    public string CodeHash { get; set; } = default!;
+    public DateTimeOffset ExpiresAt { get; set; }
+    public DateTimeOffset? UsedAt { get; set; }
+    public int Attempts { get; set; }
+
+    public User User { get; set; } = default!;
+}

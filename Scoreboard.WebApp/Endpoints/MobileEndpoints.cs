@@ -10,6 +10,8 @@ public record MobileLoginRequest(string Email, string Password, string? DeviceNa
 public record MobileRefreshRequest(string RefreshToken);
 public record MobileOrganizationRequest(int OrganizationId);
 public record MobilePasswordRequest(string CurrentPassword, string NewPassword);
+public record MobileForgotPasswordRequest(string Email);
+public record MobileResetPasswordRequest(string Email, string Code, string NewPassword);
 public record MobileInviteRegisterRequest(string Code, string Email, string Password, string? DeviceName);
 public record MobileProfileRequest(string? DisplayName, string? Locale, string? Phone);
 public record MobileEmailRequest(string Email, string Password);
@@ -59,6 +61,25 @@ public static class MobileEndpoints
             try
             {
                 return Results.Ok(await mobile.RegisterWithInviteAsync(request.Code, request.Email, request.Password, request.DeviceName));
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(loc.Error(ex));
+            }
+        }).RequireRateLimiting(RateLimitPolicies.Credentials);
+
+        auth.MapPost("/forgot-password", async (MobileForgotPasswordRequest request, PasswordResetService reset) =>
+        {
+            await reset.RequestAsync(request.Email);
+            return Results.NoContent();
+        }).RequireRateLimiting(RateLimitPolicies.Credentials);
+
+        auth.MapPost("/reset-password", async (MobileResetPasswordRequest request, PasswordResetService reset, Loc loc) =>
+        {
+            try
+            {
+                await reset.ResetAsync(request.Email, request.Code, request.NewPassword);
+                return Results.NoContent();
             }
             catch (ArgumentException ex)
             {

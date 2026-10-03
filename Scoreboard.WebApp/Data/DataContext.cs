@@ -23,6 +23,7 @@ public class DataContext : DbContext
     public DbSet<RefreshToken> RefreshTokenSet => Set<RefreshToken>();
     public DbSet<PlayerInvite> PlayerInviteSet => Set<PlayerInvite>();
     public DbSet<ExternalMatch> ExternalMatchSet => Set<ExternalMatch>();
+    public DbSet<PasswordResetCode> PasswordResetCodeSet => Set<PasswordResetCode>();
     public DbSet<Club> ClubSet => Set<Club>();
     public DbSet<Association> AssociationSet => Set<Association>();
     public DbSet<Region> RegionSet => Set<Region>();
@@ -117,6 +118,13 @@ public class DataContext : DbContext
             e.HasIndex(i => i.Code).IsUnique();
             e.Property(i => i.Code).HasMaxLength(20);
             e.HasOne(i => i.Player).WithMany().HasForeignKey(i => i.PlayerId);
+        });
+
+        modelBuilder.Entity<PasswordResetCode>(e =>
+        {
+            e.HasIndex(c => new { c.UserId, c.CreatedAt });
+            e.Property(c => c.CodeHash).HasMaxLength(100);
+            e.HasOne(c => c.User).WithMany().HasForeignKey(c => c.UserId);
         });
 
         modelBuilder.Entity<ExternalMatch>(e =>
