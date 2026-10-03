@@ -278,6 +278,7 @@ app.MapScoreboardEndpoints();
 app.MapMobileEndpoints();
 app.MapMobileManageEndpoints();
 app.MapMobileExternalMatchEndpoints();
+app.MapMobileStatsEndpoints();
 
 app.MapPost("/culture", async (HttpContext context, DataContext db, SystemPlayerService systemPlayers, [FromForm] string lang, [FromForm] string? returnUrl) =>
 {
