@@ -358,11 +358,23 @@ else
             <div class="player-picker-dialog">
                 <h3>@L.T("ChooseWarmUpDuration")</h3>
                 <div class="warmup-picker-options">
-                    <button @onclick="() => StartWarmup(5)">5 @L.T("MinutesUnit")</button>
-                    <button @onclick="() => StartWarmup(10)">10 @L.T("MinutesUnit")</button>
-                    <button @onclick="() => StartWarmup(15)">15 @L.T("MinutesUnit")</button>
+                    <button @onclick="() => StartWarmup(5)">5 @L.T("MinutesUnit") <small>[1]</small></button>
+                    <button @onclick="() => StartWarmup(10)">10 @L.T("MinutesUnit") <small>[2]</small></button>
+                    <button @onclick="() => StartWarmup(15)">15 @L.T("MinutesUnit") <small>[3]</small></button>
                 </div>
-                <button class="picker-close" @onclick="CloseWarmupPicker">@L.T("Close")</button>
+                <button class="picker-close" @onclick="CloseWarmupPicker">@L.T("Close") <small>[.]</small></button>
+            </div>
+        </div>
+    }
+
+    @if (_targetEntrySlot != 0)
+    {
+        <div class="player-picker-overlay" @onclick:stopPropagation="true">
+            <div class="player-picker-dialog">
+                <h3>@TargetEntryTitle</h3>
+                <div class="picker-buffer">@(_targetBuffer.Length > 0 ? _targetBuffer : TargetOf(_targetEntrySlot).ToString())</div>
+                <p class="picker-empty">@L.T("TargetEntryHint")</p>
+                <button class="picker-close" @onclick="CloseTargetEntry">@L.T("Close") <small>[.]</small></button>
             </div>
         </div>
     }
@@ -425,7 +437,7 @@ else
                 }
 
                 break;
-            case "Backspace":
+            case "Backspace" or "." or "Delete":
                 if (_pickerBuffer.Length > 0)
                 {
                     _pickerBuffer = _pickerBuffer[..^1];
@@ -689,6 +701,85 @@ else
     }
 
     private void StartWarmup(int minutes) => Nav.NavigateTo($"/warmup/{minutes}");
+
+    private int _targetEntrySlot;
+    private string _targetBuffer = "";
+
+    private string TargetEntryTitle => Current.IsHandicap ? $"{L.T("Match")} {L.T(_targetEntrySlot == 1 ? "P1" : "P2")}" : L.T("Match");
+
+    private void OpenTargetEntry()
+    {
+        _targetEntrySlot = 1;
+        _targetBuffer = "";
+        StateHasChanged();
+    }
+
+    private void CloseTargetEntry()
+    {
+        _targetEntrySlot = 0;
+        _targetBuffer = "";
+    }
+
+    private async Task HandleTargetKeyAsync(string key)
+    {
+        switch (key)
+        {
+            case { Length: 1 } when char.IsDigit(key[0]):
+                if (_targetBuffer.Length < 3)
+                {
+                    _targetBuffer += key;
+                }
+
+                break;
+            case "." or "Delete" or "Backspace":
+                if (_targetBuffer.Length > 0)
+                {
+                    _targetBuffer = _targetBuffer[..^1];
+                }
+                else
+                {
+                    CloseTargetEntry();
+                }
+
+                break;
+            case "Escape":
+                CloseTargetEntry();
+                break;
+            case "Enter":
+                await CommitTargetEntryAsync();
+                return;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task CommitTargetEntryAsync()
+    {
+        if (int.TryParse(_targetBuffer, out var value))
+        {
+            if (Current.IsHandicap)
+            {
+                await DispatchAsync(_targetEntrySlot == 1 ? ScoreboardCommand.SetPlayer1Target : ScoreboardCommand.SetPlayer2Target, value);
+            }
+            else
+            {
+                await DispatchAsync(ScoreboardCommand.SetMatchTarget, value);
+            }
+        }
+
+        _targetBuffer = "";
+        if (Current.IsHandicap && _targetEntrySlot == 1)
+        {
+            _targetEntrySlot = 2;
+        }
+        else
+        {
+            CloseTargetEntry();
+            _matchInputKey++;
+        }
+
+        StateHasChanged();
+    }
 
     private bool IsTakenByOtherSide(int slot, int playerId) =>
         playerId == (slot == 1 ? Current.Player2Id : Current.Player1Id);
@@ -1070,6 +1161,33 @@ else
             return;
         }
 
+        if (_showWarmupPicker)
+        {
+            switch (e.Key)
+            {
+                case "1" or "End":
+                    StartWarmup(5);
+                    break;
+                case "2" or "ArrowDown":
+                    StartWarmup(10);
+                    break;
+                case "3" or "PageDown":
+                    StartWarmup(15);
+                    break;
+                case "." or "Delete" or "Backspace" or "Escape":
+                    CloseWarmupPicker();
+                    break;
+            }
+
+            return;
+        }
+
+        if (_targetEntrySlot != 0)
+        {
+            await HandleTargetKeyAsync(e.Key);
+            return;
+        }
+
         if (_showPlayerPicker is { } pickerSlot)
         {
             await HandlePickerKeyAsync(pickerSlot, e.Key);
@@ -1095,9 +1213,15 @@ else
             return;
         }
 
-        if (e.Key is "w" or "W" or "5")
+        if (e.Key is "w" or "W" or "5" or "Clear")
         {
             OpenWarmupPicker();
+            return;
+        }
+
+        if (e.Key is "/")
+        {
+            OpenTargetEntry();
             return;
         }
 
@@ -1106,8 +1230,9 @@ else
             "c" or "C" or "9" or "PageUp" => ScoreboardCommand.ToggleControls,
             "t" or "T" or "3" or "PageDown" => ScoreboardCommand.ToggleShotClock,
             "r" or "R" or "6" or "ArrowRight" => ScoreboardCommand.ResetShotClock,
-            "1" => ScoreboardCommand.SelectPlayer1,
-            "2" => ScoreboardCommand.SelectPlayer2,
+            "1" or "End" => ScoreboardCommand.SelectPlayer1,
+            "2" or "ArrowDown" => ScoreboardCommand.SelectPlayer2,
+            "*" => ScoreboardCommand.ToggleHandicap,
             "+" or "=" => ScoreboardCommand.IncrementPoints,
             "-" or "_" => ScoreboardCommand.DecrementPoints,
             "Enter" => ScoreboardCommand.CommitPoints,
