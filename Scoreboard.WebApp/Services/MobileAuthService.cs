@@ -10,7 +10,7 @@ namespace Scoreboard.WebApp.Services;
 
 public record MobileOrganization(int Id, string Name);
 
-public record MobileUser(int Id, string DisplayName, string? Email, string Locale, int? PlayerId);
+public record MobileUser(int Id, string DisplayName, string? Email, string Locale, int? PlayerId, string? Phone = null);
 
 public record MobileSession(
     string AccessToken,
@@ -387,7 +387,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         return new MobileSession(
             access, expiresAt, rawRefreshToken, identity.Role, user.MustChangePassword,
             identity.Organization is null,
-            new MobileUser(user.Id, user.DisplayName, user.Email, user.Locale, identity.Player?.Id),
+            new MobileUser(user.Id, user.DisplayName, user.Email, user.Locale, identity.Player?.Id, user.Phone),
             identity.Organization,
             identity.Organizations);
     }
