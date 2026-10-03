@@ -21,7 +21,8 @@ public record PlayerMatchEntry(
     int BucketMinutes,
     IReadOnlyList<int> PaceBuckets,
     int PlayerTarget = 0,
-    int OpponentTarget = 0);
+    int OpponentTarget = 0,
+    bool IsHandicap = false);
 
 public record StatSummary(
     int Matches,
@@ -77,9 +78,8 @@ public class StatsService(DataContext db)
 
         var entries = (await EntriesByPlayerAsync(since, until, includeBuckets: true, onlyPlayerId: playerId))
             .GetValueOrDefault(playerId) ?? [];
-        var handicapEntries = (await EntriesByPlayerAsync(since, until, includeBuckets: false, onlyPlayerId: playerId, handicap: true))
-            .GetValueOrDefault(playerId) ?? [];
-        return new PlayerStatDetail(player, Summarize(entries), entries, handicapEntries);
+        return new PlayerStatDetail(player, Summarize(entries),
+            entries, entries.Where(e => e.IsHandicap).ToList());
     }
 
     public async Task<List<TeamStatRow>> TeamsAsync(DateTimeOffset? since = null, DateTimeOffset? until = null)
@@ -145,9 +145,9 @@ public class StatsService(DataContext db)
             .OrderBy(t => t.Name)
             .ToListAsync();
 
-    private async Task<Dictionary<int, List<PlayerMatchEntry>>> EntriesByPlayerAsync(DateTimeOffset? since, DateTimeOffset? until, bool includeBuckets, int? onlyPlayerId = null, bool handicap = false)
+    private async Task<Dictionary<int, List<PlayerMatchEntry>>> EntriesByPlayerAsync(DateTimeOffset? since, DateTimeOffset? until, bool includeBuckets, int? onlyPlayerId = null)
     {
-        var query = db.MatchStatSet.AsNoTracking().Where(s => s.IsHandicap == handicap);
+        var query = db.MatchStatSet.AsNoTracking();
         if (since is not null)
         {
             query = query.Where(s => s.PlayedAt >= since);
@@ -222,7 +222,8 @@ public class StatsService(DataContext db)
             s.Winner == slot,
             slot, s.BucketMinutes, buckets,
             first ? s.Player1Target : s.Player2Target,
-            first ? s.Player2Target : s.Player1Target));
+            first ? s.Player2Target : s.Player1Target,
+            s.IsHandicap));
     }
 
     public static StatSummary Summarize(IReadOnlyCollection<PlayerMatchEntry> entries)

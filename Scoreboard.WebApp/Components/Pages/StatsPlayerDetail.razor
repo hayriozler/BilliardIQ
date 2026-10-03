@@ -48,6 +48,7 @@ else if (_detail is not null)
     {
         var matches = _detail.Matches;
         var latest = matches[^1];
+        var normalMatches = matches.Where(m => !m.IsHandicap).ToList();
         <div class="split" style="margin-top:1rem">
             <div class="card">
                 <h2>@L["Maça göre el sayısı"]</h2>
@@ -70,13 +71,15 @@ else if (_detail is not null)
             </div>
         </div>
 
+        @if (normalMatches.Count > 0)
+        {
         <div class="card">
-            <h2>@L["Maç geçmişi"] (@matches.Count)</h2>
+            <h2>@L["Maç geçmişi"] (@normalMatches.Count)</h2>
             <div class="table-wrap">
                 <table>
                     <thead><tr><th></th><th>@L["Rakip"]</th><th>@L["Tarih"]</th><th class="num">@L["Skor"]</th><th class="num">@L["El"]</th><th class="num">@L["Ort. / El"]</th><th class="num">@L["En yüksek seri"]</th><th>@L["Masa"]</th></tr></thead>
                     <tbody>
-                        @foreach (var m in matches.OrderByDescending(m => m.PlayedAt))
+                        @foreach (var m in normalMatches.OrderByDescending(m => m.PlayedAt))
                         {
                             <tr>
                                 <td><span class="pill @(m.Won ? "available" : "off")">@(m.Won ? L["G"] : L["M"])</span></td>
@@ -97,6 +100,7 @@ else if (_detail is not null)
                 </table>
             </div>
         </div>
+        }
     }
 
     @if (_detail.HandicapMatches.Count > 0)
