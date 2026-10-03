@@ -3,37 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BilliardIQ Skor Tahtası Kısayolları</title>
+<title>Zeymera BilliardIQ Skor Tahtası Kısayolları</title>
 <style>
-  @page { size: A4; margin: 12mm; }
+  @page { size: A4; margin: 9mm; }
   * { box-sizing: border-box; }
-  body { font-family: "Segoe UI", Arial, sans-serif; color: #111; margin: 0; padding: 16px; font-size: 13px; line-height: 1.35; }
-  h1 { font-size: 22px; margin: 0 0 2px; }
-  .sub { color: #555; margin-bottom: 12px; }
-  h2 { font-size: 15px; margin: 14px 0 5px; padding: 3px 8px; background: #8b0f1a; color: #fff; border-radius: 3px; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-  th, td { border: 1px solid #999; padding: 4px 8px; text-align: left; vertical-align: top; }
-  th { background: #eee; font-size: 12px; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #111; margin: 0; padding: 10px; font-size: 12.5px; line-height: 1.28; }
+  h1 { font-size: 21px; margin: 0; }
+  .sub { color: #444; margin: 2px 0 8px; font-size: 11.5px; }
+  h2 { font-size: 13.5px; margin: 9px 0 4px; padding: 3px 7px; background: #8b0f1a; color: #fff; border-radius: 3px; }
+  h2:first-child { margin-top: 0; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 3px; }
+  th, td { border: 1px solid #999; padding: 3px 6px; text-align: left; vertical-align: middle; }
+  th { background: #eee; font-size: 11px; }
   td.k, th.k { text-align: center; white-space: nowrap; }
-  kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border: 1px solid #555; border-bottom-width: 2px; border-radius: 4px; background: #fafafa; font-family: Consolas, monospace; font-size: 12px; text-align: center; }
-  h2 kbd { color: #111; }
-  .note { margin: 6px 0; padding: 6px 8px; border-left: 4px solid #8b0f1a; background: #f6f0f0; }
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  kbd { display: inline-block; min-width: 20px; padding: 0 5px; border: 1px solid #555; border-bottom-width: 2px; border-radius: 3px; background: #fafafa; color: #111; font-family: Consolas, monospace; font-size: 11.5px; text-align: center; line-height: 1.3; }
+  .note { margin: 4px 0; padding: 4px 7px; border-left: 3px solid #8b0f1a; background: #f6f0f0; font-size: 11px; }
   .warn { border-left-color: #b36b00; background: #fff6e5; }
-  .page-break { break-before: page; }
-  @media print { body { padding: 0; } h2 { -webkit-print-color-adjust: exact; print-color-adjust: exact; } th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .note { -webkit-print-color-adjust: exact; print-color-adjust: exact; } table, .note { break-inside: avoid; } }
+  .page { display: grid; grid-template-columns: 1.08fr 1fr; gap: 0 12px; align-items: start; }
+  @media print {
+    body { padding: 0; }
+    h2, th, .note { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    table, .note { break-inside: avoid; }
+  }
 </style>
 </head>
 <body>
 
-<h1>BilliardIQ Skor Tahtası &ndash; Kısayol Kartı</h1>
-<div class="sub">Numpad ile kullanım: <b>NumLock açık</b> iken rakam tuşları, <b>NumLock kapalı</b> iken ok/sayfa tuşları çalışır. Numpad 5 tuşu NumLock kapalıyken <kbd>Clear</kbd> yazar.</div>
+<h1>Zeymera &middot; BilliardIQ Skor Tahtası &ndash; Kısayol Kartı</h1>
+<div class="sub"><b>NumLock açık</b> iken numpad rakamları, <b>NumLock kapalı</b> iken ok/sayfa tuşları çalışır. Numpad 5 tuşu NumLock kapalıyken <kbd>Clear</kbd> yazar.</div>
+
+<div class="page">
+<div>
 
 <h2>1. Skor ekranı</h2>
 <table>
-  <tr><th>İşlev</th><th class="k">Klavye</th><th class="k">Numpad<br>(NumLock açık)</th><th class="k">Numpad<br>(NumLock kapalı)</th></tr>
+  <tr><th>İşlev</th><th class="k">Klavye</th><th class="k">Numpad<br>NumLock açık</th><th class="k">Numpad<br>NumLock kapalı</th></tr>
   <tr><td>Kontrolleri aç / kapat</td><td class="k"><kbd>C</kbd></td><td class="k"><kbd>9</kbd></td><td class="k"><kbd>PgUp</kbd></td></tr>
-  <tr><td>Atış süresini başlat / durdur</td><td class="k"><kbd>T</kbd></td><td class="k"><kbd>3</kbd></td><td class="k"><kbd>PgDn</kbd></td></tr>
+  <tr><td>Atış süresi başlat / durdur</td><td class="k"><kbd>T</kbd></td><td class="k"><kbd>3</kbd></td><td class="k"><kbd>PgDn</kbd></td></tr>
   <tr><td>Atış süresini sıfırla</td><td class="k"><kbd>R</kbd></td><td class="k"><kbd>6</kbd></td><td class="k"><kbd>&rarr;</kbd></td></tr>
   <tr><td>Aktif oyuncu: Oyuncu 1</td><td class="k"><kbd>1</kbd></td><td class="k"><kbd>1</kbd></td><td class="k"><kbd>End</kbd></td></tr>
   <tr><td>Aktif oyuncu: Oyuncu 2</td><td class="k"><kbd>2</kbd></td><td class="k"><kbd>2</kbd></td><td class="k"><kbd>&darr;</kbd></td></tr>
@@ -45,12 +51,10 @@
   <tr><td>Oyuncu seçici</td><td class="k"><kbd>P</kbd></td><td class="k"><kbd>0</kbd></td><td class="k"><kbd>Ins</kbd></td></tr>
   <tr><td>Isınma sayacı</td><td class="k"><kbd>W</kbd></td><td class="k"><kbd>5</kbd></td><td class="k"><kbd>Clear</kbd></td></tr>
   <tr><td>Handikap aç / kapat (HCP)</td><td class="k"><kbd>*</kbd></td><td class="k"><kbd>*</kbd></td><td class="k"><kbd>*</kbd></td></tr>
-  <tr><td>Maç hedefi girişi (handikapta oyuncu hedefleri)</td><td class="k"><kbd>/</kbd></td><td class="k"><kbd>/</kbd></td><td class="k"><kbd>/</kbd></td></tr>
+  <tr><td>Hedef girişi (handikapta P1, P2)</td><td class="k"><kbd>/</kbd></td><td class="k"><kbd>/</kbd></td><td class="k"><kbd>/</kbd></td></tr>
 </table>
-<div class="note">Ekranda <b>SON 3 / 2 / 1</b> uyarısı, oyuncunun hedefine 3 ve altı sayı kala görünür. Normal maçta yalnızca sırası gelen oyuncuda, handikap maçında her iki oyuncuda da görünür.</div>
+<div class="note"><b>SON 3 / 2 / 1</b> uyarısı hedefe 3 ve altı sayı kalınca görünür. Normal maçta yalnızca sırası gelen oyuncuda, handikapta her iki oyuncuda da.</div>
 
-<div class="cols">
-<div>
 <h2>2. Maç hedefine ulaşıldı penceresi</h2>
 <table>
   <tr><th>İşlev</th><th class="k">NumLock açık</th><th class="k">NumLock kapalı</th></tr>
@@ -58,34 +62,31 @@
   <tr><td>Maçı 10 sayı uzat (+10)</td><td class="k"><kbd>0</kbd></td><td class="k"><kbd>Ins</kbd></td></tr>
   <tr><td><b>Maçı bitir</b></td><td class="k"><kbd>.</kbd></td><td class="k"><kbd>Del</kbd></td></tr>
 </table>
-<div class="note">Handikapta her oyuncunun hedefi ayrı uzar: yeni hedef = <i>(eski hedef ya da skoru, hangisi büyükse) + 5 veya 10</i>. Önce hedefine ulaşan oyuncu kazanır, eşitleme vuruşu yoktur.</div>
-</div>
-<div>
+<div class="note">Handikapta her oyuncunun hedefi ayrı uzar: yeni hedef = <i>(eski hedef ya da skor, hangisi büyükse) + 5 / 10</i>. Önce kendi hedefine ulaşan kazanır, eşitleme vuruşu yoktur.</div>
+
 <h2>3. Hedef girişi penceresi (<kbd>/</kbd>)</h2>
 <table>
   <tr><th>İşlev</th><th class="k">Tuş</th></tr>
   <tr><td>Rakam gir (en fazla 3 hane)</td><td class="k"><kbd>0</kbd>&ndash;<kbd>9</kbd></td></tr>
   <tr><td>Onayla (handikapta P1&rsquo;den sonra P2 sorulur)</td><td class="k"><kbd>Enter</kbd></td></tr>
-  <tr><td>Son rakamı sil, boşsa pencereyi kapat</td><td class="k"><kbd>.</kbd> / <kbd>Del</kbd></td></tr>
+  <tr><td>Son rakamı sil, boşsa kapat</td><td class="k"><kbd>.</kbd> / <kbd>Del</kbd></td></tr>
   <tr><td>Kapat</td><td class="k"><kbd>Esc</kbd></td></tr>
 </table>
-<div class="note">Hedef sınırları: normal maç <b>10&ndash;100</b>, handikap <b>5&ndash;100</b>. Sınır dışı değer en yakın sınıra çekilir.</div>
-</div>
-</div>
+<div class="note">Sınırlar: normal maç <b>10&ndash;100</b>, handikap <b>5&ndash;100</b>; sınır dışı değer en yakın sınıra çekilir.</div>
 
-<div class="cols">
+</div>
 <div>
+
 <h2>4. Oyuncu seçici</h2>
 <table>
   <tr><th>İşlev</th><th class="k">Tuş</th></tr>
   <tr><td>Oyuncunun kısayol numarasını yaz</td><td class="k"><kbd>0</kbd>&ndash;<kbd>9</kbd></td></tr>
-  <tr><td>Listede seçili oyuncuyu onayla</td><td class="k"><kbd>Enter</kbd></td></tr>
+  <tr><td>Seçili oyuncuyu onayla</td><td class="k"><kbd>Enter</kbd></td></tr>
   <tr><td>Listede yukarı / aşağı (NumLock kapalı)</td><td class="k"><kbd>&uarr;</kbd> <kbd>&darr;</kbd></td></tr>
   <tr><td>Son rakamı sil, boşsa kapat</td><td class="k"><kbd>.</kbd> / <kbd>Del</kbd></td></tr>
   <tr><td>Kapat</td><td class="k"><kbd>Esc</kbd></td></tr>
 </table>
-</div>
-<div>
+
 <h2>5. Isınma süresi penceresi (<kbd>W</kbd>)</h2>
 <table>
   <tr><th>İşlev</th><th class="k">NumLock açık</th><th class="k">NumLock kapalı</th></tr>
@@ -94,11 +95,7 @@
   <tr><td>15 dakika</td><td class="k"><kbd>3</kbd></td><td class="k"><kbd>PgDn</kbd></td></tr>
   <tr><td>Kapat</td><td class="k"><kbd>.</kbd></td><td class="k"><kbd>Del</kbd></td></tr>
 </table>
-</div>
-</div>
 
-<div class="cols">
-<div>
 <h2>6. Isınma ekranı</h2>
 <table>
   <tr><th>İşlev</th><th class="k">Klavye</th><th class="k">Numpad</th></tr>
@@ -107,27 +104,24 @@
   <tr><td>Yeniden başlat</td><td class="k"><kbd>Enter</kbd></td><td class="k"><kbd>Enter</kbd></td></tr>
   <tr><td>Skor ekranına dön</td><td class="k"><kbd>C</kbd> <kbd>Esc</kbd></td><td class="k"><kbd>9</kbd> / <kbd>PgUp</kbd></td></tr>
 </table>
-</div>
-<div>
+
 <h2>7. Maç bittikten sonra</h2>
 <table>
   <tr><th>İşlev</th><th class="k">Klavye</th><th class="k">Numpad</th></tr>
-  <tr><td>Yeni oyun</td><td class="k"><kbd>N</kbd></td><td class="k"><kbd>8</kbd> / <kbd>&uarr;</kbd></td></tr>
+  <tr><td>Yeni oyun (handikap kapanır, hedefler sıfırlanır)</td><td class="k"><kbd>N</kbd></td><td class="k"><kbd>8</kbd> / <kbd>&uarr;</kbd></td></tr>
   <tr><td>Kontrolleri aç / kapat</td><td class="k"><kbd>C</kbd></td><td class="k"><kbd>9</kbd> / <kbd>PgUp</kbd></td></tr>
 </table>
-<div class="note">Yeni oyunda handikap kapanır ve hedefler sıfırlanır.</div>
-</div>
-</div>
 
 <h2>8. Cihazı kapatma / yeniden başlatma</h2>
 <table>
-  <tr><th>İşlev</th><th class="k">Tuşlar</th></tr>
-  <tr><td>Yeniden başlat</td><td class="k"><kbd>NumLock</kbd> + <kbd>Ins</kbd> tuşlarına <b>4 saniye</b> birlikte basılı tut</td></tr>
-  <tr><td>Kapat</td><td class="k"><kbd>NumLock</kbd> + <kbd>Del</kbd> tuşlarına <b>4 saniye</b> birlikte basılı tut</td></tr>
+  <tr><th>İşlev</th><th class="k">Tuşlar (4 saniye basılı tut)</th></tr>
+  <tr><td>Yeniden başlat</td><td class="k"><kbd>NumLock</kbd> + <kbd>Ins</kbd></td></tr>
+  <tr><td>Kapat</td><td class="k"><kbd>NumLock</kbd> + <kbd>Del</kbd></td></tr>
 </table>
-<div class="note warn">Bu iki kombinasyonda <kbd>Del</kbd> / <kbd>Ins</kbd> tuşu skor ekranında başka bir işlem yapmaz. Yalnızca <kbd>Del</kbd>&rsquo;e tek başına basmak <b>maçı bitirir</b>.</div>
+<div class="note warn">Tek başına <kbd>Del</kbd> maçı bitirir, kapatmaz. Yalnızca fare/dokunmatikle yapılanlar: oyuncu adı yazma, dil seçimi, &ldquo;Oyuncu seç&rdquo; düğmeleri.</div>
 
-<div class="note">Yalnızca fare / dokunmatik ile yapılanlar (kontrol panelinde): oyuncu adı yazma, dil seçimi, &ldquo;Oyuncu seç&rdquo; düğmeleri, hedef kutularındaki oklar.</div>
+</div>
+</div>
 
 </body>
 </html>
