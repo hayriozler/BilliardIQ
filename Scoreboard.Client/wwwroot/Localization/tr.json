@@ -24,7 +24,6 @@
   "WarmUpHint": "Duraklatmak/devam ettirmek için Boşluk veya T (veya 3 / Page Down), sıfırlamak için R (veya 6 / Sağ Ok), yeniden başlatmak için Enter, panoya dönmek için C veya Esc (veya 9 / Page Up) tuşuna basın.",
   "ControlsHint": "Kontrolleri gizlemek için C (veya 9 / Page Up), süreyi başlatmak/durdurmak için T (veya 3 / Page Down), sıfırlamak için R (veya 6 / Sağ Ok). Aktif oyuncuyu değiştirmek için 1/2, mevcut sayıyı ayarlamak için +/-, onaylamak için Enter. Isınma sayacını başlatmak için W (veya 5), oyuncu seçiciyi açmak için P (veya 0 / Insert), kapatmak için Backspace tuşuna basın. Maçı bitirmek için Del (numpad .), yeni oyun için N (veya 8), handikap için *, maç hedefini girmek için / tuşuna basın.",
   "NoPlayersInRoster": "Kadroda henüz oyuncu yok - Oyuncular sayfasından ekleyebilirsiniz.",
-  "UseManualNameInstead": "Bunun yerine manuel isim kullan",
   "Close": "Kapat",
   "BoardOccupiedElsewhere": "Bu pano zaten başka bir pencerede açık.",
   "PlayerAlreadySelected": "Bu oyuncu zaten karşı tarafta seçili.",

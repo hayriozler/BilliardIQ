@@ -24,7 +24,6 @@
   "WarmUpHint": "Press Space or T (or 3 / Page Down) to pause/resume, R (or 6 / Right Arrow) to reset, Enter to restart, C or Esc (or 9 / Page Up) to return to the board.",
   "ControlsHint": "Press C (or 9 / Page Up) to hide, T (or 3 / Page Down) to start/stop the shot clock, R (or 6 / Right Arrow) to reset it. Press 1/2 to switch the active player, +/- to adjust the current points, Enter to commit them. Press W (or 5) to start the warm-up timer, P (or 0 / Insert) to open the player picker, Backspace to close it. Press Del (numpad .) to end the match, N (or 8) for a new game, * for handicap, / to enter the match target.",
   "NoPlayersInRoster": "No players in the roster yet - add some on the Players page.",
-  "UseManualNameInstead": "Use manual name instead",
   "Close": "Close",
   "BoardOccupiedElsewhere": "This board is already open in another window.",
   "PlayerAlreadySelected": "This player is already selected on the other side.",

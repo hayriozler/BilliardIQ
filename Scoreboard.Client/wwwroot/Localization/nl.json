@@ -24,7 +24,6 @@
   "WarmUpHint": "Druk op spatie of T (of 3 / Page Down) om te pauzeren/hervatten, R (of 6 / Pijl rechts) om te resetten, Enter om opnieuw te starten, C of Esc (of 9 / Page Up) om terug te gaan naar het bord.",
   "ControlsHint": "Druk op C (of 9 / Page Up) om te verbergen, T (of 3 / Page Down) om de speeltijd te starten/stoppen, R (of 6 / Pijl rechts) om te resetten. Druk op 1/2 om van actieve speler te wisselen, +/- om de huidige punten aan te passen, Enter om te bevestigen. Druk op W (of 5) om de opwarmtimer te starten, P (of 0 / Insert) om de spelerkiezer te openen, Backspace om te sluiten. Druk op Del (numpad .) om de wedstrijd te beëindigen, N (of 8) voor een nieuw spel, * voor handicap, / om het wedstrijddoel in te voeren.",
   "NoPlayersInRoster": "Nog geen spelers in de kaartenbak - voeg er een toe op de Spelers-pagina.",
-  "UseManualNameInstead": "Gebruik in plaats daarvan een handmatige naam",
   "Close": "Sluiten",
   "BoardOccupiedElsewhere": "Dit bord is al open in een ander venster.",
   "PlayerAlreadySelected": "Deze speler is al aan de andere kant gekozen.",
