@@ -30,6 +30,7 @@ public partial class AppShell : Shell
         });
 #endif
 
+        Navigating += OnShellNavigating;
         _session.Changed += (_, _) => MainThread.BeginInvokeOnMainThread(ApplyRole);
         api.SessionExpired += (_, _) => MainThread.BeginInvokeOnMainThread(() => GoToAsync(AuthService.LoginRoute).FireAndForgetSafeAsync());
         ApplyRole();
@@ -49,6 +50,29 @@ public partial class AppShell : Shell
         ScoreboardItem.IsVisible =ready && _session.CanControlScoreboard;
         ConnectionContent.IsVisible = ready && _session.CanControlScoreboard;
         SshTab.IsVisible = _session.CanUseSsh;
+    }
+
+    private static readonly string[] _controlRoutes =
+        ["manage", "playeredit", "scoreboard", "admin-teams", "admin-player", "admin-stats", "addscoreboardplayer", "playerstatsdetail", "connect"];
+
+    private static readonly string[] _sshRoutes = ["admin-ssh"];
+
+    private static readonly string[] _debugRoutes = ["debugocr", "debugtable"];
+
+    private void OnShellNavigating(object? sender, ShellNavigatingEventArgs e)
+    {
+        var segments = e.Target.Location.OriginalString
+            .Split(['/', '?'], StringSplitOptions.RemoveEmptyEntries);
+
+        var blocked = segments.Any(s =>
+            (!_session.CanControlScoreboard && _controlRoutes.Contains(s, StringComparer.OrdinalIgnoreCase)) ||
+            (!_session.CanUseSsh && _sshRoutes.Contains(s, StringComparer.OrdinalIgnoreCase)) ||
+            (_session.IsPlayer && _debugRoutes.Contains(s, StringComparer.OrdinalIgnoreCase)));
+
+        if (blocked && e.CanCancel)
+        {
+            e.Cancel();
+        }
     }
 
     public static async Task DisplayToastAsync(string message)
