@@ -121,6 +121,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<AvatarPickerSession>();
         builder.Services.AddSingleton<CatalogService>();
         builder.Services.AddTransientWithShellRoute<PlayerHomeViewPage, PlayerHomePageModel>("playerhome");
+        builder.Services.AddTransientWithShellRoute<MatchDetailViewPage, MatchDetailPageModel>("matchdetail");
         builder.Services.AddSingleton<RankingPageModel>();
         builder.Services.AddSingleton<RankingViewPage>();
         builder.Services.AddSingleton<ManageListPageModel>();

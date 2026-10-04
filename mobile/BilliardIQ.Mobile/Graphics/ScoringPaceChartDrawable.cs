@@ -7,6 +7,7 @@ public sealed class ScoringPaceChartDrawable : IDrawable
 {
     public IReadOnlyList<int> BucketPoints { get; set; } = [];
     public int BucketMinutes { get; set; } = 5;
+    public bool RangeLabels { get; set; }
     public Color BarColor { get; set; } = Color.FromArgb("#1565C0");
     public Color AxisColor { get; set; } = Color.FromArgb("#B0BEC5");
     public Color LabelColor { get; set; } = Color.FromArgb("#78909C");
@@ -44,6 +45,16 @@ public sealed class ScoringPaceChartDrawable : IDrawable
 
             canvas.FillColor = BarColor;
             canvas.FillRoundedRectangle(x, y, barWidth, Math.Max(barHeight, 1), 3);
+
+            if (RangeLabels)
+            {
+                var every = Math.Max(1, (int)Math.Ceiling(40f / slot));
+                if (i % every != 0) continue;
+                var text = $"{i * BucketMinutes}-{(i + 1) * BucketMinutes}'";
+                canvas.DrawString(text, padding + i * slot - 10, baseline + 2, slot + 20, labelHeight,
+                    HorizontalAlignment.Center, VerticalAlignment.Top);
+                continue;
+            }
 
             canvas.DrawString((i * BucketMinutes).ToString(), padding + i * slot, baseline + 2, slot, labelHeight,
                 HorizontalAlignment.Center, VerticalAlignment.Top);
