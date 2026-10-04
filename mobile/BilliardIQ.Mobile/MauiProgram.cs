@@ -117,6 +117,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<AccountPageModel>();
         builder.Services.AddSingleton<AccountViewPage>();
         builder.Services.AddSingleton<AvatarImageService>();
+        builder.Services.AddSingleton<GameSyncService>();
         builder.Services.AddSingleton<AvatarPickerSession>();
         builder.Services.AddSingleton<PlayerHomePageModel>();
         builder.Services.AddSingleton<PlayerHomeViewPage>();

@@ -76,6 +76,12 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
             Logger.LogDebug("Something went wrong....");
     }
 
+    public async Task<IReadOnlyList<Game>> GetUnsyncedGamesAsync() =>
+        await dbExecutor.ReadDataAsync<Game>("SELECT * FROM Games WHERE COALESCE(RemoteId, 0) = 0 ORDER BY Date");
+
+    public async Task SetRemoteIdAsync(int id, int remoteId) =>
+        await dbExecutor.ExecuteAsync("UPDATE Games SET RemoteId = @RemoteId WHERE Id = @Id", [new("@RemoteId", remoteId), new("@Id", id)]);
+
     public async Task<Game?> GetGameByIdAsync(int Id) => await dbExecutor.ReadSingleDataAsync<Game>(@"Select * From Games Where Id = @Id", [new("@Id", Id)]);
     public async Task<PlayerSummaryStats> GetStatsAsync()
     {

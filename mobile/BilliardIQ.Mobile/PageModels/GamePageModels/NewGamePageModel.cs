@@ -1,6 +1,7 @@
 using BilliardIQ.Mobile.Data;
 using BilliardIQ.Mobile.Models;
 using BilliardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Services.Api;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Plugin.Maui.OCR;
@@ -13,15 +14,17 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
 {
     private readonly GameRepository _gameRepo;
     private readonly IOcrService _ocrService;
+    private readonly GameSyncService _sync;
     private int? _gameId = null;
 
     private const string _recentLocationsKey = "recent_locations";
     private const int _maxRecentLocations = 3;
 
-    public NewGamePageModel(GameRepository GameRepo, IOcrService ocrService)
+    public NewGamePageModel(GameRepository GameRepo, IOcrService ocrService, GameSyncService sync)
     {
         _gameRepo = GameRepo;
         _ocrService = ocrService;
+        _sync = sync;
         Date = DateTime.Today;
         MinimumDate = DateTime.Today.AddDays(-7);
         MaximumDate = DateTime.Today.AddDays(7);
@@ -119,7 +122,7 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
 
         var locationToSave = string.IsNullOrWhiteSpace(Location) ? null : Location.Trim();
 
-        await _gameRepo.UpsertGameAsync(_gameId, new Game
+        var draft = new Game
         {
             Location            = locationToSave,
             Opponent            = OpponentName,
@@ -131,7 +134,19 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
             Innings             = ParseInnings(),
             Notes               = string.IsNullOrWhiteSpace(Notes) ? null : Notes,
             ScoreboardThumbnail = ScoreboardThumbnail,
-        });
+        };
+
+        var existing = _gameId is { } gameId ? await _gameRepo.GetGameByIdAsync(gameId) : null;
+        var push = await _sync.PushAsync(draft, existing?.RemoteId ?? 0);
+        if (push.IsRejected)
+        {
+            await Shell.Current.DisplayAlertAsync(L["NewGame_SyncRejected"], push.Rejection!, "OK");
+            return;
+        }
+
+        var saved = await _gameRepo.UpsertGameAsync(_gameId, draft);
+        if (saved is not null && push.RemoteId is { } remoteId)
+            await _gameRepo.SetRemoteIdAsync(saved.Id, remoteId);
 
         if (locationToSave is not null)
             SaveRecentLocation(locationToSave);

@@ -38,6 +38,9 @@ public sealed class ApiClient
     public Task PostAsync(string path, object? body, bool authorize = true, CancellationToken ct = default) =>
         SendAsync(HttpMethod.Post, path, body, authorize, ct);
 
+    public Task DeleteAsync(string path, CancellationToken ct = default) =>
+        SendAsync(HttpMethod.Delete, path, null, true, ct);
+
     public Task PutAsync(string path, object? body, CancellationToken ct = default) =>
         SendAsync(HttpMethod.Put, path, body, true, ct);
 

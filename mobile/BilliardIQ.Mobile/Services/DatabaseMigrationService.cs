@@ -93,7 +93,22 @@ CREATE TABLE IF NOT EXISTS PlayerStats (
             );
 ";
 
-        internal override async Task RunAsync() => await dbExecutor.ExecuteAsync(_tableCreationSql);
+        internal override async Task RunAsync()
+        {
+            await dbExecutor.ExecuteAsync(_tableCreationSql);
+
+            if (!await ColumnExistsAsync("Games", "RemoteId"))
+                await dbExecutor.ExecuteAsync("ALTER TABLE Games ADD COLUMN RemoteId INTEGER;");
+        }
+
+        private static async Task<bool> ColumnExistsAsync(string table, string column)
+        {
+            using var connection = DatabaseExecutor.GetNewDbConnection();
+            await connection.OpenAsync();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name='{column}'";
+            return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+        }
     }
 
     private sealed class ScoreboardTableMigrationService(DatabaseExecutor dbExecutor) : BaseDatabaseMigrationService
