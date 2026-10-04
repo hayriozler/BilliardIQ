@@ -1244,19 +1244,19 @@ else
             return;
         }
 
-        if (e.Key is "p" or "P" or "0" or "Insert")
+        if (_showControls && e.Key is "p" or "P" or "0" or "Insert")
         {
             OpenPlayerPicker(Current.ActivePlayer);
             return;
         }
 
-        if (e.Key is "w" or "W" or "5" or "Clear")
+        if (_showControls && e.Key is "w" or "W" or "5" or "Clear")
         {
             OpenWarmupPicker();
             return;
         }
 
-        if (e.Key is "/")
+        if (_showControls && e.Key is "/")
         {
             OpenTargetEntry();
             return;
@@ -1278,6 +1278,14 @@ else
             "n" or "N" or "8" or "ArrowUp" => ScoreboardCommand.NewGame,
             _ => null
         };
+
+        if (!_showControls && command is not (ScoreboardCommand.ToggleControls or ScoreboardCommand.ToggleShotClock
+            or ScoreboardCommand.SelectPlayer1 or ScoreboardCommand.SelectPlayer2
+            or ScoreboardCommand.IncrementPoints or ScoreboardCommand.DecrementPoints or ScoreboardCommand.CommitPoints
+            or ScoreboardCommand.EndGame))
+        {
+            command = null;
+        }
 
         if (command is not null)
         {
