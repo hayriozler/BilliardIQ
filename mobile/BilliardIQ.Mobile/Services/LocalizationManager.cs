@@ -104,6 +104,7 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
 
             // Game list
             ["GameList_Delete"] = "Delete",
+            ["GameList_Stats"] = "Stats",
 
             // New game
             ["NewGame_SyncRejected"]     = "The server did not accept this match",
@@ -369,6 +370,7 @@ public  sealed partial class LocalizationManager : INotifyPropertyChanged
             ["Serie"]           = "Seri",
 
             ["GameList_Delete"] = "Sil",
+            ["GameList_Stats"] = "İstatistik",
 
             ["NewGame_SyncRejected"]     = "Sunucu bu maçı kabul etmedi",
             ["NewGame_DeleteFailed"]     = "Maç sunucudan silinemedi",

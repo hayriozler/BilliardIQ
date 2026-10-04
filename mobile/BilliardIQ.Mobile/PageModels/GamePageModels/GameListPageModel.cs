@@ -6,8 +6,12 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace BilliardIQ.Mobile.PageModels.GamePageModels;
 
-public partial class GameListPageModel(GameRepository GameRepo, GameSyncService Sync) : BasePageModel
+public partial class GameListPageModel(GameRepository GameRepo, GameSyncService Sync, SessionStore Session) : BasePageModel
 {
+    public bool IsPlayer => Session.IsPlayer;
+
+    [RelayCommand]
+    private Task OpenStats() => Shell.Current.GoToAsync("playerhome");
 
     [ObservableProperty]
     public partial IReadOnlyList<Game> Games { get; set; } = [];

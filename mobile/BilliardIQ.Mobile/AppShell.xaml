@@ -46,7 +46,7 @@
 
     <ShellContent
         x:Name="GameContent"
-        Title="Game"
+        Title="Play Game"
         ContentTemplate="{DataTemplate play:GamePlayViewPage}"
         Route="game" />
 
