@@ -33,6 +33,7 @@
   "MatchTargetReachedText": "{0}, {1} sayıya ulaştı. Maç uzatılsın mı, bitirilsin mi?",
   "EndMatch": "Maçı bitir",
   "ShortcutNumberHint": "Kısayol numarasını yazın, Enter ile seçin, oklarla gezin",
+  "PickerNavHint": "Yukarı/Aşağı veya + / - ile gezin, Enter ile seçin, Del ile kapatın",
   "NoPlayerWithShortcut": "Bu kısayol numarasına sahip oyuncu yok.",
   "NewGame": "Yeni",
   "EndGame": "Bitir",

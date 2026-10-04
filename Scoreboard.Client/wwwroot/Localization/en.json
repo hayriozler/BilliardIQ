@@ -33,6 +33,7 @@
   "MatchTargetReachedText": "{0} reached {1} points. Extend the match or end it?",
   "EndMatch": "End match",
   "ShortcutNumberHint": "Type a shortcut number, Enter to choose, arrows to move",
+  "PickerNavHint": "Up/Down or + / - to move, Enter to choose, Del to close",
   "NoPlayerWithShortcut": "No player with that shortcut number.",
   "NewGame": "New Game",
   "EndGame": "End Game",

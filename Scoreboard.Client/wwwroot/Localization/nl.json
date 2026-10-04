@@ -33,6 +33,7 @@
   "MatchTargetReachedText": "{0} heeft {1} punten bereikt. Wedstrijd verlengen of beëindigen?",
   "EndMatch": "Wedstrijd beëindigen",
   "ShortcutNumberHint": "Typ een snelkoppelingsnummer, Enter om te kiezen, pijltjes om te bewegen",
+  "PickerNavHint": "Omhoog/Omlaag of + / - om te bewegen, Enter om te kiezen, Del om te sluiten",
   "NoPlayerWithShortcut": "Geen speler met dat snelkoppelingsnummer.",
   "NewGame": "Nieuw spel",
   "EndGame": "Spel beëindigen",

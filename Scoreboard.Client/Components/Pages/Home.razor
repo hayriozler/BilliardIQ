@@ -346,6 +346,7 @@ else
                             </button>
                         }
                     </div>
+                    <div class="picker-hint">@L.T("PickerNavHint")</div>
                 }
             </div>
         </div>
@@ -394,6 +395,33 @@ else
     private int? _showPlayerPicker;
     private string _pickerBuffer = "";
     private int _pickerIndex;
+    private bool _pickerScrollPending;
+    private const int PickerPageSize = 8;
+
+    private void MovePicker(int slot, int delta)
+    {
+        _pickerBuffer = "";
+        var last = _rosterPlayers.Count - 1;
+        if (last < 0)
+        {
+            return;
+        }
+
+        var step = Math.Sign(delta);
+        var target = Math.Clamp(_pickerIndex + delta, 0, last);
+        var index = target;
+        while (index >= 0 && index <= last && IsTakenByOtherSide(slot, _rosterPlayers[index].Id))
+        {
+            index += step;
+        }
+
+        if (index >= 0 && index <= last)
+        {
+            _pickerIndex = index;
+        }
+
+        _pickerScrollPending = true;
+    }
 
     private int? HighlightedPlayerId
     {
@@ -450,13 +478,17 @@ else
             case "Escape":
                 ClosePlayerPicker();
                 break;
-            case "ArrowDown":
-                _pickerBuffer = "";
-                _pickerIndex = Math.Min(_pickerIndex + 1, Math.Max(_rosterPlayers.Count - 1, 0));
+            case "ArrowDown" or "+":
+                MovePicker(slot, 1);
                 break;
-            case "ArrowUp":
-                _pickerBuffer = "";
-                _pickerIndex = Math.Max(_pickerIndex - 1, 0);
+            case "ArrowUp" or "-":
+                MovePicker(slot, -1);
+                break;
+            case "PageDown":
+                MovePicker(slot, PickerPageSize);
+                break;
+            case "PageUp":
+                MovePicker(slot, -PickerPageSize);
                 break;
             case "Enter":
                 if (HighlightedPlayerId is int highlighted)
@@ -486,6 +518,13 @@ else
         }
 
         _dialogWasOpen = dialogOpen;
+
+        if (_pickerScrollPending && _showPlayerPicker is not null)
+        {
+            _pickerScrollPending = false;
+            _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
+            await _kiosk.InvokeVoidAsync("scrollPickerActive");
+        }
     }
 
     private bool _dialogWasOpen;
@@ -511,7 +550,9 @@ else
     private void LoadRoster() =>
         _rosterPlayers = DbContext.PlayerSet
             .AsNoTracking()
-            .OrderBy(p => p.ShortcutNumber == null)
+            .OrderBy(p => !p.IsSystem)
+            .ThenBy(p => p.SystemSlot)
+            .ThenBy(p => p.ShortcutNumber == null)
             .ThenBy(p => p.ShortcutNumber)
             .ThenBy(p => p.Id)
             .ToList();
@@ -685,7 +726,10 @@ else
     {
         LoadRoster();
         _pickerBuffer = "";
-        _pickerIndex = 0;
+        var currentId = slot == 1 ? Current.Player1Id : Current.Player2Id;
+        var currentIndex = _rosterPlayers.FindIndex(p => p.Id == currentId);
+        _pickerIndex = Math.Max(currentIndex, 0);
+        _pickerScrollPending = true;
         _showPlayerPicker = slot;
         StateHasChanged();
     }
