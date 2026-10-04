@@ -125,14 +125,20 @@ public static class DbInitializerExtension
         """);
 
         db.Database.ExecuteSqlRaw("""
-        CREATE TABLE IF NOT EXISTS match_score_stat (
+        CREATE TABLE IF NOT EXISTS match_history (
             Id INTEGER PRIMARY KEY,
-            MatchResultId INTEGER NOT NULL,
+            MatchResultId INTEGER NULL,
+            Timestamp TEXT NOT NULL,
+            PlayerId INTEGER NOT NULL,
             PlayerSlot INTEGER NOT NULL,
-            BucketIndex INTEGER NOT NULL,
-            TotalPoints INTEGER NOT NULL
+            Inning INTEGER NOT NULL,
+            Score INTEGER NOT NULL,
+            TotalScore INTEGER NOT NULL
         );
         """);
+        db.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS ix_match_history_match ON match_history (MatchResultId);");
+        db.Database.ExecuteSqlRaw("DROP TABLE IF EXISTS match_score_stat;");
+        db.Database.ExecuteSqlRaw("DROP TABLE IF EXISTS score_event;");
 
         foreach (var table in new[] { "scoreboard_state", "match_result" })
         {

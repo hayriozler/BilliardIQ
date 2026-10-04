@@ -10,9 +10,11 @@ public partial class RemoteSyncService(
     SystemPowerService systemPower,
     ILogger<RemoteSyncService> logger) : BackgroundService
 {
-    private const int _scoreDistributionBucketMinutes = 5;
-
     private const int _maxUnsentMatches = 200;
+
+    private const int _maxHistoryRows = 1000;
+
+    private const int _historyKeepDays = 3;
 
     private readonly RemoteSyncOptions _options = options.Value;
 
@@ -93,11 +95,21 @@ public partial class RemoteSyncService(
                 .ToListAsync(ct);
             int? ServerId(int id) => id > 0 && !seedIds.Contains(id) ? id : null;
 
-            var scoreDistribution = await db.MatchScoreStatSet
-                .Where(s => s.MatchResultId == match.Id)
-                .OrderBy(s => s.PlayerSlot).ThenBy(s => s.BucketIndex)
-                .Select(s => new { playerSlot = s.PlayerSlot, bucketIndex = s.BucketIndex, totalPoints = s.TotalPoints })
+            var historyRows = await db.MatchHistorySet
+                .Where(h => h.MatchResultId == match.Id)
+                .OrderBy(h => h.Id)
                 .ToListAsync(ct);
+            var history = historyRows
+                .Select(h => new
+                {
+                    playerId = ServerId(h.PlayerId),
+                    playerSlot = h.PlayerSlot,
+                    inning = h.Inning,
+                    score = h.Score,
+                    totalScore = h.TotalScore,
+                    playedAt = h.Timestamp
+                })
+                .ToList();
 
             var payload = new
             {
@@ -120,8 +132,7 @@ public partial class RemoteSyncService(
                 playedAt = match.PlayedAt,
                 startedAt = match.StartedAt,
                 endedAt = match.EndedAt,
-                scoreDistributionBucketMinutes = _scoreDistributionBucketMinutes,
-                scoreDistribution
+                history
             };
 
             LogSendMatchResult(match.Id, match.Player1Name, match.Player1Score, match.Player2Name, match.Player2Score, match.Winner);
@@ -153,14 +164,42 @@ public partial class RemoteSyncService(
             doomedIds.AddRange(excess);
         }
 
-        if (doomedIds.Count == 0)
+        if (doomedIds.Count > 0)
+        {
+            await db.MatchHistorySet.Where(h => h.MatchResultId != null && doomedIds.Contains(h.MatchResultId.Value)).ExecuteDeleteAsync(ct);
+            await db.MatchResultSet.Where(m => doomedIds.Contains(m.Id)).ExecuteDeleteAsync(ct);
+        }
+
+        await TrimHistoryAsync(db, ct);
+    }
+
+    private async Task TrimHistoryAsync(DataContext db, CancellationToken ct)
+    {
+        var total = await db.MatchHistorySet.CountAsync(ct);
+        if (total <= _maxHistoryRows)
         {
             return;
         }
 
-        await db.MatchScoreStatSet.Where(s => doomedIds.Contains(s.MatchResultId)).ExecuteDeleteAsync(ct);
-        await db.MatchResultSet.Where(m => doomedIds.Contains(m.Id)).ExecuteDeleteAsync(ct);
+        var cutoff = DateTime.Now.AddDays(-_historyKeepDays);
+        var removable = await db.MatchHistorySet
+            .Where(h => h.Timestamp < cutoff)
+            .OrderBy(h => h.Id)
+            .Take(total - _maxHistoryRows)
+            .Select(h => h.Id)
+            .ToListAsync(ct);
+        if (removable.Count == 0)
+        {
+            return;
+        }
+
+        var lastId = removable[^1];
+        LogTrimmedHistory(removable.Count);
+        await db.MatchHistorySet.Where(h => h.Timestamp < cutoff && h.Id <= lastId).ExecuteDeleteAsync(ct);
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Trimmed {Count} old match history row(s): more than the local limit are stored.")]
+    private partial void LogTrimmedHistory(int count);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "RemoteSync is disabled (RemoteSync:Enabled=false) - match results are not sent; only the local backlog is kept bounded.")]
     private partial void LogSyncDisabled();

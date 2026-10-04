@@ -1007,11 +1007,17 @@ else
         Current.CurrentPoints = 0;
         RecalculateAverages();
 
-        DbContext.ScoreEventSet.Add(new ScoreEvent
+        var historyPlayerId = scoringSlot == 1 ? Current.Player1Id : Current.Player2Id;
+        var historyInning = DbContext.MatchHistorySet
+            .Count(h => h.MatchResultId == null && h.Timestamp >= _gameStartedAt && h.PlayerId == historyPlayerId) + 1;
+        DbContext.MatchHistorySet.Add(new MatchHistory
         {
             Timestamp = DateTime.Now,
+            PlayerId = historyPlayerId,
             PlayerSlot = scoringSlot,
-            Points = points
+            Inning = historyInning,
+            Score = points,
+            TotalScore = scoringSlot == 1 ? Current.Player1Score : Current.Player2Score
         });
 
         if (!_gameEnded && TargetReached)
@@ -1023,8 +1029,6 @@ else
 
     private bool _gameEnded;
     private DateTime _gameStartedAt = DateTime.Now;
-
-    private const int ScoreStatBucketMinutes = 5;
 
     private void EndGame()
     {
@@ -1060,19 +1064,10 @@ else
         DbContext.MatchResultSet.Add(matchResult);
         DbContext.SaveChanges();
 
-        var events = DbContext.ScoreEventSet.ToList();
-        var buckets = events
-            .GroupBy(e => (PlayerSlot: e.PlayerSlot, BucketIndex: (int)((e.Timestamp - _gameStartedAt).TotalMinutes / ScoreStatBucketMinutes)))
-            .Select(g => new MatchScoreStat
-            {
-                MatchResultId = matchResult.Id,
-                PlayerSlot = g.Key.PlayerSlot,
-                BucketIndex = Math.Max(0, g.Key.BucketIndex),
-                TotalPoints = g.Sum(e => e.Points)
-            });
-        DbContext.MatchScoreStatSet.AddRange(buckets);
-        DbContext.ScoreEventSet.RemoveRange(events);
-        DbContext.SaveChanges();
+        var resultId = matchResult.Id;
+        DbContext.MatchHistorySet
+            .Where(h => h.MatchResultId == null && h.Timestamp >= _gameStartedAt)
+            .ExecuteUpdate(s => s.SetProperty(h => h.MatchResultId, resultId));
         transaction.Commit();
 
         Current.ShotClockActive = false;
@@ -1090,7 +1085,6 @@ else
         _showMatchEnd = false;
         _ = SetFireworksAsync(0);
         _gameStartedAt = DateTime.Now;
-        DbContext.ScoreEventSet.RemoveRange(DbContext.ScoreEventSet.ToList());
         Current.Player1Score = 0;
         Current.Player2Score = 0;
         Current.Player1Avg = 0;
@@ -1405,9 +1399,9 @@ else
         Current.ActivePlayer = Current.ActivePlayer == 1 ? 2 : 1;
         RecalculateAverages();
 
-        foreach (var scoreEvent in DbContext.ScoreEventSet)
+        foreach (var row in DbContext.MatchHistorySet.Where(h => h.MatchResultId == null && h.Timestamp >= _gameStartedAt))
         {
-            scoreEvent.PlayerSlot = scoreEvent.PlayerSlot == 1 ? 2 : 1;
+            row.PlayerSlot = row.PlayerSlot == 1 ? 2 : 1;
         }
 
         ResolvePlayers();
