@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Scoreboard.WebApp.Services;
 
-public record LoginResult(User User, StaffMember Staff, Organization Organization);
+public record LoginResult(User User, StaffMember? Staff, Organization Organization, Player? Player = null);
 
 public class AuthService(DataContext db, ClientIdService clientIds, OrganizationRunner runner, LoginThrottle throttle, SessionRevalidator sessions)
 {
@@ -73,15 +73,33 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
             return null;
         }
 
-        var staff = (await MembershipsAsync(userId)).FirstOrDefault(s => organizationId is null || s.OrganizationId == organizationId);
-        if (staff is null)
+        var memberships = await MembershipsAsync(userId);
+        var staff = memberships.FirstOrDefault(s => organizationId is null || s.OrganizationId == organizationId);
+        if (staff is not null)
+        {
+            user.LastLoginAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            return new LoginResult(user, staff, staff.Organization);
+        }
+
+        if (memberships.Count > 0 || user.OrganizationId is not { } playerOrganizationId || (organizationId is not null && organizationId != playerOrganizationId))
+        {
+            return null;
+        }
+
+        var player = await db.PlayerSet.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.UserId == userId && p.DeletedAt == null && !p.IsSystem && p.CreatedInOrganizationId == playerOrganizationId);
+        var organization = player is null
+            ? null
+            : await db.OrganizationSet.FirstOrDefaultAsync(o => o.Id == playerOrganizationId && o.IsActive && o.DeletedAt == null);
+        if (player is null || organization is null)
         {
             return null;
         }
 
         user.LastLoginAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
-        return new LoginResult(user, staff, staff.Organization);
+        return new LoginResult(user, null, organization, player);
     }
 
     public async Task<LoginResult> RegisterOrganizationAsync(
@@ -192,6 +210,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
 
         user.PasswordHash = _hasher.HashPassword(user, newPassword);
         user.RotateSecurityStamp();
+        user.MustChangePassword = false;
         await db.SaveChangesAsync();
         sessions.Invalidate(userId);
     }

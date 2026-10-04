@@ -15,7 +15,7 @@ public class SessionRevalidator(IServiceScopeFactory scopes, ILogger<SessionReva
 
     private const int _trimThreshold = 1000;
 
-    private readonly ConcurrentDictionary<(int UserId, int StaffId), Entry> _entries = new();
+    private readonly ConcurrentDictionary<(int UserId, int StaffId, int PlayerId), Entry> _entries = new();
 
     private sealed record State(bool Active, string Stamp);
 
@@ -29,14 +29,15 @@ public class SessionRevalidator(IServiceScopeFactory scopes, ILogger<SessionReva
         }
 
         _ = int.TryParse(principal.FindFirstValue(AuthClaims.StaffMemberId), out var staffId);
-        var key = (userId, staffId);
+        _ = int.TryParse(principal.FindFirstValue(MobileClaims.PlayerId), out var playerId);
+        var key = (userId, staffId, playerId);
         var now = DateTimeOffset.UtcNow;
         if (!_entries.TryGetValue(key, out var entry) || entry.ExpiresAt <= now)
         {
             State? loaded;
             try
             {
-                loaded = await LoadAsync(userId, staffId);
+                loaded = await LoadAsync(userId, staffId, playerId);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -73,7 +74,7 @@ public class SessionRevalidator(IServiceScopeFactory scopes, ILogger<SessionReva
         }
     }
 
-    private async Task<State?> LoadAsync(int userId, int staffId)
+    private async Task<State?> LoadAsync(int userId, int staffId, int playerId)
     {
         using var scope = scopes.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<DataContext>();
@@ -82,6 +83,8 @@ public class SessionRevalidator(IServiceScopeFactory scopes, ILogger<SessionReva
             .Select(u => new State(
                 u.Status == UserStatus.Active &&
                 (u.OrganizationId == null ||
+                 (playerId > 0 && staffId == 0 && db.PlayerSet.IgnoreQueryFilters().Any(p => p.Id == playerId && p.UserId == userId && p.DeletedAt == null && !p.IsSystem && p.CreatedInOrganizationId == u.OrganizationId &&
+                     db.OrganizationSet.Any(o => o.Id == p.CreatedInOrganizationId && o.IsActive && o.DeletedAt == null))) ||
                  db.StaffMemberSet.Any(s => s.Id == staffId && s.UserId == userId && s.IsActive && s.DeletedAt == null && s.Organization.IsActive)),
                 u.SecurityStamp))
             .FirstOrDefaultAsync();

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
@@ -133,7 +134,27 @@ builder.Services.AddAuthentication().AddJwtBearer(JwtSettings.Scheme, options =>
     };
 });
 builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(AuthClaims.ManagePolicy, policy => policy.RequireRole(nameof(StaffRole.Owner), nameof(StaffRole.Manager)))
+    .SetDefaultPolicy(new AuthorizationPolicyBuilder(CookieAuthenticationDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.IsStaff())
+        .Build())
+    .AddPolicy(AuthClaims.StaffPolicy, policy => policy
+        .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.IsStaff()))
+    .AddPolicy(AuthClaims.StatsPolicy, policy => policy
+        .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.IsStaff() || (c.User.IsPlayer() && !c.User.MustChangePassword())))
+    .AddPolicy(AuthClaims.PlayerAccountPolicy, policy => policy
+        .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.IsPlayer()))
+    .AddPolicy(AuthClaims.ManagePolicy, policy => policy
+        .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.IsStaff())
+        .RequireRole(nameof(StaffRole.Owner), nameof(StaffRole.Manager)))
     .AddPolicy(JwtSettings.MobileAnyPolicy, policy => policy
         .AddAuthenticationSchemes(JwtSettings.Scheme)
         .RequireAuthenticatedUser())
@@ -286,7 +307,7 @@ app.MapPost("/culture", async (HttpContext context, DataContext db, SystemPlayer
 {
     if (Loc.Languages.Any(l => l.Code == lang))
     {
-        if (context.User.Identity?.IsAuthenticated == true && context.User.FindFirst(AuthClaims.OrganizationId) is not null)
+        if (context.User.IsStaff() && context.User.FindFirst(AuthClaims.OrganizationId) is not null)
         {
             var organizationId = context.User.GetOrganizationId();
             await db.OrganizationSet.Where(o => o.Id == organizationId).ExecuteUpdateAsync(o => o.SetProperty(x => x.Language, lang));
