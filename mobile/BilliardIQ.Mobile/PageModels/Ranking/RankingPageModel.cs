@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace BilliardIQ.Mobile.PageModels.Ranking;
 
-public sealed record RankingItem(int Rank, string Name, string Subtitle, string Value, string ValueLabel, ImageSource? Image)
+public sealed record RankingItem(int Rank, int PlayerId, string Name, string Subtitle, string Value, string ValueLabel, ImageSource? Image)
 {
     public bool HasImage => Image is not null;
 
@@ -80,6 +80,9 @@ public partial class RankingPageModel(ApiClient api, AvatarImageService avatars)
     }
 
     [RelayCommand]
+    private Task OpenPlayer(int playerId) => Shell.Current.GoToAsync("playerhome", new Dictionary<string, object> { ["playerId"] = playerId });
+
+    [RelayCommand]
     private async Task Appearing()
     {
         await LoadAsync();
@@ -123,7 +126,7 @@ public partial class RankingPageModel(ApiClient api, AvatarImageService avatars)
             _ => (r.AveragePerInning.ToString("F3"), L["Rank_SortAverage"])
         };
         var subtitle = $"{r.Matches} {L["Stats_Matches"]} · {r.Wins}-{r.Losses} · {L["Stats_HighRun"]} {r.BestHighRun}";
-        return new RankingItem(r.Rank, r.Name, subtitle, value, label, await avatars.GetAsync(r.AvatarId, r.PhotoUrl));
+        return new RankingItem(r.Rank, r.PlayerId, r.Name, subtitle, value, label, await avatars.GetAsync(r.AvatarId, r.PhotoUrl));
     }
 
     private string LeaderText(RankingRowDto? row, Func<RankingRowDto, string> value) =>
