@@ -17,13 +17,9 @@ public record SubmitMatchStatRequest(
     DateTimeOffset PlayedAt,
     DateTimeOffset? StartedAt = null,
     DateTimeOffset? EndedAt = null,
-    int ScoreDistributionBucketMinutes = 0,
-    List<ScoreBucketRequest>? ScoreDistribution = null,
     bool IsHandicap = false,
     int Player1Target = 0,
     int Player2Target = 0,
     List<MatchHistoryRequest>? History = null);
-
-public record ScoreBucketRequest(int PlayerSlot, int BucketIndex, int TotalPoints);
 
 public record MatchHistoryRequest(int? PlayerId, int PlayerSlot, int Inning, int Score, int TotalScore, DateTimeOffset? PlayedAt);

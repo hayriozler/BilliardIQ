@@ -8,8 +8,6 @@ using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Endpoints;
 
-public record MatchHistoryDto(int MatchId, int? PlayerId, int PlayerSlot, int Inning, int Score, int TotalScore, DateTimeOffset? PlayedAt);
-
 public static class MatchStatsEndpoints
 {
     private const int MaxNameLength = 100;
@@ -40,17 +38,6 @@ public static class MatchStatsEndpoints
                 return Results.BadRequest(new { error = $"'{ClientIdMiddleware.TableHeaderName}' header is required." });
             }
 
-            var buckets = (request.ScoreDistribution ?? [])
-                .Where(b => b.PlayerSlot is 1 or 2 && b.BucketIndex is >= 0 and <= StatsService.MaxBucketIndex)
-                .GroupBy(b => (b.PlayerSlot, b.BucketIndex))
-                .Select(g => new MatchStatBucket
-                {
-                    PlayerSlot = g.Key.PlayerSlot,
-                    BucketIndex = g.Key.BucketIndex,
-                    TotalPoints = (int)Math.Clamp(g.Sum(b => (long)b.TotalPoints), int.MinValue, int.MaxValue)
-                })
-                .ToList();
-
             var history = (request.History ?? [])
                 .Take(MaxHistoryRows)
                 .Where(h => h.PlayerSlot is 1 or 2)
@@ -65,12 +52,7 @@ public static class MatchStatsEndpoints
                 })
                 .ToList();
 
-            var bucketMinutes = Math.Max(1, request.ScoreDistributionBucketMinutes);
-            if (buckets.Count == 0 && history.Count > 0)
-            {
-                buckets = BucketsFromHistory(history, request.StartedAt?.ToUniversalTime());
-                bucketMinutes = HistoryBucketMinutes;
-            }
+            var buckets = BucketsFromHistory(history, request.StartedAt?.ToUniversalTime());
 
             var stat = new MatchStat
             {
@@ -96,7 +78,7 @@ public static class MatchStatsEndpoints
                 PlayedAt = request.PlayedAt.ToUniversalTime(),
                 StartedAt = request.StartedAt?.ToUniversalTime(),
                 EndedAt = request.EndedAt?.ToUniversalTime(),
-                BucketMinutes = buckets.Count == 0 ? 0 : bucketMinutes,
+                BucketMinutes = buckets.Count == 0 ? 0 : HistoryBucketMinutes,
                 Buckets = buckets,
                 History = history
             };
@@ -105,18 +87,6 @@ public static class MatchStatsEndpoints
             await db.SaveChangesAsync();
 
             return Results.Ok(ToDto(stat));
-        });
-
-        group.MapGet("/{id:int}/history", async (int id, DataContext db, HttpContext context) =>
-        {
-            var tableId = context.GetTableId();
-            var rows = await db.MatchStatHistorySet
-                .AsNoTracking()
-                .Where(h => h.MatchStatId == id && (tableId == null || h.MatchStat.TableId == tableId))
-                .OrderBy(h => h.Id)
-                .Select(h => new MatchHistoryDto(h.MatchStatId, h.PlayerId, h.PlayerSlot, h.Inning, h.Score, h.TotalScore, h.PlayedAt))
-                .ToListAsync();
-            return rows;
         });
 
         return group;
