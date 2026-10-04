@@ -11,6 +11,14 @@ public record StatsOverview(
     int ActivePlayers, int PlayerMatches, double AveragePerInning,
     RankingRow? TopAverage, RankingRow? TopHighRun, RankingRow? MostWins, RankingRow? MostMatches);
 
+public record MobilePlayerMatch(
+    int MatchId, DateTimeOffset PlayedAt, DateTimeOffset? StartedAt, DateTimeOffset? EndedAt, int? TableNo, string OpponentName,
+    int PlayerScore, int OpponentScore, int Inning, int HighRun, double Average, bool Won, bool IsHandicap, int PlayerTarget, int OpponentTarget);
+
+public record MobileStatsPlayer(int Id, string Name, string DisplayName, int? AvatarId, string? PhotoUrl);
+
+public record MobilePlayerStats(MobileStatsPlayer Player, StatSummary Summary, IReadOnlyList<MobilePlayerMatch> Matches);
+
 public static class MobileStatsEndpoints
 {
     private const int MinMatchesForAverage = 3;
@@ -50,8 +58,44 @@ public static class MobileStatsEndpoints
                 Sort(rows, "matches").FirstOrDefault());
         });
 
+        group.MapGet("/players/{playerId:int}", async (int playerId, StatsService stats, string? period, DateOnly? from, DateOnly? to) =>
+        {
+            var range = new StatsPeriod(period ?? StatsPeriod.Default.Kind, from, to);
+            var detail = await stats.PlayerAsync(playerId, range.Since, range.Until);
+            if (detail is null || detail.Player.IsSystem)
+            {
+                return Results.NotFound();
+            }
+
+            var player = detail.Player;
+            return Results.Ok(new MobilePlayerStats(
+                new MobileStatsPlayer(player.Id, $"{player.FirstName} {player.LastName}".Trim(), player.DisplayName, player.AvatarId, player.PhotoUrl),
+                detail.Summary,
+                ToMatches(detail.Matches)));
+        });
+
+        group.MapGet("/matches/{matchId:int}", async (int matchId, StatsService stats) =>
+            await stats.MatchAsync(matchId) is { } match ? Results.Ok(match) : Results.NotFound());
+
+        app.MapGroup("/api/mobile/player")
+            .WithTags("MobileStats")
+            .RequireAuthorization(JwtSettings.MobilePlayerPolicy)
+            .MapGet("/matches", async (HttpContext context, StatsService stats, string? period, DateOnly? from, DateOnly? to) =>
+            {
+                var range = new StatsPeriod(period ?? StatsPeriod.Default.Kind, from, to);
+                var detail = await stats.PlayerAsync(context.User.GetPlayerId(), range.Since, range.Until);
+                return detail is null ? Results.NotFound() : Results.Ok(ToMatches(detail.Matches));
+            });
+
         return app;
     }
+
+    private static List<MobilePlayerMatch> ToMatches(IEnumerable<PlayerMatchEntry> entries) =>
+        [.. entries
+            .OrderByDescending(m => m.PlayedAt)
+            .Select(m => new MobilePlayerMatch(
+                m.MatchId, m.PlayedAt, m.StartedAt, m.EndedAt, m.TableNo, m.OpponentName,
+                m.PlayerScore, m.OpponentScore, m.Inning, m.HighRun, m.Average, m.Won, m.IsHandicap, m.PlayerTarget, m.OpponentTarget))];
 
     private static async Task<List<RankingRow>> ActiveRowsAsync(StatsService stats, string? period, DateOnly? from, DateOnly? to)
     {
