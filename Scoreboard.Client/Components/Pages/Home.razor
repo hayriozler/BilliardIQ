@@ -1237,6 +1237,7 @@ else
             "-" or "_" => ScoreboardCommand.DecrementPoints,
             "Enter" => ScoreboardCommand.CommitPoints,
             "Delete" or "." => ScoreboardCommand.EndGame,
+            "y" or "Y" or "4" or "ArrowLeft" => ScoreboardCommand.SwapPlayers,
             "n" or "N" or "8" or "ArrowUp" => ScoreboardCommand.NewGame,
             _ => null
         };
@@ -1303,6 +1304,9 @@ else
                 {
                     SetMatchTarget(matchTarget);
                 }
+                break;
+            case ScoreboardCommand.SwapPlayers:
+                SwapPlayers();
                 break;
             case ScoreboardCommand.ToggleHandicap:
                 ToggleHandicap();
@@ -1385,6 +1389,29 @@ else
     }
 
     private void ChangeActivePlayer(int player) => Current.ActivePlayer = player;
+
+    private void SwapPlayers()
+    {
+        if (_gameEnded)
+        {
+            return;
+        }
+
+        (Current.Player1Id, Current.Player2Id) = (Current.Player2Id, Current.Player1Id);
+        (Current.Player1Name, Current.Player2Name) = (Current.Player2Name, Current.Player1Name);
+        (Current.Player1Score, Current.Player2Score) = (Current.Player2Score, Current.Player1Score);
+        (Current.Player1HighRun, Current.Player2HighRun) = (Current.Player2HighRun, Current.Player1HighRun);
+        (Current.Player1Target, Current.Player2Target) = (Current.Player2Target, Current.Player1Target);
+        Current.ActivePlayer = Current.ActivePlayer == 1 ? 2 : 1;
+        RecalculateAverages();
+
+        foreach (var scoreEvent in DbContext.ScoreEventSet)
+        {
+            scoreEvent.PlayerSlot = scoreEvent.PlayerSlot == 1 ? 2 : 1;
+        }
+
+        ResolvePlayers();
+    }
 
     private async Task SetFireworksAsync(int winner)
     {

@@ -25,6 +25,7 @@ public enum ScoreboardCommand
     ToggleHandicap,
     SetPlayer1Target,
     SetPlayer2Target,
+    SwapPlayers,
 }
 
 public record ScoreboardCommandMessage(ScoreboardCommand Command, JsonElement? Payload = null);
