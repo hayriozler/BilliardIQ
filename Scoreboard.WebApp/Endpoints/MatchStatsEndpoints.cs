@@ -8,10 +8,14 @@ using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Endpoints;
 
+public record MatchHistoryDto(int MatchId, int? PlayerId, int PlayerSlot, int Inning, int Score, int TotalScore, DateTimeOffset? PlayedAt);
+
 public static class MatchStatsEndpoints
 {
     private const int MaxNameLength = 100;
     private const int MaxTarget = 1000;
+    private const int MaxHistoryRows = 5000;
+    private const int HistoryBucketMinutes = 5;
 
     public static RouteGroupBuilder MapMatchStatsEndpoints(this IEndpointRouteBuilder app)
     {
@@ -47,6 +51,27 @@ public static class MatchStatsEndpoints
                 })
                 .ToList();
 
+            var history = (request.History ?? [])
+                .Take(MaxHistoryRows)
+                .Where(h => h.PlayerSlot is 1 or 2)
+                .Select(h => new MatchStatHistory
+                {
+                    PlayerId = h.PlayerId,
+                    PlayerSlot = h.PlayerSlot,
+                    Inning = Math.Clamp(h.Inning, 0, MaxTarget),
+                    Score = Math.Clamp(h.Score, -MaxTarget, MaxTarget),
+                    TotalScore = Math.Clamp(h.TotalScore, 0, MaxTarget * 10),
+                    PlayedAt = h.PlayedAt?.ToUniversalTime()
+                })
+                .ToList();
+
+            var bucketMinutes = Math.Max(1, request.ScoreDistributionBucketMinutes);
+            if (buckets.Count == 0 && history.Count > 0)
+            {
+                buckets = BucketsFromHistory(history, request.StartedAt?.ToUniversalTime());
+                bucketMinutes = HistoryBucketMinutes;
+            }
+
             var stat = new MatchStat
             {
                 OrganizationId = db.CurrentOrganizationId,
@@ -71,8 +96,9 @@ public static class MatchStatsEndpoints
                 PlayedAt = request.PlayedAt.ToUniversalTime(),
                 StartedAt = request.StartedAt?.ToUniversalTime(),
                 EndedAt = request.EndedAt?.ToUniversalTime(),
-                BucketMinutes = buckets.Count == 0 ? 0 : Math.Max(1, request.ScoreDistributionBucketMinutes),
-                Buckets = buckets
+                BucketMinutes = buckets.Count == 0 ? 0 : bucketMinutes,
+                Buckets = buckets,
+                History = history
             };
 
             db.MatchStatSet.Add(stat);
@@ -81,7 +107,39 @@ public static class MatchStatsEndpoints
             return Results.Ok(ToDto(stat));
         });
 
+        group.MapGet("/{id:int}/history", async (int id, DataContext db, HttpContext context) =>
+        {
+            var tableId = context.GetTableId();
+            var rows = await db.MatchStatHistorySet
+                .AsNoTracking()
+                .Where(h => h.MatchStatId == id && (tableId == null || h.MatchStat.TableId == tableId))
+                .OrderBy(h => h.Id)
+                .Select(h => new MatchHistoryDto(h.MatchStatId, h.PlayerId, h.PlayerSlot, h.Inning, h.Score, h.TotalScore, h.PlayedAt))
+                .ToListAsync();
+            return rows;
+        });
+
         return group;
+    }
+
+    private static List<MatchStatBucket> BucketsFromHistory(List<MatchStatHistory> history, DateTimeOffset? startedAt)
+    {
+        var timed = history.Where(h => h.PlayedAt is not null).ToList();
+        if (timed.Count == 0)
+        {
+            return [];
+        }
+
+        var start = startedAt ?? timed.Min(h => h.PlayedAt!.Value);
+        return [.. timed
+            .GroupBy(h => (h.PlayerSlot, BucketIndex: Math.Max(0, (int)((h.PlayedAt!.Value - start).TotalMinutes / HistoryBucketMinutes))))
+            .Where(g => g.Key.BucketIndex <= StatsService.MaxBucketIndex)
+            .Select(g => new MatchStatBucket
+            {
+                PlayerSlot = g.Key.PlayerSlot,
+                BucketIndex = g.Key.BucketIndex,
+                TotalPoints = g.Sum(h => h.Score)
+            })];
     }
 
     private static string ClampName(string? name)

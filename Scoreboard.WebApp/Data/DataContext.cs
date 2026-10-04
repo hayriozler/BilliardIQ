@@ -55,6 +55,7 @@ public class DataContext : DbContext
     public DbSet<CupMatch> CupMatchSet => Set<CupMatch>();
     public DbSet<MatchStat> MatchStatSet => Set<MatchStat>();
     public DbSet<MatchStatBucket> MatchStatBucketSet => Set<MatchStatBucket>();
+    public DbSet<MatchStatHistory> MatchStatHistorySet => Set<MatchStatHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -329,6 +330,12 @@ public class DataContext : DbContext
             e.HasOne(s => s.Organization).WithMany().HasForeignKey(s => s.OrganizationId);
             e.HasOne(s => s.Table).WithMany().HasForeignKey(s => s.TableId);
             e.HasIndex(s => new { s.OrganizationId, s.PlayedAt });
+        });
+
+        modelBuilder.Entity<MatchStatHistory>(e =>
+        {
+            e.HasOne(h => h.MatchStat).WithMany(s => s.History).HasForeignKey(h => h.MatchStatId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(h => new { h.MatchStatId, h.Id });
         });
 
         modelBuilder.Entity<MatchStatBucket>(e =>
