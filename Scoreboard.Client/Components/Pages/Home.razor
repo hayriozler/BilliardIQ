@@ -26,7 +26,7 @@
 }
 else
 {
-<div @ref="board" class="board" tabindex="0" @onkeydown="HandleKeyDown" @onkeyup="HandleKeyUp" @onclick="RequestFullscreenAsync">
+<div @ref="board" class="board" tabindex="0" @onkeydown="HandleKeyDown" @onkeydown:preventDefault="AnyDialogOpen" @onkeyup="HandleKeyUp" @onclick="RequestFullscreenAsync">
 
     <header class="board-header">
         <div class="header-clock">@Clock.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)</div>
@@ -191,7 +191,7 @@ else
 
     @if (_showControls)
     {
-        <div class="controls-overlay" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
+        <div class="controls-overlay" inert="@AnyDialogOpen" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
             <div class="control-group">
                 <span>@L.T("P1")</span>
                 @if (GetImageSource(1) is { } imageControl1)
@@ -305,7 +305,7 @@ else
 
     @if (_showPlayerPicker is { } slot)
     {
-        <div class="player-picker-overlay" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
+        <div class="player-picker-overlay" @onclick:stopPropagation="true">
             <div class="player-picker-dialog">
                 <h3>@L.T(slot == 1 ? "P1" : "P2")</h3>
                 <div class="picker-buffer">@(_pickerBuffer.Length > 0 ? _pickerBuffer : L.T("ShortcutNumberHint"))</div>
@@ -354,7 +354,7 @@ else
 
     @if (_showWarmupPicker)
     {
-        <div class="player-picker-overlay" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
+        <div class="player-picker-overlay" @onclick:stopPropagation="true">
             <div class="player-picker-dialog">
                 <h3>@L.T("ChooseWarmUpDuration")</h3>
                 <div class="warmup-picker-options">
@@ -480,11 +480,18 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_boardOccupiedElsewhere)
+        var dialogOpen = AnyDialogOpen;
+        if ((firstRender || dialogOpen && !_dialogWasOpen) && !_boardOccupiedElsewhere)
         {
             await board.FocusAsync();
         }
+
+        _dialogWasOpen = dialogOpen;
     }
+
+    private bool _dialogWasOpen;
+
+    private bool AnyDialogOpen => _showMatchEnd || _showPlayerPicker is not null || _showWarmupPicker || _targetEntrySlot != 0;
 
     private bool _boardOccupiedElsewhere;
 
