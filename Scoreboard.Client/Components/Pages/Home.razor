@@ -242,11 +242,6 @@ else
                 <button class="@(Current.IsHandicap ? "active" : "")" @onclick="() => DispatchAsync(ScoreboardCommand.ToggleHandicap)">@L.T("HandicapShort")</button>
             </div>
             <div class="control-group">
-                <span>@L.T("ActivePlayer")</span>
-                <button class="@(Current.ActivePlayer == 1 ? "active" : "")" @onclick="() => DispatchAsync(ScoreboardCommand.SelectPlayer1)">@L.T("P1")</button>
-                <button class="@(Current.ActivePlayer == 2 ? "active" : "")" @onclick="() => DispatchAsync(ScoreboardCommand.SelectPlayer2)">@L.T("P2")</button>
-            </div>
-            <div class="control-group">
                 <span>@L.T("ShotClock")</span>
                 @if (Current.ShotClockActive)
                 {
