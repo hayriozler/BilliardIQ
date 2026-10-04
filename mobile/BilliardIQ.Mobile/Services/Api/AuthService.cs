@@ -5,13 +5,11 @@ public sealed class AuthService(ApiClient api, SessionStore session)
     public const string LoginRoute = "//login";
     public const string OrganizationRoute = "//organization";
     public const string ChangePasswordRoute = "//changepassword";
-    public const string PlayerHomeRoute = "//playerhome";
     public const string HomeRoute = "//home";
 
     public static string RouteFor(ApiSession current) =>
         current.MustChangePassword ? ChangePasswordRoute
         : current.NeedsOrganization ? OrganizationRoute
-        : current.Role == ApiRoles.Player ? PlayerHomeRoute
         : HomeRoute;
 
     public async Task<ApiSession> LoginAsync(string email, string password)

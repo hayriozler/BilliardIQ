@@ -40,7 +40,6 @@ public partial class AppShell : Shell
         var current = _session.Current;
         var ready = current is { MustChangePassword: false, NeedsOrganization: false };
 
-        PlayerHomeContent.IsVisible = ready && _session.IsPlayer;
         HomeContent.IsVisible = ready;
         HomeContent.Title = _session.IsPlayer ? "Games" : "Home";
         GameContent.IsVisible = ready;

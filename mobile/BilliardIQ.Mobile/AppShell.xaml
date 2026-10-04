@@ -39,12 +39,6 @@
         Shell.FlyoutItemIsVisible="False" />
 
     <ShellContent
-        x:Name="PlayerHomeContent"
-        Title="My stats"
-        ContentTemplate="{DataTemplate players:PlayerHomeViewPage}"
-        Route="playerhome" />
-
-    <ShellContent
         x:Name="HomeContent"
         Title="Home"
         ContentTemplate="{DataTemplate games:GameListViewPage}"
