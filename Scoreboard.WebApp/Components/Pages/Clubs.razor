@@ -1,5 +1,5 @@
 @page "/clubs"
-@attribute [Authorize(Roles = "Owner,Manager")]
+@attribute [Authorize(Policy = AuthClaims.ManagePolicy)]
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
