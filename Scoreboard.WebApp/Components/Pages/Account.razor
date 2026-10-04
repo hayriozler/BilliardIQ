@@ -1,0 +1,216 @@
+@page "/account"
+@attribute [Authorize(Policy = AuthClaims.PlayerAccountPolicy)]
+@inject ScopedRunner Db
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+
+<PageTitle>@L["Hesabım"] • BilliardIQ</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>@L["Hesabım"]</h1>
+        <div class="subtitle">@L["Profilinizi ve şifrenizi buradan güncelleyin."]</div>
+    </div>
+</div>
+
+@if (_mustChange)
+{
+    <div class="alert error">@L["Devam etmeden önce şifrenizi değiştirmelisiniz."]</div>
+}
+
+@if (_error is not null)
+{
+    <div class="alert error">@_error</div>
+}
+
+@if (_saved)
+{
+    <div class="alert success">@L["Kaydedildi."]</div>
+}
+
+@if (_profile is null)
+{
+    <p class="muted">@L["Yükleniyor..."]</p>
+}
+else
+{
+    <div class="card">
+        <h2>@L["Profil"]</h2>
+        <div class="form-row">
+            <div class="field">
+                @if (_profile.PhotoUrl is not null && !_removePhoto)
+                {
+                    <img src="@($"/{_profile.PhotoUrl}")" class="thumb" style="width:64px;height:64px" alt="" />
+                }
+                else if (_avatarId is int avatarId)
+                {
+                    <img src="@AvatarGenerator.ToDataUri(avatarId, 64)" class="thumb" style="width:64px;height:64px" alt="" />
+                }
+            </div>
+            <div class="field">@L["Ad soyad"]<strong>@($"{_profile.FirstName} {_profile.LastName}".Trim())</strong></div>
+            <div class="field">@L["E-posta"]<strong>@_profile.Email</strong></div>
+        </div>
+        <div class="form-row">
+            <label class="field">@L["Görünen ad"]
+                <input type="text" @bind="_nickname" maxlength="50" />
+            </label>
+            <label class="field">@L["Telefon"]
+                <input type="tel" @bind="_phone" maxlength="30" />
+            </label>
+            <label class="field">@L["Dil"]
+                <select @bind="_locale">
+                    <option value="">@L["Seçilmedi"]</option>
+                    @foreach (var language in Loc.Languages)
+                    {
+                        <option value="@language.Code">@language.Name</option>
+                    }
+                </select>
+            </label>
+            <label class="field">@L["Fotoğraf"]<InputFile OnChange="OnPhotoSelectedAsync" accept="image/*" /></label>
+            <div class="field">@L["Avatar"]<AvatarPicker @bind-Value="_avatarId" /></div>
+        </div>
+        @if (_profile.PhotoUrl is not null)
+        {
+            <label class="field"><span><input type="checkbox" @bind="_removePhoto" /> @L["Fotoğrafı kaldır"]</span></label>
+        }
+        <div class="form-actions">
+            <button type="button" class="primary" disabled="@_busy" @onclick="SaveAsync">@L["Kaydet"]</button>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <h2>@L["Şifre değiştir"]</h2>
+    <div class="form-row">
+        <label class="field">@L["Mevcut şifre"]
+            <input type="password" @bind="_currentPassword" autocomplete="current-password" />
+        </label>
+        <label class="field">@L["Yeni şifre"]
+            <input type="password" @bind="_newPassword" autocomplete="new-password" />
+        </label>
+        <label class="field">@L["Yeni şifre (tekrar)"]
+            <input type="password" @bind="_confirmPassword" autocomplete="new-password" />
+        </label>
+    </div>
+    <div class="form-actions">
+        <button type="button" class="primary" disabled="@_busy" @onclick="ChangePasswordAsync">@L["Şifreyi değiştir"]</button>
+    </div>
+</div>
+
+@code {
+    private MobileFullProfile? _profile;
+    private string? _error;
+    private bool _saved;
+    private bool _busy;
+    private bool _mustChange;
+    private bool _removePhoto;
+    private int _playerId;
+    private int _userId;
+    private int? _avatarId;
+    private string _nickname = "";
+    private string _phone = "";
+    private string _locale = "";
+    private string? _photoBase64;
+    private string _currentPassword = "";
+    private string _newPassword = "";
+    private string _confirmPassword = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _playerId = user.GetPlayerId();
+        _userId = user.GetUserId();
+        _mustChange = user.MustChangePassword();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _profile = await Db.RunAsync((PlayerProfileService s) => s.GetAsync(_playerId));
+        if (_profile is null)
+        {
+            return;
+        }
+
+        _avatarId = _profile.AvatarId;
+        _nickname = _profile.Nickname ?? "";
+        _phone = _profile.Phone ?? "";
+        _locale = _profile.Locale ?? "";
+        _removePhoto = false;
+        _photoBase64 = null;
+    }
+
+    private async Task OnPhotoSelectedAsync(InputFileChangeEventArgs e)
+    {
+        const long maxSize = 5 * 1024 * 1024;
+        if (e.File.Size > maxSize)
+        {
+            _error = L["Fotoğraf en fazla 5 MB olabilir."];
+            return;
+        }
+
+        _error = null;
+        await using var stream = e.File.OpenReadStream(maxSize);
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory);
+        _photoBase64 = Convert.ToBase64String(memory.ToArray());
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_profile is null)
+        {
+            return;
+        }
+
+        _error = null;
+        _saved = false;
+        _busy = true;
+        try
+        {
+            var p = _profile;
+            var update = new PlayerDetailsUpdate(
+                null, null, _nickname, _avatarId, _photoBase64, _removePhoto && _photoBase64 is null,
+                p.Level, p.LicenseNo, p.LicenseValidUntil, p.BirthDate, p.Gender, p.Handedness,
+                _phone, _locale,
+                p.CountryId, p.RegionId, p.CityId, p.AssociationId);
+            await Db.RunAsync((PlayerProfileService s) => s.UpdateAsync(_playerId, update, canChangeName: false));
+            await LoadAsync();
+            _saved = true;
+        }
+        catch (ArgumentException ex)
+        {
+            _error = L.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        _error = null;
+        _saved = false;
+        if (_newPassword != _confirmPassword)
+        {
+            _error = L["Yeni şifreler eşleşmiyor."];
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            await Db.RunAsync((AuthService s) => s.ChangePasswordAsync(_userId, _currentPassword, _newPassword));
+            Nav.NavigateTo("/login", forceLoad: true);
+        }
+        catch (ArgumentException ex)
+        {
+            _error = L.Error(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
