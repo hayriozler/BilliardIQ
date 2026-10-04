@@ -113,16 +113,6 @@ public static class DbInitializerExtension
         );
         """);
 
-        db.Database.ExecuteSqlRaw("""
-        CREATE TABLE IF NOT EXISTS score_event (
-            Id INTEGER PRIMARY KEY,
-            Timestamp TEXT NOT NULL,
-            PlayerSlot INTEGER NOT NULL,
-            Points INTEGER NOT NULL,
-            StartAt TEXT NULL,
-            EndAt TEXT NULL
-        );
-        """);
 
         db.Database.ExecuteSqlRaw("""
         CREATE TABLE IF NOT EXISTS match_history (
