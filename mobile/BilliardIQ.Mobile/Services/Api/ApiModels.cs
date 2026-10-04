@@ -49,6 +49,22 @@ public sealed record StatSummaryDto(int Matches, int Wins, int Losses, double Wi
 
 public sealed record PlayerMatchDto(int MatchId, DateTimeOffset PlayedAt, string OpponentName, int PlayerScore, int OpponentScore, int Inning, int HighRun, double Average, bool Won);
 
+public sealed record MobilePlayerMatch(
+    int MatchId, DateTimeOffset PlayedAt, DateTimeOffset? StartedAt, DateTimeOffset? EndedAt, int? TableNo, string OpponentName,
+    int PlayerScore, int OpponentScore, int Inning, int HighRun, double Average, bool Won, bool IsHandicap, int? PlayerTarget, int? OpponentTarget);
+
+public sealed record StatPlayerDto(int Id, string Name, string DisplayName, int? AvatarId, string? PhotoUrl);
+
+public sealed record PlayerStatsDto(StatPlayerDto Player, StatSummaryDto Summary, List<MobilePlayerMatch> Matches);
+
+public sealed record MatchHistoryEntry(int Slot, int Inning, int Score, int TotalScore, DateTimeOffset? PlayedAt);
+
+public sealed record MatchSideDto(int Slot, int? PlayerId, string Name, int Score, double Average, int HighRun, int? Target, List<int>? PaceBuckets);
+
+public sealed record MatchStatDetail(
+    int MatchId, DateTimeOffset PlayedAt, DateTimeOffset? StartedAt, DateTimeOffset? EndedAt, int? TableNo, int Inning, int? MatchTarget,
+    bool IsHandicap, int Winner, int BucketMinutes, MatchSideDto Player1, MatchSideDto Player2, List<MatchHistoryEntry>? History);
+
 public sealed record PlayerHomeDto(PlayerProfileDto Player, StatSummaryDto Summary, List<PlayerMatchDto> LastMatches);
 
 public sealed record ManageTableDto(int Id, int Number, int? ScoreboardNo, string? Label, int Type, int Status, DateTimeOffset? SessionOpenedAt);

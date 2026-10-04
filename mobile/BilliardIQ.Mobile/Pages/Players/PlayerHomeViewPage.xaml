@@ -8,7 +8,7 @@
     x:DataType="pageModels:PlayerHomePageModel"
     x:Class="BilliardIQ.Mobile.Pages.Players.PlayerHomeViewPage"
     x:Name="PlayerHomePage"
-    Title="{Binding L[PlayerHome_Title]}">
+    Title="{Binding PageTitle}">
 
     <ContentPage.Behaviors>
         <toolkit:EventToCommandBehavior
@@ -17,82 +17,132 @@
             Command="{Binding AppearingCommand}" />
     </ContentPage.Behaviors>
 
-    <Grid RowDefinitions="Auto, Auto, Auto, *" Padding="10" RowSpacing="8">
+    <CollectionView ItemsSource="{Binding Matches}" SelectionMode="None">
+        <CollectionView.ItemsLayout>
+            <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+        </CollectionView.ItemsLayout>
 
-        <Label Grid.Row="0" Text="{Binding PlayerName}" FontSize="22" FontAttributes="Bold" />
+        <CollectionView.Header>
+            <VerticalStackLayout Spacing="8" Padding="0,0,0,8">
+                <Label Text="{Binding PlayerName}" FontSize="22" FontAttributes="Bold" />
 
-        <Border Grid.Row="1"
-                BackgroundColor="#1E3A5F"
-                StrokeThickness="0"
-                Padding="15,12">
-            <Border.StrokeShape>
-                <RoundRectangle CornerRadius="12" />
-            </Border.StrokeShape>
-            <Grid ColumnDefinitions="*, *, *, *">
-                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                    <Label Text="{Binding L[Stats_Matches]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
-                    <Label Text="{Binding Summary.Matches}" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
-                </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                    <Label Text="{Binding L[Stats_Average]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
-                    <Label Text="{Binding Summary.AveragePerInning, StringFormat='{0:F3}'}" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
-                </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="2" Spacing="2">
-                    <Label Text="{Binding L[Stats_BestAverage]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
-                    <Label Text="{Binding Summary.BestAverage, StringFormat='{0:F3}'}" FontSize="20" FontAttributes="Bold" TextColor="#FFD54F" HorizontalOptions="Center" />
-                </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="3" Spacing="2">
-                    <Label Text="{Binding L[Stats_HighRun]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
-                    <Label Text="{Binding Summary.BestHighRun}" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
-                </VerticalStackLayout>
-            </Grid>
-        </Border>
+                <Border BackgroundColor="#1E3A5F" StrokeThickness="0" Padding="15,12">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="*, *, *, *" RowDefinitions="Auto, Auto" RowSpacing="10">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="{Binding L[Stats_Matches]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
+                            <Label Text="{Binding Summary.Matches}" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="{Binding L[Stats_Average]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
+                            <Label Text="{Binding Summary.AveragePerInning, StringFormat='{0:F3}'}" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="2" Spacing="2">
+                            <Label Text="{Binding L[Stats_BestAverage]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
+                            <Label Text="{Binding Summary.BestAverage, StringFormat='{0:F3}'}" FontSize="20" FontAttributes="Bold" TextColor="#FFD54F" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="3" Spacing="2">
+                            <Label Text="{Binding L[Stats_HighRun]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
+                            <Label Text="{Binding Summary.BestHighRun}" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="2">
+                            <Label Text="{Binding L[PlayerStats_Wins]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
+                            <Label Text="{Binding Summary.Wins}" FontSize="18" FontAttributes="Bold" TextColor="#A5D6A7" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="2">
+                            <Label Text="{Binding L[PlayerStats_Losses]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
+                            <Label Text="{Binding Summary.Losses}" FontSize="18" FontAttributes="Bold" TextColor="#EF9A9A" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="2" Spacing="2">
+                            <Label Text="{Binding L[Rank_SortWinPercent]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
+                            <Label Text="{Binding Summary.WinPercent, StringFormat='{0:F1}%'}" FontSize="18" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="3" Spacing="2">
+                            <Label Text="{Binding L[PlayerStats_AvgInnings]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
+                            <Label Text="{Binding Summary.AverageInnings, StringFormat='{0:F1}'}" FontSize="18" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
 
-        <Label Grid.Row="2" Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13"
-               IsVisible="{Binding HasError}" />
+                <Picker Title="{Binding L[Rank_Period]}"
+                        ItemsSource="{Binding PeriodNames}"
+                        SelectedIndex="{Binding PeriodIndex, Mode=TwoWay}" />
 
-        <Grid Grid.Row="3" RowDefinitions="Auto, *" RowSpacing="6">
-            <Label Grid.Row="0" Text="{Binding L[PlayerHome_LastMatches]}" FontSize="16" FontAttributes="Bold" />
-            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" VerticalOptions="Start" />
-            <Label Grid.Row="1" Text="{Binding L[PlayerHome_NoMatches]}" TextColor="Gray" HorizontalOptions="Center"
-                   IsVisible="{Binding HasNoMatches}" />
-            <CollectionView Grid.Row="1" ItemsSource="{Binding LastMatches}" SelectionMode="None" IsVisible="{Binding HasMatches}">
-                <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
-                </CollectionView.ItemsLayout>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="pageModels:PlayerMatchItem">
-                        <Border Stroke="LightGray" StrokeThickness="1" Padding="10" Margin="2,0">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10" />
-                            </Border.StrokeShape>
-                            <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto" RowSpacing="3">
-                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Opponent}" FontAttributes="Bold" />
-                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding ScoreText}" FontAttributes="Bold" HorizontalOptions="End">
-                                    <Label.Triggers>
-                                        <DataTrigger TargetType="Label" Binding="{Binding Won}" Value="True">
-                                            <Setter Property="TextColor" Value="Green" />
-                                        </DataTrigger>
-                                        <DataTrigger TargetType="Label" Binding="{Binding Won}" Value="False">
-                                            <Setter Property="TextColor" Value="Red" />
-                                        </DataTrigger>
-                                    </Label.Triggers>
-                                </Label>
-                                <Label Grid.Row="1" Grid.Column="0" Text="{Binding DateText}" TextColor="Gray" FontSize="12" />
-                                <Label Grid.Row="1" Grid.Column="1" TextColor="Gray" FontSize="12" HorizontalOptions="End">
-                                    <Label.FormattedText>
-                                        <FormattedString>
-                                            <Span Text="{Binding AverageText}" />
-                                            <Span Text="  /  " />
-                                            <Span Text="{Binding HighRunText}" />
-                                        </FormattedString>
-                                    </Label.FormattedText>
-                                </Label>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-        </Grid>
-    </Grid>
+                <Label Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13" IsVisible="{Binding HasError}" />
+                <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" />
+
+                <VerticalStackLayout Spacing="6" IsVisible="{Binding HasTrend}">
+                    <Label Text="{Binding L[PlayerHome_AverageTrend]}" FontSize="14" FontAttributes="Bold" />
+                    <GraphicsView x:Name="AverageChart"
+                                  Drawable="{Binding AverageDrawable}"
+                                  HeightRequest="160"
+                                  BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1C1C1E}" />
+                    <Label Text="{Binding L[PlayerHome_HighRunTrend]}" FontSize="14" FontAttributes="Bold" Margin="0,8,0,0" />
+                    <GraphicsView x:Name="HighRunChart"
+                                  Drawable="{Binding HighRunDrawable}"
+                                  HeightRequest="160"
+                                  BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1C1C1E}" />
+                </VerticalStackLayout>
+                <Label Text="{Binding L[PlayerHome_NoTrend]}" TextColor="Gray" FontSize="13" HorizontalOptions="Center"
+                       IsVisible="{Binding HasNoTrend}" />
+
+                <Label Text="{Binding L[PlayerHome_History]}" FontSize="16" FontAttributes="Bold" Margin="0,8,0,0" />
+            </VerticalStackLayout>
+        </CollectionView.Header>
+
+        <CollectionView.EmptyView>
+            <Label Text="{Binding L[PlayerHome_NoMatches]}" TextColor="Gray" HorizontalOptions="Center" Margin="0,20" />
+        </CollectionView.EmptyView>
+
+        <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="pageModels:PlayerMatchItem">
+                <Border Stroke="LightGray" StrokeThickness="1" Padding="10" Margin="2,0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto" RowSpacing="3" ColumnSpacing="8">
+                        <HorizontalStackLayout Grid.Row="0" Grid.Column="0" Spacing="6">
+                            <Label Text="{Binding Opponent}" FontAttributes="Bold" VerticalOptions="Center" />
+                            <Border IsVisible="{Binding IsHandicap}" BackgroundColor="#EF6C00" StrokeThickness="0" Padding="6,1" VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                                <Label Text="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.L[PlayerHome_Hcp]}"
+                                       TextColor="White" FontSize="10" FontAttributes="Bold" />
+                            </Border>
+                        </HorizontalStackLayout>
+                        <Label Grid.Row="0" Grid.Column="1" Text="{Binding ScoreText}" FontAttributes="Bold" HorizontalOptions="End">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label" Binding="{Binding Won}" Value="True">
+                                    <Setter Property="TextColor" Value="Green" />
+                                </DataTrigger>
+                                <DataTrigger TargetType="Label" Binding="{Binding Won}" Value="False">
+                                    <Setter Property="TextColor" Value="Red" />
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+                        <Label Grid.Row="1" Grid.Column="0" Text="{Binding DateText}" TextColor="Gray" FontSize="12" />
+                        <Label Grid.Row="1" Grid.Column="1" TextColor="Gray" FontSize="12" HorizontalOptions="End">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="{Binding AverageText}" />
+                                    <Span Text="  /  " />
+                                    <Span Text="{Binding HighRunText}" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                        <Label Grid.Row="2" Grid.Column="0" Text="{Binding TargetText}" TextColor="#EF6C00" FontSize="12"
+                               IsVisible="{Binding IsHandicap}" VerticalOptions="Center" />
+                        <Button Grid.Row="2" Grid.Column="1"
+                                Text="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.L[PlayerHome_Details]}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenMatchCommand}"
+                                CommandParameter="{Binding MatchId}"
+                                HeightRequest="36" FontSize="12" Padding="14,0" />
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
+    </CollectionView>
 </basePages:BasePage>
