@@ -4,8 +4,8 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace BilliardIQ.Mobile.PageModels.Manage;
 
-public partial class PlayerEditPageModel(ApiClient api, AvatarImageService avatars, AvatarPickerSession picker)
-    : PlayerProfileFormModel(avatars, picker), IQueryAttributable
+public partial class PlayerEditPageModel(ApiClient api, AvatarImageService avatars, AvatarPickerSession picker, CatalogService catalogs)
+    : PlayerProfileFormModel(avatars, picker, catalogs), IQueryAttributable
 {
     private int _playerId;
 

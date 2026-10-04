@@ -63,14 +63,20 @@ public sealed record FullProfileDto(
     int Id, string FirstName, string LastName, string? Nickname, string DisplayName, int? AvatarId, string? PhotoUrl,
     int Level, int? ShortcutNumber, string? BirthDate, int? Gender, int? Handedness,
     string? LicenseNo, string? LicenseValidUntil, string? AssociationName, string? RegionName, string? CountryName, string? CityName,
-    string? Email, string? Phone, string? Locale, bool HasAccount, List<string> Clubs, List<string> Teams);
+    string? Email, string? Phone, string? Locale, bool HasAccount, List<string> Clubs, List<string> Teams,
+    int? CountryId, int? RegionId, int? CityId, int? AssociationId);
 
 public sealed record ProfileUpdateRequest(
     string? FirstName, string? LastName, string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
     int? Level, string? LicenseNo, string? LicenseValidUntil, string? BirthDate, int? Gender, int? Handedness,
-    string? Phone, string? Locale);
+    string? Phone, string? Locale,
+    int? CountryId, int? RegionId, int? CityId, int? AssociationId);
 
 public sealed record AvatarCountDto(int Count);
+
+public sealed record CatalogItemDto(int Id, int? CountryId, string Name);
+
+public sealed record CatalogDto(List<CatalogItemDto> Countries, List<CatalogItemDto> Regions, List<CatalogItemDto> Cities, List<CatalogItemDto> Associations);
 
 public sealed record RankingRowDto(int Rank, int PlayerId, string Name, int? AvatarId, string? PhotoUrl, int Matches, int Wins, int Losses, double WinPercent, double AveragePerInning, double BestAverage, int BestHighRun);
 

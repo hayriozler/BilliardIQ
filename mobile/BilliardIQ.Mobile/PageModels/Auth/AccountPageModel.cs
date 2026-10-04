@@ -5,8 +5,8 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace BilliardIQ.Mobile.PageModels.Auth;
 
-public partial class AccountPageModel(AuthService auth, SessionStore session, ApiClient api, AvatarImageService avatars, AvatarPickerSession picker)
-    : PlayerProfileFormModel(avatars, picker)
+public partial class AccountPageModel(AuthService auth, SessionStore session, ApiClient api, AvatarImageService avatars, AvatarPickerSession picker, CatalogService catalogs)
+    : PlayerProfileFormModel(avatars, picker, catalogs)
 {
     [ObservableProperty]
     public partial string DisplayName { get; set; } = "";

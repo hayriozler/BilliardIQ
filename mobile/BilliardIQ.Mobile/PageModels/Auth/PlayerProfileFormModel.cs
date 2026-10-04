@@ -5,7 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace BilliardIQ.Mobile.PageModels.Auth;
 
-public abstract partial class PlayerProfileFormModel(AvatarImageService avatars, AvatarPickerSession picker) : BasePageModel
+public abstract partial class PlayerProfileFormModel(AvatarImageService avatars, AvatarPickerSession picker, CatalogService catalogs) : BasePageModel
 {
     private static readonly int[] _levelValues = [1, 2, 4, 8];
 
@@ -13,6 +13,8 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
     private string? _photoUrl;
     private bool _removePhoto;
     private bool _returningFromPicker;
+    private CatalogDto? _catalog;
+    private bool _applying;
 
     [ObservableProperty]
     public partial string FirstName { get; set; } = "";
@@ -61,10 +63,28 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
     public partial string ShortcutNumber { get; set; } = "";
 
     [ObservableProperty]
-    public partial string Association { get; set; } = "";
+    public partial IReadOnlyList<string> CountryNames { get; set; } = ["-"];
 
     [ObservableProperty]
-    public partial string Location { get; set; } = "";
+    public partial IReadOnlyList<string> RegionNames { get; set; } = ["-"];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<string> CityNames { get; set; } = ["-"];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<string> AssociationNames { get; set; } = ["-"];
+
+    [ObservableProperty]
+    public partial int CountryIndex { get; set; }
+
+    [ObservableProperty]
+    public partial int RegionIndex { get; set; }
+
+    [ObservableProperty]
+    public partial int CityIndex { get; set; }
+
+    [ObservableProperty]
+    public partial int AssociationIndex { get; set; }
 
     [ObservableProperty]
     public partial string Clubs { get; set; } = "";
@@ -113,7 +133,9 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
         IsBusy = true;
         try
         {
-            ApplyProfile(await FetchProfileAsync());
+            var profile = await FetchProfileAsync();
+            _catalog = await catalogs.GetAsync();
+            ApplyProfile(profile);
             _pendingPhoto = null;
             _removePhoto = false;
             await RefreshPictureAsync();
@@ -154,7 +176,11 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
                 GenderIndex <= 0 ? null : GenderIndex - 1,
                 HandednessIndex <= 0 ? null : HandednessIndex - 1,
                 NullIfEmpty(Phone) ?? "",
-                LanguageIndex == 1 ? "en-US" : "tr-TR");
+                LanguageIndex == 1 ? "en-US" : "tr-TR",
+                SelectedId(_catalog?.Countries, CountryIndex),
+                SelectedId(CurrentRegions(), RegionIndex),
+                SelectedId(CurrentCities(), CityIndex),
+                SelectedId(_catalog?.Associations, AssociationIndex));
             ApplyProfile(await StoreProfileAsync(request));
             _pendingPhoto = null;
             _removePhoto = false;
@@ -259,11 +285,71 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
         Phone = p.Phone ?? "";
         LanguageIndex = p.Locale is { } l && l.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
         ShortcutNumber = p.ShortcutNumber?.ToString() ?? "";
-        Association = p.AssociationName ?? "";
-        Location = string.Join(", ", new[] { p.CountryName, p.RegionName, p.CityName }.Where(s => !string.IsNullOrWhiteSpace(s)));
         Clubs = string.Join(", ", p.Clubs);
         Teams = string.Join(", ", p.Teams);
+        ApplyCatalog(p);
         OnPropertyChanged(nameof(FullName));
+    }
+
+    partial void OnCountryIndexChanged(int value)
+    {
+        if (_applying)
+        {
+            return;
+        }
+
+        RebuildGeo();
+        RegionIndex = 0;
+        CityIndex = 0;
+    }
+
+    private void ApplyCatalog(FullProfileDto p)
+    {
+        _applying = true;
+        try
+        {
+            CountryNames = ["-", .. (_catalog?.Countries ?? []).Select(c => c.Name)];
+            AssociationNames = ["-", .. (_catalog?.Associations ?? []).Select(a => a.Name)];
+            CountryIndex = IndexOf(_catalog?.Countries, p.CountryId);
+            RebuildGeo();
+            RegionIndex = IndexOf(CurrentRegions(), p.RegionId);
+            CityIndex = IndexOf(CurrentCities(), p.CityId);
+            AssociationIndex = IndexOf(_catalog?.Associations, p.AssociationId);
+        }
+        finally
+        {
+            _applying = false;
+        }
+    }
+
+    private void RebuildGeo()
+    {
+        RegionNames = ["-", .. CurrentRegions().Select(r => r.Name)];
+        CityNames = ["-", .. CurrentCities().Select(c => c.Name)];
+    }
+
+    private List<CatalogItemDto> CurrentRegions() =>
+        _catalog is not null && SelectedId(_catalog.Countries, CountryIndex) is { } countryId
+            ? [.. _catalog.Regions.Where(r => r.CountryId == countryId)]
+            : [];
+
+    private List<CatalogItemDto> CurrentCities() =>
+        _catalog is not null && SelectedId(_catalog.Countries, CountryIndex) is { } countryId
+            ? [.. _catalog.Cities.Where(c => c.CountryId == countryId)]
+            : [];
+
+    private static int? SelectedId(List<CatalogItemDto>? items, int index) =>
+        items is not null && index > 0 && index - 1 < items.Count ? items[index - 1].Id : null;
+
+    private static int IndexOf(List<CatalogItemDto>? items, int? id)
+    {
+        if (items is null || id is null)
+        {
+            return 0;
+        }
+
+        var position = items.FindIndex(i => i.Id == id);
+        return position < 0 ? 0 : position + 1;
     }
 
     private async Task RefreshPictureAsync()

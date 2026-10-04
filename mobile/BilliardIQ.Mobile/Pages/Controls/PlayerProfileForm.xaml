@@ -41,9 +41,13 @@
         <Label Text="{Binding L[Account_ShortcutNumber]}" FontSize="12" TextColor="Gray" />
         <Label Text="{Binding ShortcutNumber}" FontSize="16" />
         <Label Text="{Binding L[Account_Association]}" FontSize="12" TextColor="Gray" />
-        <Label Text="{Binding Association}" FontSize="16" />
-        <Label Text="{Binding L[Account_Location]}" FontSize="12" TextColor="Gray" />
-        <Label Text="{Binding Location}" FontSize="16" />
+        <Picker ItemsSource="{Binding AssociationNames}" SelectedIndex="{Binding AssociationIndex, Mode=TwoWay}" />
+        <Label Text="{Binding L[Account_Country]}" FontSize="12" TextColor="Gray" />
+        <Picker ItemsSource="{Binding CountryNames}" SelectedIndex="{Binding CountryIndex, Mode=TwoWay}" />
+        <Label Text="{Binding L[Account_Region]}" FontSize="12" TextColor="Gray" />
+        <Picker ItemsSource="{Binding RegionNames}" SelectedIndex="{Binding RegionIndex, Mode=TwoWay}" />
+        <Label Text="{Binding L[Account_City]}" FontSize="12" TextColor="Gray" />
+        <Picker ItemsSource="{Binding CityNames}" SelectedIndex="{Binding CityIndex, Mode=TwoWay}" />
         <Label Text="{Binding L[Account_Clubs]}" FontSize="12" TextColor="Gray" />
         <Label Text="{Binding Clubs}" FontSize="16" />
         <Label Text="{Binding L[Account_Teams]}" FontSize="12" TextColor="Gray" />
