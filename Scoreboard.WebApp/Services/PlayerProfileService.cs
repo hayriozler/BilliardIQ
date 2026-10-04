@@ -7,13 +7,15 @@ namespace Scoreboard.WebApp.Services;
 public record PlayerDetailsUpdate(
     string? FirstName, string? LastName, string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
     Level? Level, string? LicenseNo, DateOnly? LicenseValidUntil, DateOnly? BirthDate, Gender? Gender, Handedness? Handedness,
-    string? Phone, string? Locale);
+    string? Phone, string? Locale,
+    int? CountryId = null, int? RegionId = null, int? CityId = null, int? AssociationId = null);
 
 public record MobileFullProfile(
     int Id, string FirstName, string LastName, string? Nickname, string DisplayName, int? AvatarId, string? PhotoUrl,
     Level Level, int? ShortcutNumber, DateOnly? BirthDate, Gender? Gender, Handedness? Handedness,
     string? LicenseNo, DateOnly? LicenseValidUntil, string? AssociationName, string? RegionName, string? CountryName, string? CityName,
-    string? Email, string? Phone, string? Locale, bool HasAccount, IReadOnlyList<string> Clubs, IReadOnlyList<string> Teams);
+    string? Email, string? Phone, string? Locale, bool HasAccount, IReadOnlyList<string> Clubs, IReadOnlyList<string> Teams,
+    int? CountryId, int? RegionId, int? CityId, int? AssociationId);
 
 public class PlayerProfileService(DataContext db, PlayerService players, MobileAuthService mobile)
 {
@@ -44,7 +46,8 @@ public class PlayerProfileService(DataContext db, PlayerService players, MobileA
             player.Id, player.FirstName, player.LastName, player.Nickname, player.DisplayName, player.AvatarId, player.PhotoUrl,
             player.Level, player.ShortcutNumber, player.BirthDate, player.Gender, player.Handedness,
             player.FederationLicenseNo, player.LicenseValidUntil, player.Association?.Name, player.Region?.Name, player.CountryRef?.Name, player.CityRef?.Name,
-            player.User?.Email ?? player.Email, player.User?.Phone, player.User?.Locale, player.UserId is not null, clubs, teams);
+            player.User?.Email ?? player.Email, player.User?.Phone, player.User?.Locale, player.UserId is not null, clubs, teams,
+            player.CountryId, player.RegionId, player.CityId, player.AssociationId);
     }
 
     public async Task<MobileFullProfile> UpdateAsync(int playerId, PlayerDetailsUpdate update, bool canChangeName)
@@ -84,6 +87,42 @@ public class PlayerProfileService(DataContext db, PlayerService players, MobileA
             throw new ArgumentException("Takma ad en fazla 50 karakter olabilir.");
         }
 
+        Country? country = null;
+        City? city = null;
+        if (update.CountryId is not null)
+        {
+            country = await db.OrganizationCountrySet
+                .Where(x => x.CountryId == update.CountryId && x.DeletedAt == null)
+                .Select(x => x.Country)
+                .FirstOrDefaultAsync()
+                ?? throw new ArgumentException("Ülke bulunamadı.");
+        }
+
+        if (update.CityId is not null)
+        {
+            city = await db.OrganizationCitySet
+                .Where(x => x.CityId == update.CityId && x.DeletedAt == null)
+                .Select(x => x.City)
+                .FirstOrDefaultAsync()
+                ?? throw new ArgumentException("Şehir bulunamadı.");
+            if (country is null || city.CountryId != country.Id)
+            {
+                throw new ArgumentException("Şehir seçilen ülkeye ait değil.");
+            }
+        }
+
+        if (update.RegionId is not null && !await db.OrganizationRegionSet.AnyAsync(x =>
+                x.RegionId == update.RegionId && x.DeletedAt == null))
+        {
+            throw new ArgumentException("Bölge bulunamadı.");
+        }
+
+        if (update.AssociationId is not null && !await db.AssociationSet.AnyAsync(a =>
+                a.Id == update.AssociationId && a.DeletedAt == null))
+        {
+            throw new ArgumentException("Dernek / federasyon bulunamadı.");
+        }
+
         var player = await players.GetAsync(playerId);
         if (player is null || player.IsSystem)
         {
@@ -112,6 +151,10 @@ public class PlayerProfileService(DataContext db, PlayerService players, MobileA
         player.BirthDate = update.BirthDate;
         player.Gender = update.Gender;
         player.Handedness = update.Handedness;
+        player.CountryId = country?.Id;
+        player.CityId = city?.Id;
+        player.RegionId = update.RegionId;
+        player.AssociationId = update.AssociationId;
         await db.SaveChangesAsync();
 
         if (update.RemovePhoto)

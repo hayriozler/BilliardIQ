@@ -6,12 +6,18 @@ namespace Scoreboard.WebApp.Endpoints;
 public record MobileOwnProfileRequest(
     string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
     Level? Level, string? LicenseNo, DateOnly? LicenseValidUntil, DateOnly? BirthDate, Gender? Gender, Handedness? Handedness,
-    string? Phone, string? Locale);
+    string? Phone, string? Locale,
+    int? CountryId = null, int? RegionId = null, int? CityId = null, int? AssociationId = null);
 
 public record MobileManagedProfileRequest(
     string? FirstName, string? LastName, string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
     Level? Level, string? LicenseNo, DateOnly? LicenseValidUntil, DateOnly? BirthDate, Gender? Gender, Handedness? Handedness,
-    string? Phone, string? Locale);
+    string? Phone, string? Locale,
+    int? CountryId = null, int? RegionId = null, int? CityId = null, int? AssociationId = null);
+
+public record CatalogItem(int Id, int? CountryId, string Name);
+
+public record MobileCatalog(IReadOnlyList<CatalogItem> Countries, IReadOnlyList<CatalogItem> Regions, IReadOnlyList<CatalogItem> Cities, IReadOnlyList<CatalogItem> Associations);
 
 public static class MobileProfileEndpoints
 {
@@ -31,7 +37,8 @@ public static class MobileProfileEndpoints
                 var update = new PlayerDetailsUpdate(
                     null, null, request.Nickname, request.AvatarId, request.PhotoBase64, request.RemovePhoto,
                     request.Level, request.LicenseNo, request.LicenseValidUntil, request.BirthDate, request.Gender, request.Handedness,
-                    request.Phone, request.Locale);
+                    request.Phone, request.Locale,
+                    request.CountryId, request.RegionId, request.CityId, request.AssociationId);
                 return Results.Ok(await profiles.UpdateAsync(context.User.GetPlayerId(), update, canChangeName: false));
             }
             catch (ArgumentException ex)
@@ -54,7 +61,8 @@ public static class MobileProfileEndpoints
                 var update = new PlayerDetailsUpdate(
                     request.FirstName, request.LastName, request.Nickname, request.AvatarId, request.PhotoBase64, request.RemovePhoto,
                     request.Level, request.LicenseNo, request.LicenseValidUntil, request.BirthDate, request.Gender, request.Handedness,
-                    request.Phone, request.Locale);
+                    request.Phone, request.Locale,
+                    request.CountryId, request.RegionId, request.CityId, request.AssociationId);
                 return Results.Ok(await profiles.UpdateAsync(id, update, canChangeName: true));
             }
             catch (ArgumentException ex)
@@ -62,6 +70,15 @@ public static class MobileProfileEndpoints
                 return Results.BadRequest(loc.Error(ex));
             }
         });
+
+        app.MapGet("/api/mobile/catalog", async (CountryService countries, RegionService regions, CityService cities, AssociationService associations) =>
+            Results.Ok(new MobileCatalog(
+                [.. (await countries.ListAsync()).Select(c => new CatalogItem(c.Id, null, c.Name))],
+                [.. (await regions.ListAsync()).Select(r => new CatalogItem(r.Id, r.CountryId, r.Name))],
+                [.. (await cities.ListAsync()).Select(c => new CatalogItem(c.Id, c.CountryId, c.Name))],
+                [.. (await associations.ListAsync()).Select(a => new CatalogItem(a.Id, null, a.Name))])))
+            .WithTags("MobileProfile")
+            .RequireAuthorization(JwtSettings.MobilePolicy);
 
         var avatars = app.MapGroup("/api/mobile/avatars").WithTags("MobileProfile");
 
