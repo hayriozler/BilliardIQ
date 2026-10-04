@@ -34,6 +34,33 @@ public record StatSummary(
     double BestAverage,
     int BestHighRun);
 
+public record MatchSideDetail(
+    int Slot,
+    int? PlayerId,
+    string Name,
+    int Score,
+    double Average,
+    int HighRun,
+    int Target,
+    IReadOnlyList<int> PaceBuckets);
+
+public record MatchInningRow(int Slot, int Inning, int Score, int TotalScore, DateTimeOffset? PlayedAt);
+
+public record MatchStatDetail(
+    int MatchId,
+    DateTimeOffset PlayedAt,
+    DateTimeOffset? StartedAt,
+    DateTimeOffset? EndedAt,
+    int? TableNo,
+    int Inning,
+    int MatchTarget,
+    bool IsHandicap,
+    int Winner,
+    int BucketMinutes,
+    MatchSideDetail Player1,
+    MatchSideDetail Player2,
+    IReadOnlyList<MatchInningRow> History);
+
 public record PlayerStatRow(Player Player, StatSummary Summary);
 
 public record PlayerStatDetail(Player Player, StatSummary Summary, IReadOnlyList<PlayerMatchEntry> Matches, IReadOnlyList<PlayerMatchEntry> HandicapMatches);
@@ -80,6 +107,47 @@ public class StatsService(DataContext db)
             .GetValueOrDefault(playerId) ?? [];
         return new PlayerStatDetail(player, Summarize(entries),
             entries, entries.Where(e => e.IsHandicap).ToList());
+    }
+
+    public async Task<MatchStatDetail?> MatchAsync(int matchId)
+    {
+        var s = await db.MatchStatSet.AsNoTracking()
+            .Include(m => m.Buckets)
+            .Include(m => m.History)
+            .FirstOrDefaultAsync(m => m.Id == matchId);
+        if (s is null)
+        {
+            return null;
+        }
+
+        var history = s.History
+            .OrderBy(h => h.Inning).ThenBy(h => h.PlayerSlot).ThenBy(h => h.Id)
+            .Select(h => new MatchInningRow(h.PlayerSlot, h.Inning, h.Score, h.TotalScore, h.PlayedAt))
+            .ToList();
+        return new MatchStatDetail(
+            s.Id, s.PlayedAt, s.StartedAt, s.EndedAt, s.TableNo, s.Inning, s.MatchTarget, s.IsHandicap, s.Winner, s.BucketMinutes,
+            Side(s, 1), Side(s, 2), history);
+    }
+
+    private static MatchSideDetail Side(MatchStat s, int slot)
+    {
+        var first = slot == 1;
+        var mine = s.Buckets.Where(b => b.PlayerSlot == slot && b.BucketIndex <= MaxBucketIndex).ToList();
+        var buckets = new int[mine.Count == 0 ? 0 : mine.Max(b => b.BucketIndex) + 1];
+        foreach (var b in mine)
+        {
+            buckets[b.BucketIndex] += b.TotalPoints;
+        }
+
+        return new MatchSideDetail(
+            slot,
+            first ? s.Player1ExternalId : s.Player2ExternalId,
+            first ? s.Player1Name : s.Player2Name,
+            first ? s.Player1Score : s.Player2Score,
+            first ? s.Player1Avg : s.Player2Avg,
+            first ? s.Player1HighRun : s.Player2HighRun,
+            first ? s.Player1Target : s.Player2Target,
+            buckets);
     }
 
     public async Task<List<TeamStatRow>> TeamsAsync(DateTimeOffset? since = null, DateTimeOffset? until = null)

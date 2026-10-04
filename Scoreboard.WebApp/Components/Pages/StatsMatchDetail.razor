@@ -1,0 +1,141 @@
+@page "/stats/matches/{Id:int}"
+@attribute [Authorize]
+@inject ScopedRunner Db
+
+<PageTitle>@L["Maç detayı"] • BilliardIQ</PageTitle>
+
+@if (_loaded && _match is null)
+{
+    <div class="page-head"><div><h1>@L["Maç detayı"]</h1></div></div>
+    <div class="card empty">@L["Maç bulunamadı."] <a href="@BackUrl">@L["Oyuncu istatistikleri"]</a></div>
+}
+else if (_match is not null)
+{
+    var m = _match;
+    var sides = new[] { m.Player1, m.Player2 };
+    var minutes = m.BucketMinutes > 0 ? m.BucketMinutes : 5;
+    var innings = m.History.Select(h => h.Inning).Distinct().OrderBy(i => i).ToList();
+    <div class="page-head">
+        <div>
+            <h1>@m.Player1.Name – @m.Player2.Name
+                @if (m.IsHandicap) { <span class="pill info">HCP</span> }
+            </h1>
+            <div class="subtitle">
+                @Format.DateTime(m.PlayedAt, _zone)
+                @if (m.StartedAt is { } started && m.EndedAt is { } ended)
+                {
+                    <span> • @Format.Time(started, _zone) – @Format.Time(ended, _zone)</span>
+                }
+                @if (m.TableNo is { } table) { <span> • @L["Masa"] @table</span> }
+            </div>
+        </div>
+        <div class="row-actions">
+            <a class="small-link" href="@BackUrl">← @L["Oyuncu istatistikleri"]</a>
+        </div>
+    </div>
+
+    <div class="stat-grid">
+        @foreach (var side in sides)
+        {
+            <div class="stat @(m.Winner == side.Slot ? "ok" : "")">
+                <div class="label">@side.Name</div>
+                <div class="value">@side.Score@(m.IsHandicap ? " / " + side.Target : "")</div>
+                <div class="sub">@L["Ort. / El"]: @side.Average.ToString("0.000") • @L["En yüksek seri"]: @side.HighRun</div>
+            </div>
+        }
+        <div class="stat"><div class="label">@L["El"]</div><div class="value">@m.Inning</div></div>
+    </div>
+
+    <div class="split" style="margin-top:1rem">
+        @foreach (var side in sides)
+        {
+            <div class="card">
+                <h2>@L["Skor temposu"] – @side.Name</h2>
+                @if (side.PaceBuckets.Count == 0)
+                {
+                    <div class="empty">@L["Bu maç için skor dağılımı yok."]</div>
+                }
+                else
+                {
+                    <BarChart Values="@side.PaceBuckets.Select(p => (double)p).ToList()"
+                              Labels="@side.PaceBuckets.Select((p, i) => $"{i * minutes}–{(i + 1) * minutes}'").ToList()" />
+                    <p class="hint">@L["{0} dakikalık dilimlerde atılan sayı.", minutes]</p>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="split">
+        @foreach (var side in sides)
+        {
+            var rows = m.History.Where(h => h.Slot == side.Slot).OrderBy(h => h.Inning).ToList();
+            <div class="card">
+                <h2>@L["El başına sayı"] – @side.Name</h2>
+                <BarChart Values="@rows.Select(h => (double)h.Score).ToList()"
+                          Labels="@rows.Select(h => h.Inning.ToString()).ToList()"
+                          EmptyText="@L["Bu maç için el geçmişi yok."]" />
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        <h2>@L["Skor geçmişi"]</h2>
+        @if (innings.Count == 0)
+        {
+            <div class="empty">@L["Bu maç için el geçmişi yok."]</div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="num">@L["El"]</th>
+                            <th>@L["Saat"]</th>
+                            <th class="num">@m.Player1.Name</th>
+                            <th class="num">@L["Toplam"]</th>
+                            <th class="num">@m.Player2.Name</th>
+                            <th class="num">@L["Toplam"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var inning in innings)
+                        {
+                            var one = m.History.FirstOrDefault(h => h.Inning == inning && h.Slot == 1);
+                            var two = m.History.FirstOrDefault(h => h.Inning == inning && h.Slot == 2);
+                            var at = one?.PlayedAt ?? two?.PlayedAt;
+                            <tr>
+                                <td class="num">@inning</td>
+                                <td>@(at is { } time ? Format.Time(time, _zone) : "—")</td>
+                                <td class="num">@(one is null ? "—" : one.Score.ToString())</td>
+                                <td class="num"><strong>@(one is null ? "—" : one.TotalScore.ToString())</strong></td>
+                                <td class="num">@(two is null ? "—" : two.Score.ToString())</td>
+                                <td class="num"><strong>@(two is null ? "—" : two.TotalScore.ToString())</strong></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    [SupplyParameterFromQuery] public int? PlayerId { get; set; }
+
+    private MatchStatDetail? _match;
+    private TimeZoneInfo _zone = TimeZoneInfo.Utc;
+    private bool _loaded;
+
+    private string BackUrl => PlayerId is { } id ? $"/stats/players/{id}" : "/stats/players";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var id = Id;
+        _zone = PricingCalculator.ResolveTimeZone((await Db.RunAsync((TableService s) => s.GetOrganizationAsync())).TimeZone);
+        _match = await Db.RunAsync((StatsService s) => s.MatchAsync(id));
+        _loaded = true;
+    }
+}
