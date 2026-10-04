@@ -74,6 +74,13 @@ builder.Services.AddHostedService<RemotePullService>();
 var app = builder.Build();
 app.UseAntiforgery();
 app.Services.InitializeDb();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DataContext>();
+    var zoneId = db.SettingsSet.AsNoTracking().Where(s => s.Id == "TimeZone").Select(s => s.Value).FirstOrDefault();
+    app.Services.GetRequiredService<ServerClock>().UseTimeZone(zoneId);
+}
+
 app.UseStaticFiles();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
