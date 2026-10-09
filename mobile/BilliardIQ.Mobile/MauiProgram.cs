@@ -73,6 +73,7 @@ public static class MauiProgram
 #endif
         builder.Services.AddSingleton<DatabaseExecutor>();
         builder.Services.AddSingleton<ScoreboardPlayerSession>();
+        builder.Services.AddSingleton<ScoreboardPlayerRepository>();
         builder.Services.AddSingleton<GameRepository>();
         builder.Services.AddSingleton<IErrorHandler, ModalErrorHandler>();
         builder.Services.AddSingleton<ScoreboardOcrService>();
