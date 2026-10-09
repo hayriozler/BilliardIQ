@@ -8,6 +8,7 @@
 @inject BoardSessionGuard BoardSession
 @inject BoardSessionTracker BoardTracker
 @inject LanguageSync LanguageSync
+@inject StartupGate Startup
 @inject ServerClock Clock
 @inject Microsoft.Extensions.Logging.ILogger<Home> Logger
 @inject Microsoft.Extensions.Options.IOptions<RemoteSyncOptions> SyncOptions
@@ -500,6 +501,11 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            Startup.MarkBoardRendered();
+        }
+
         var dialogOpen = AnyDialogOpen;
         if ((firstRender || dialogOpen && !_dialogWasOpen) && !_boardOccupiedElsewhere)
         {
