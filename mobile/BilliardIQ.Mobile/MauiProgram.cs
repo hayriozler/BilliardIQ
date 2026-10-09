@@ -127,6 +127,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<RankingViewPage>();
         builder.Services.AddSingleton<ManageListPageModel>();
         builder.Services.AddSingleton<ManageListViewPage>();
+        builder.Services.AddSingleton<InvitePageModel>();
+        builder.Services.AddSingleton<InviteViewPage>();
         builder.Services.AddSingleton<AppShell>();
         builder.Services.AddTransientWithShellRoute<RegisterViewPage, RegisterPageModel>("register");
         builder.Services.AddTransientWithShellRoute<ForgotPasswordViewPage, ForgotPasswordPageModel>("forgotpassword");

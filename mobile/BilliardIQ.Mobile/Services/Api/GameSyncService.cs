@@ -17,7 +17,7 @@ public sealed record PushResult(int? RemoteId, string? Rejection)
 
 public sealed class GameSyncService(ApiClient api, SessionStore session, GameRepository games)
 {
-    private const string Path = "api/mobile/player/external-matches";
+    private const string _path = "api/mobile/player/external-matches";
 
     public bool IsEnabled => session.IsPlayer;
 
@@ -35,7 +35,7 @@ public sealed class GameSyncService(ApiClient api, SessionStore session, GameRep
             {
                 try
                 {
-                    var updated = await api.PutAsync<ExternalMatchIdDto>($"{Path}/{remoteId}", request);
+                    var updated = await api.PutAsync<ExternalMatchIdDto>($"{_path}/{remoteId}", request);
                     return new PushResult(updated.Id, null);
                 }
                 catch (ApiException ex) when (ex.StatusCode == 404)
@@ -43,7 +43,7 @@ public sealed class GameSyncService(ApiClient api, SessionStore session, GameRep
                 }
             }
 
-            var created = await api.PostAsync<ExternalMatchIdDto>(Path, request);
+            var created = await api.PostAsync<ExternalMatchIdDto>(_path, request);
             return new PushResult(created.Id, null);
         }
         catch (ApiException ex) when (ex.StatusCode == 400)
@@ -65,7 +65,7 @@ public sealed class GameSyncService(ApiClient api, SessionStore session, GameRep
 
         try
         {
-            await api.DeleteAsync($"{Path}/{remoteId}");
+            await api.DeleteAsync($"{_path}/{remoteId}");
             return true;
         }
         catch (ApiException ex) when (ex.StatusCode == 404)

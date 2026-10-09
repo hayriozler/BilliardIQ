@@ -33,7 +33,7 @@ public sealed class AuthService(ApiClient api, SessionStore session)
             return existing;
         }
 
-        if (string.IsNullOrEmpty(await session.GetRefreshTokenAsync()))
+        if (string.IsNullOrEmpty(await SessionStore.GetRefreshTokenAsync()))
         {
             return null;
         }
@@ -76,7 +76,7 @@ public sealed class AuthService(ApiClient api, SessionStore session)
 
     public async Task SignOutAsync()
     {
-        var refreshToken = await session.GetRefreshTokenAsync();
+        var refreshToken = await SessionStore.GetRefreshTokenAsync();
         if (!string.IsNullOrEmpty(refreshToken))
         {
             try

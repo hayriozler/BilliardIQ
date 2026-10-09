@@ -57,6 +57,12 @@
         Route="manage" />
 
     <ShellContent
+        x:Name="InviteContent"
+        Title="Invite player"
+        ContentTemplate="{DataTemplate manage:InviteViewPage}"
+        Route="invite" />
+
+    <ShellContent
         x:Name="RankingContent"
         Title="Ranking"
         ContentTemplate="{DataTemplate ranking:RankingViewPage}"

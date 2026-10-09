@@ -33,7 +33,19 @@ public partial class AppShell : Shell
         Navigating += OnShellNavigating;
         _session.Changed += (_, _) => MainThread.BeginInvokeOnMainThread(ApplyRole);
         api.SessionExpired += (_, _) => MainThread.BeginInvokeOnMainThread(() => GoToAsync(AuthService.LoginRoute).FireAndForgetSafeAsync());
+        InviteLink.Received += (_, _) => MainThread.BeginInvokeOnMainThread(OpenPendingInvite);
+        Loaded += (_, _) => OpenPendingInvite();
         ApplyRole();
+    }
+
+    private void OpenPendingInvite()
+    {
+        if (_session.Current is not null || InviteLink.Take() is not { } code)
+        {
+            return;
+        }
+
+        GoToAsync($"register?code={Uri.EscapeDataString(code)}").FireAndForgetSafeAsync();
     }
 
     private void ApplyRole()
@@ -47,13 +59,14 @@ public partial class AppShell : Shell
         AccountContent.IsVisible = ready;
         RankingContent.IsVisible = ready;
         ManageContent.IsVisible = ready && _session.CanControlScoreboard;
+        InviteContent.IsVisible = ready && _session.CanControlScoreboard;
         ScoreboardItem.IsVisible =ready && _session.CanControlScoreboard;
         ConnectionContent.IsVisible = ready && _session.CanControlScoreboard;
         SshTab.IsVisible = _session.CanUseSsh;
     }
 
     private static readonly string[] _controlRoutes =
-        ["manage", "playeredit", "scoreboard", "admin-teams", "admin-player", "admin-stats", "addscoreboardplayer", "playerstatsdetail", "connect"];
+        ["manage", "invite", "playeredit", "scoreboard", "admin-teams", "admin-player", "admin-stats", "addscoreboardplayer", "playerstatsdetail", "connect"];
 
     private static readonly string[] _sshRoutes = ["admin-ssh"];
 

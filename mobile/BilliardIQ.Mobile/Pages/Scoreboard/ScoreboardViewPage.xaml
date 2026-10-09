@@ -20,7 +20,7 @@
 
     <Grid Padding="12,6" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto" RowSpacing="6">
 
-        <Grid Grid.Row="0" ColumnDefinitions="Auto, Auto, *" ColumnSpacing="10">
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, Auto, Auto, *" ColumnSpacing="10">
             <Ellipse Grid.Column="0"
                      WidthRequest="12" HeightRequest="12"
                      Fill="{Binding ConnectionStatusColor}"
@@ -40,6 +40,17 @@
                     Padding="10,0" />
 
             <Button Grid.Column="2"
+                    Text="{Binding L[Connect_Connect]}"
+                    Command="{Binding GoToConnectCommand}"
+                    IsVisible="{Binding ShowReconnect}"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    FontSize="12" FontAttributes="Bold"
+                    CornerRadius="14"
+                    HeightRequest="28"
+                    Padding="10,0" />
+
+            <Button Grid.Column="3"
                     Text="{Binding L[Scoreboard_Reset]}"
                     Command="{Binding ResetScoresCommand}"
                     IsEnabled="{Binding CanInteract}"

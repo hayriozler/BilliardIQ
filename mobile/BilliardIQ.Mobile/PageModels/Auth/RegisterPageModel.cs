@@ -4,8 +4,16 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace BilliardIQ.Mobile.PageModels.Auth;
 
-public partial class RegisterPageModel(AuthService auth) : BasePageModel
+public partial class RegisterPageModel(AuthService auth) : BasePageModel, IQueryAttributable
 {
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        if (query.TryGetValue("code", out var value) && value?.ToString() is { Length: > 0 } code)
+        {
+            Code = code;
+        }
+    }
+
     [ObservableProperty]
     public partial string Code { get; set; } = "";
 

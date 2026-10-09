@@ -18,16 +18,28 @@
             Command="{Binding AppearingCommand}" />
     </basePages:BasePage.Behaviors>
 
-    <Grid Padding="20" RowDefinitions="Auto, *" RowSpacing="10">
+    <Grid Padding="20" RowDefinitions="Auto, Auto, *" RowSpacing="10">
 
-        <Button Grid.Row="0"
+        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" ColumnSpacing="10" IsVisible="{Binding IsNotConnected}">
+            <Label Grid.Column="0"
+                   Text="{Binding L[Connect_StatusDisconnected]}"
+                   TextColor="Gray" VerticalOptions="Center" />
+            <Button Grid.Column="1"
+                    Text="{Binding L[Connect_Connect]}"
+                    Command="{Binding GoToConnectCommand}"
+                    BackgroundColor="{StaticResource Primary}" TextColor="White"
+                    FontAttributes="Bold"
+                    CornerRadius="10" HeightRequest="44" Padding="14,0" />
+        </Grid>
+
+        <Button Grid.Row="1"
                 Text="{Binding L[Admin_AddPlayer]}"
                 Command="{Binding AddPlayerCommand}"
                 BackgroundColor="#2E7D32" TextColor="White"
                 FontAttributes="Bold"
                 CornerRadius="10" HeightRequest="44" />
 
-        <CollectionView Grid.Row="1" ItemsSource="{Binding Players}" SelectionMode="None">
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Players}" SelectionMode="None">
             <CollectionView.ItemsLayout>
                 <LinearItemsLayout Orientation="Vertical" ItemSpacing="6"/>
             </CollectionView.ItemsLayout>

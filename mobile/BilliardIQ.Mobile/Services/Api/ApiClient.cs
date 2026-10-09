@@ -128,7 +128,7 @@ public sealed class ApiClient
 
     private async Task<bool> RefreshCoreAsync(CancellationToken ct)
     {
-        var refreshToken = await _session.GetRefreshTokenAsync();
+        var refreshToken = await SessionStore.GetRefreshTokenAsync();
         if (string.IsNullOrEmpty(refreshToken))
         {
             if (_session.IsSignedIn)

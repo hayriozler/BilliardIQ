@@ -102,3 +102,7 @@ public sealed class ApiException(int statusCode, string message) : Exception(mes
 {
     public int StatusCode { get; } = statusCode;
 }
+
+public sealed record InvitablePlayerDto(int Id, string Nickname, string Name);
+
+public sealed record InviteDto(string Code, DateTimeOffset ExpiresAt, int PlayerId, string PlayerName);

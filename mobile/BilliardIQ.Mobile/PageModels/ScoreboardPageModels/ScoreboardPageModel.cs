@@ -81,6 +81,9 @@ public partial class ScoreboardPageModel : BasePageModel
     public partial bool IsReconnecting { get; set; }
 
     [RelayCommand]
+    private Task GoToConnect() => Shell.Current.GoToAsync("//connect");
+
+    [RelayCommand]
     private async Task Reconnect()
     {
         if (IsReconnecting) return;
@@ -104,7 +107,6 @@ public partial class ScoreboardPageModel : BasePageModel
     {
         if (_connection.State != PiConnectionState.Connected)
         {
-            await Shell.Current.GoToAsync("//connect");
             return;
         }
 
