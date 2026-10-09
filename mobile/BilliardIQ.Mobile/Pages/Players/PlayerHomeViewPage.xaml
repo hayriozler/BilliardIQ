@@ -113,16 +113,28 @@
                                        TextColor="White" FontSize="10" FontAttributes="Bold" />
                             </Border>
                         </HorizontalStackLayout>
-                        <Label Grid.Row="0" Grid.Column="1" Text="{Binding ScoreText}" FontAttributes="Bold" HorizontalOptions="End">
-                            <Label.Triggers>
-                                <DataTrigger TargetType="Label" Binding="{Binding Won}" Value="True">
-                                    <Setter Property="TextColor" Value="Green" />
-                                </DataTrigger>
-                                <DataTrigger TargetType="Label" Binding="{Binding Won}" Value="False">
-                                    <Setter Property="TextColor" Value="Red" />
-                                </DataTrigger>
-                            </Label.Triggers>
-                        </Label>
+                        <HorizontalStackLayout Grid.Row="0" Grid.Column="1" Spacing="6" HorizontalOptions="End">
+                            <Label Text="{Binding ResultGlyph}" FontFamily="MaterialIcons" FontSize="18" VerticalOptions="Center">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding Won}" Value="True">
+                                        <Setter Property="TextColor" Value="Green" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Label" Binding="{Binding Won}" Value="False">
+                                        <Setter Property="TextColor" Value="Red" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                            <Label Text="{Binding ScoreText}" FontAttributes="Bold" VerticalOptions="Center">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding Won}" Value="True">
+                                        <Setter Property="TextColor" Value="Green" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Label" Binding="{Binding Won}" Value="False">
+                                        <Setter Property="TextColor" Value="Red" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                        </HorizontalStackLayout>
                         <Label Grid.Row="1" Grid.Column="0" Text="{Binding DateText}" TextColor="Gray" FontSize="12" />
                         <Label Grid.Row="1" Grid.Column="1" TextColor="Gray" FontSize="12" HorizontalOptions="End">
                             <Label.FormattedText>

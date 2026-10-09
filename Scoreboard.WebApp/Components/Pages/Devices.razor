@@ -1,5 +1,7 @@
 @page "/devices"
 @attribute [Authorize(Policy = AuthClaims.StaffPolicy)]
+@using Microsoft.EntityFrameworkCore
+@using Scoreboard.WebApp.Data
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
@@ -58,7 +60,7 @@
     {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>X-Table-No</th><th>@L["Masa"]</th><th>@L["Etiket"]</th><th>@L["Tip"]</th><th>@L["Durum"]</th></tr></thead>
+                <thead><tr><th>X-Table-No</th><th>@L["Masa"]</th><th>@L["Etiket"]</th><th>@L["Tip"]</th><th>@L["Durum"]</th><th>@L["IP adresi"]</th></tr></thead>
                 <tbody>
                     @foreach (var view in _scoreboardTables)
                     {
@@ -68,6 +70,7 @@
                             <td>@view.Table.Label</td>
                             <td>@Format.TableType(view.Table.Type)</td>
                             <td>@Format.TableStatus(view.Table.Status)</td>
+                            <td>@(_ips.TryGetValue(view.Table.Id, out var ip) ? ip : "—")</td>
                         </tr>
                     }
                 </tbody>
@@ -80,6 +83,7 @@
     private Tenant? _tenant;
     private string? _clientId;
     private List<TableView> _scoreboardTables = [];
+    private Dictionary<int, string> _ips = [];
     private string? _error;
     private bool _busy;
     private bool _confirmRegenerate;
@@ -93,6 +97,10 @@
             .Where(v => v.Table.ScoreboardNo is not null)
             .OrderBy(v => v.Table.ScoreboardNo)
             .ToList();
+        var tableIds = _scoreboardTables.Select(v => v.Table.Id).ToList();
+        _ips = await Db.RunAsync((DataContext db) => db.ClientSyncSet.AsNoTracking()
+            .Where(s => tableIds.Contains(s.TableId) && s.IpAddress != null)
+            .ToDictionaryAsync(s => s.TableId, s => s.IpAddress!));
     }
 
     private async Task RegenerateAsync()

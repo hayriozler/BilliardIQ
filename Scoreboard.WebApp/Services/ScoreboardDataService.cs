@@ -35,7 +35,7 @@ public class ScoreboardDataService(DataContext db, ClubService clubs, PlayerServ
             .Select(t => (int?)t.Id)
             .FirstOrDefaultAsync();
 
-    public async Task<ChangeSetDto> GetChangesAsync(string instanceId, int tableNo, bool resync)
+    public async Task<ChangeSetDto> GetChangesAsync(string instanceId, int tableNo, bool resync, string? ipAddress = null)
     {
         if (await TableIdAsync(tableNo) is not int tableId)
         {
@@ -57,9 +57,10 @@ public class ScoreboardDataService(DataContext db, ClubService clubs, PlayerServ
         }
 
         var keys = JsonSerializer.Serialize(rows.Select(r => new PendingKey(r.EntityName, r.EntityId, r.Seq)));
-        var changed = full || rows.Count > 0 || state.PendingKeys != keys || now - state.LastSyncAt > TimeSpan.FromMinutes(1);
+        var changed = full || rows.Count > 0 || state.PendingKeys != keys || (ipAddress is not null && state.IpAddress != ipAddress) || now - state.LastSyncAt > TimeSpan.FromMinutes(1);
         state.InstanceId = instanceId;
         state.PendingFull = full;
+        state.IpAddress = ipAddress ?? state.IpAddress;
         state.PendingKeys = keys;
         state.LastSyncAt = now;
         if (changed)

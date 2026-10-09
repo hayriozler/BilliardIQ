@@ -82,7 +82,7 @@ else if (_detail is not null)
                         @foreach (var m in normalMatches.OrderByDescending(m => m.PlayedAt))
                         {
                             <tr>
-                                <td><span class="pill @(m.Won ? "available" : "off")">@(m.Won ? L["G"] : L["M"])</span></td>
+                                <td><ResultIcon Won="m.Won" /></td>
                                 <td><strong>@m.OpponentName</strong></td>
                                 <td>@Format.DateTime(m.PlayedAt, _zone)
                                     @if (m.StartedAt is { } started && m.EndedAt is { } ended)
@@ -115,7 +115,7 @@ else if (_detail is not null)
                         @foreach (var m in _detail.HandicapMatches.OrderByDescending(m => m.PlayedAt))
                         {
                             <tr>
-                                <td><span class="pill @(m.Won ? "available" : "off")">@(m.Won ? L["G"] : L["M"])</span></td>
+                                <td><ResultIcon Won="m.Won" /></td>
                                 <td><strong>@m.OpponentName</strong></td>
                                 <td>@Format.DateTime(m.PlayedAt, _zone)</td>
                                 <td class="num">@m.PlayerTarget – @m.OpponentTarget</td>

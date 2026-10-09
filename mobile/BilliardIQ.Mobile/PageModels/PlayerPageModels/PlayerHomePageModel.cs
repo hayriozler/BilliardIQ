@@ -8,7 +8,10 @@ namespace BilliardIQ.Mobile.PageModels.PlayerPageModels;
 
 public sealed record PlayerMatchItem(
     int MatchId, string Opponent, string ScoreText, string DateText, string AverageText, string HighRunText,
-    bool Won, bool IsHandicap, string TargetText);
+    bool Won, bool IsHandicap, string TargetText)
+{
+    public string ResultGlyph => char.ConvertFromUtf32(Won ? 0xE8DC : 0xE8DB);
+}
 
 public partial class PlayerHomePageModel(ApiClient api, SessionStore session) : BasePageModel, IQueryAttributable
 {

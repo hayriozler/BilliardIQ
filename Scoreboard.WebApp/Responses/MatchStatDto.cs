@@ -22,8 +22,4 @@ public record MatchStatDto(
     DateTimeOffset PlayedAt,
     DateTimeOffset? StartedAt,
     DateTimeOffset? EndedAt,
-    DateTimeOffset RecordedAt,
-    int ScoreDistributionBucketMinutes,
-    List<ScoreBucketDto> ScoreDistribution);
-
-public record ScoreBucketDto(int PlayerSlot, int BucketIndex, int TotalPoints);
+    DateTimeOffset RecordedAt);

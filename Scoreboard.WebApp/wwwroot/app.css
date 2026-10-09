@@ -1077,3 +1077,6 @@ td.win { font-weight: 700; color: var(--ok, #15803d); }
 }
 .auth-card .brand-row .brand-logo { height: 54px; }
 .auth-card .brand-row { font-size: 1.4rem; }
+
+.result-icon { display: inline-flex; align-items: center; padding: 0.2rem 0.5rem; }
+.result-icon svg { width: 1.1rem; height: 1.1rem; fill: currentColor; }
