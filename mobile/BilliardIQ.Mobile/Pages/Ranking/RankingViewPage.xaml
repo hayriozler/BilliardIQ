@@ -91,6 +91,11 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="10" />
                             </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenPlayerCommand}"
+                                    CommandParameter="{Binding PlayerId}" />
+                            </Border.GestureRecognizers>
                             <Grid ColumnDefinitions="30, 44, *, Auto" ColumnSpacing="8">
                                 <Label Grid.Column="0" Text="{Binding Rank}" FontSize="16" FontAttributes="Bold"
                                        TextColor="Gray" VerticalOptions="Center" HorizontalOptions="Center" />

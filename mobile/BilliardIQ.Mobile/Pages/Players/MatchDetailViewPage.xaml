@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.PlayerPageModels"
+    x:DataType="pageModels:MatchDetailPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Players.MatchDetailViewPage"
+    Title="{Binding L[Match_Title]}">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="14" Padding="0,0,0,20">
+
+            <Label Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13" IsVisible="{Binding HasError}" />
+            <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" />
+
+            <Border BackgroundColor="#1E3A5F" StrokeThickness="0" Padding="15,12">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="*, Auto, *" ColumnSpacing="8">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="{Binding Player1Name}" TextColor="White" FontSize="15" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="{Binding Player1Summary}" TextColor="#90CAF9" FontSize="11" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                        <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                            <Label Text="{Binding Player1Score}" FontSize="28" FontAttributes="Bold" TextColor="{Binding Player1ScoreColor}" />
+                            <Label Text="-" FontSize="28" TextColor="White" />
+                            <Label Text="{Binding Player2Score}" FontSize="28" FontAttributes="Bold" TextColor="{Binding Player2ScoreColor}" />
+                        </HorizontalStackLayout>
+                        <VerticalStackLayout Grid.Column="2" Spacing="2">
+                            <Label Text="{Binding Player2Name}" TextColor="White" FontSize="15" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="{Binding Player2Summary}" TextColor="#90CAF9" FontSize="11" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Grid>
+                    <Label TextColor="#90CAF9" FontSize="12" HorizontalTextAlignment="Center">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="{Binding DateText}" />
+                                <Span Text="  " />
+                                <Span Text="{Binding TimeText}" />
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <Label Text="{Binding TableText}" TextColor="#90CAF9" FontSize="12" HorizontalTextAlignment="Center" />
+                    <Label Text="{Binding InningText}" TextColor="#90CAF9" FontSize="12" HorizontalTextAlignment="Center" />
+                    <Label Text="{Binding TargetText}" TextColor="#FFB74D" FontSize="12" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding L[Match_History]}" FontSize="16" FontAttributes="Bold" />
+
+            <Label Text="{Binding L[Match_NoHistory]}" TextColor="Gray" FontSize="13" HorizontalOptions="Center"
+                   IsVisible="{Binding HasNoHistory}" />
+
+            <VerticalStackLayout Spacing="0" IsVisible="{Binding HasHistory}">
+                <Grid ColumnDefinitions="40, 64, *, *, *, *" ColumnSpacing="4" Padding="6,4" BackgroundColor="{AppThemeBinding Light=#ECEFF1, Dark=#263238}">
+                    <Label Grid.Column="0" Text="{Binding L[Match_Inning]}" FontSize="11" FontAttributes="Bold" />
+                    <Label Grid.Column="1" Text="{Binding L[Match_Time]}" FontSize="11" FontAttributes="Bold" />
+                    <Label Grid.Column="2" Text="{Binding Player1Name}" FontSize="11" FontAttributes="Bold" LineBreakMode="TailTruncation" HorizontalTextAlignment="Center" />
+                    <Label Grid.Column="3" Text="{Binding L[Match_Total]}" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                    <Label Grid.Column="4" Text="{Binding Player2Name}" FontSize="11" FontAttributes="Bold" LineBreakMode="TailTruncation" HorizontalTextAlignment="Center" />
+                    <Label Grid.Column="5" Text="{Binding L[Match_Total]}" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                </Grid>
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding HistoryRows}" Spacing="0">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="pageModels:MatchHistoryRow">
+                            <Grid ColumnDefinitions="40, 64, *, *, *, *" ColumnSpacing="4" Padding="6,5">
+                                <Label Grid.Column="0" Text="{Binding Inning}" FontSize="12" />
+                                <Label Grid.Column="1" Text="{Binding TimeText}" FontSize="11" TextColor="Gray" />
+                                <Label Grid.Column="2" Text="{Binding Player1Points}" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                <Label Grid.Column="3" Text="{Binding Player1Total}" FontSize="12" TextColor="Gray" HorizontalTextAlignment="Center" />
+                                <Label Grid.Column="4" Text="{Binding Player2Points}" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                <Label Grid.Column="5" Text="{Binding Player2Total}" FontSize="12" TextColor="Gray" HorizontalTextAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
+            <Label Text="{Binding L[Match_InningsChart]}" FontSize="16" FontAttributes="Bold" />
+            <Label Text="{Binding L[Match_NoChart]}" TextColor="Gray" FontSize="13" HorizontalOptions="Center"
+                   IsVisible="{Binding HasNoHistory}" />
+            <VerticalStackLayout Spacing="6" IsVisible="{Binding HasHistory}">
+                <Label Text="{Binding Player1Name}" FontSize="13" TextColor="#1565C0" FontAttributes="Bold" />
+                <GraphicsView x:Name="Player1InningsChart"
+                              Drawable="{Binding Player1InningsDrawable}"
+                              HeightRequest="150"
+                              BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1C1C1E}" />
+                <Label Text="{Binding Player2Name}" FontSize="13" TextColor="#EF6C00" FontAttributes="Bold" />
+                <GraphicsView x:Name="Player2InningsChart"
+                              Drawable="{Binding Player2InningsDrawable}"
+                              HeightRequest="150"
+                              BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1C1C1E}" />
+            </VerticalStackLayout>
+
+            <Label Text="{Binding L[Match_PaceChart]}" FontSize="16" FontAttributes="Bold" />
+            <VerticalStackLayout Spacing="6">
+                <Label Text="{Binding Player1Name}" FontSize="13" TextColor="#1565C0" FontAttributes="Bold" />
+                <GraphicsView x:Name="Player1PaceChart"
+                              Drawable="{Binding Player1PaceDrawable}"
+                              IsVisible="{Binding HasPace1}"
+                              HeightRequest="150"
+                              BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1C1C1E}" />
+                <Label Text="{Binding L[Match_NoChart]}" TextColor="Gray" FontSize="13" HorizontalOptions="Center"
+                       IsVisible="{Binding HasNoPace1}" />
+                <Label Text="{Binding Player2Name}" FontSize="13" TextColor="#EF6C00" FontAttributes="Bold" />
+                <GraphicsView x:Name="Player2PaceChart"
+                              Drawable="{Binding Player2PaceDrawable}"
+                              IsVisible="{Binding HasPace2}"
+                              HeightRequest="150"
+                              BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1C1C1E}" />
+                <Label Text="{Binding L[Match_NoChart]}" TextColor="Gray" FontSize="13" HorizontalOptions="Center"
+                       IsVisible="{Binding HasNoPace2}" />
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</basePages:BasePage>
