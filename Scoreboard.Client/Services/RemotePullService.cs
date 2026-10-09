@@ -13,6 +13,7 @@ public partial class RemotePullService(
     SystemPowerService systemPower,
     LanguageSync languageSync,
     ServerClock clock,
+    StartupGate startup,
     ILogger<RemotePullService> logger) : BackgroundService
 {
     private const string _photosFolder = "PlayerSet";
@@ -26,6 +27,8 @@ public partial class RemotePullService(
     {
         try
         {
+            await startup.WaitAsync(stoppingToken);
+
             if (!_options.Enabled)
             {
                 LogPullDisabled();

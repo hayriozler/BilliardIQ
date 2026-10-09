@@ -14,8 +14,26 @@ APP_URL="http://localhost:5288/"
 
 # systemd starts the app in parallel with the desktop session, not before it, so it may not
 # be up yet when this script runs - wait for it rather than racing it.
-until curl -sSf "$APP_URL" > /dev/null 2>&1; do
+WAIT_SECONDS=120
+SETTLE_SECONDS=5
+waited=0
+answers=0
+while true; do
+    if curl -sSf "$APP_URL" > /dev/null 2>&1; then
+        answers=$((answers + 1))
+    else
+        answers=0
+    fi
+    if [ "$answers" -ge 2 ]; then
+        sleep "$SETTLE_SECONDS"
+        break
+    fi
+    if [ "$waited" -ge "$WAIT_SECONDS" ]; then
+        echo "App did not answer on $APP_URL within ${WAIT_SECONDS}s, starting Chromium anyway."
+        break
+    fi
     sleep 1
+    waited=$((waited + 1))
 done
 
 # Disable screen blanking. Harmless no-ops under pure Wayland/labwc; kept for X11 fallback.

@@ -8,6 +8,7 @@ public partial class RemoteSyncService(
     IHttpClientFactory httpClientFactory,
     IOptions<RemoteSyncOptions> options,
     SystemPowerService systemPower,
+    StartupGate startup,
     ILogger<RemoteSyncService> logger) : BackgroundService
 {
     private const int _maxUnsentMatches = 200;
@@ -22,6 +23,8 @@ public partial class RemoteSyncService(
     {
         try
         {
+            await startup.WaitAsync(stoppingToken);
+
             HttpClient? http = null;
             if (!_options.Enabled)
             {

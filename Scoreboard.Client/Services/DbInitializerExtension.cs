@@ -10,6 +10,7 @@ public static class DbInitializerExtension
         using var scope = sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<DataContext>();
         db.Database.EnsureCreated();
+        db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
         ConvertToServerIds(db);
         db.Database.ExecuteSqlRaw("""
            CREATE TABLE IF NOT EXISTS Settings (

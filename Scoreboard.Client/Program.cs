@@ -63,6 +63,7 @@ builder.Services.AddSingleton<LanguageSync>();
 builder.Services.AddScoped<BoardSessionTracker>();
 builder.Services.AddScoped<CircuitHandler, BoardCircuitHandler>();
 builder.Services.Configure<RemoteSyncOptions>(builder.Configuration.GetSection("RemoteSync"));
+builder.Services.AddSingleton<StartupGate>();
 builder.Services.AddTransient<TransientRetryHandler>();
 builder.Services.AddHttpClient(nameof(RemoteSyncService), c => c.Timeout = Timeout.InfiniteTimeSpan).AddHttpMessageHandler<TransientRetryHandler>();
 builder.Services.AddHostedService<RemoteSyncService>();
