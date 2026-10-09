@@ -98,10 +98,9 @@ public partial class RankingPageModel(ApiClient api, AvatarImageService avatars)
         {
             var period = _periodKeys[Math.Clamp(PeriodIndex, 0, _periodKeys.Length - 1)];
             var sort = _sortKeys[Math.Clamp(SortIndex, 0, _sortKeys.Length - 1)];
-            var minMatches = sort is "average" or "winpercent" ? 3 : 1;
 
             Overview = await api.GetAsync<StatsOverviewDto>($"api/mobile/stats/overview?period={period}");
-            var rows = await api.GetAsync<List<RankingRowDto>>($"api/mobile/stats/ranking?period={period}&sort={sort}&minMatches={minMatches}&limit=200");
+            var rows = await api.GetAsync<List<RankingRowDto>>($"api/mobile/stats/ranking?period={period}&sort={sort}&minMatches=1&limit=200");
             Items = await Task.WhenAll(rows.Select(r => ToItemAsync(r, sort)));
         }
         catch (Exception ex) when (ApiErrorText.IsExpected(ex))
