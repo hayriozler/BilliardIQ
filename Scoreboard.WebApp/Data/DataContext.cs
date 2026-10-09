@@ -199,6 +199,7 @@ public class DataContext : DbContext
         {
             e.HasKey(x => new { x.OrganizationId, x.TableId });
             e.Property(x => x.InstanceId).HasMaxLength(40);
+            e.Property(x => x.IpAddress).HasMaxLength(45);
         });
 
         modelBuilder.Entity<Country>(e =>

@@ -25,7 +25,7 @@ public static class ScoreboardEndpoints
                 return Results.BadRequest(new { error = $"'{InstanceHeader}' header is required." });
             }
 
-            return Results.Ok(await data.GetChangesAsync(instanceId, TableNo(context), resync == true));
+            return Results.Ok(await data.GetChangesAsync(instanceId, TableNo(context), resync == true, ClientIp(context)));
         });
 
         group.MapPost("/changes/ack", async (HttpContext context, ScoreboardDataService data) =>
@@ -43,12 +43,18 @@ public static class ScoreboardEndpoints
     }
 
     private const string InstanceHeader = "X-Client-Instance";
+    private const string IpHeader = "X-Client-Ip";
 
     private static string? InstanceId(HttpContext context)
     {
         var value = context.Request.Headers[InstanceHeader].ToString().Trim();
         return value.Length is > 0 and <= 40 ? value : null;
     }
+
+    private static string? ClientIp(HttpContext context) =>
+        System.Net.IPAddress.TryParse(context.Request.Headers[IpHeader].ToString().Trim(), out var ip) && ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
+            ? ip.ToString()
+            : null;
 
     private static int TableNo(HttpContext context) =>
         int.TryParse(context.Request.Headers[ClientIdMiddleware.TableHeaderName].ToString(), out var tableNo) && tableNo > 0 ? tableNo : 0;

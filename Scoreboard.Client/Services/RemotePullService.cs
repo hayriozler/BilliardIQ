@@ -109,7 +109,15 @@ public partial class RemotePullService(
                     return;
                 }
             }
-            changes = await http.GetFromJsonAsync<RemoteChanges>($"scoreboard/changes?resync={_resync}", _jsonOptions, ct)
+            using var changesRequest = new HttpRequestMessage(HttpMethod.Get, $"scoreboard/changes?resync={_resync}");
+            if (LocalNetwork.GetIPv4() is { } localIp)
+            {
+                changesRequest.Headers.Add("X-Client-Ip", localIp);
+            }
+
+            using var changesResponse = await http.SendAsync(changesRequest, ct);
+            changesResponse.EnsureSuccessStatusCode();
+            changes = await changesResponse.Content.ReadFromJsonAsync<RemoteChanges>(_jsonOptions, ct)
                 ?? throw new HttpRequestException("Change list is null");
         }
         catch (HttpRequestException e)

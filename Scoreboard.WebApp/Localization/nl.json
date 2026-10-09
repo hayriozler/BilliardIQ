@@ -359,6 +359,7 @@
   "Kaydedince masa için otomatik bir scoreboard numarası üretilir; Bağlantı sayfasında görünür.": "Bij het opslaan wordt automatisch een scoreboardnummer voor de tafel aangemaakt; het staat op de pagina Verbinding.",
   "Scoreboard kullanmayan masalar için numara üretilmez.": "Voor tafels zonder scoreboard wordt geen nummer aangemaakt.",
   "Scoreboard kullanan masalar": "Tafels met een scoreboard",
+  "IP adresi": "IP-adres",
   "Scoreboard kullanan masa yok. Masa eklerken veya düzenlerken scoreboard seçeneğini işaretleyin.": "Geen enkele tafel gebruikt een scoreboard. Vink de scoreboardoptie aan bij het toevoegen of bewerken van een tafel.",
   "Giriş hesabı": "Inlogaccount",
   "Hesap": "Account",

@@ -12,6 +12,7 @@
   "Kaydedince masa için otomatik bir scoreboard numarası üretilir; Bağlantı sayfasında görünür.": "A scoreboard number is generated automatically for the table when saved; it is listed on the Connection page.",
   "Scoreboard kullanmayan masalar için numara üretilmez.": "No number is generated for tables without a scoreboard.",
   "Scoreboard kullanan masalar": "Tables with a scoreboard",
+  "IP adresi": "IP address",
   "Scoreboard kullanan masa yok. Masa eklerken veya düzenlerken scoreboard seçeneğini işaretleyin.": "No table uses a scoreboard. Tick the scoreboard option when adding or editing a table.",
   "Dernek / federasyon bulunamadı.": "Association / federation not found.",
   "Dernekler": "Associations",
