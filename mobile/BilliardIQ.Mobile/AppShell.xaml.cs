@@ -30,9 +30,22 @@ public partial class AppShell : Shell
         });
 #endif
 
+        Navigating += OnShellNavigating;
         _session.Changed += (_, _) => MainThread.BeginInvokeOnMainThread(ApplyRole);
         api.SessionExpired += (_, _) => MainThread.BeginInvokeOnMainThread(() => GoToAsync(AuthService.LoginRoute).FireAndForgetSafeAsync());
+        InviteLink.Received += (_, _) => MainThread.BeginInvokeOnMainThread(OpenPendingInvite);
+        Loaded += (_, _) => OpenPendingInvite();
         ApplyRole();
+    }
+
+    private void OpenPendingInvite()
+    {
+        if (_session.Current is not null || InviteLink.Take() is not { } code)
+        {
+            return;
+        }
+
+        GoToAsync($"register?code={Uri.EscapeDataString(code)}").FireAndForgetSafeAsync();
     }
 
     private void ApplyRole()
@@ -40,15 +53,39 @@ public partial class AppShell : Shell
         var current = _session.Current;
         var ready = current is { MustChangePassword: false, NeedsOrganization: false };
 
-        PlayerHomeContent.IsVisible = ready && _session.IsPlayer;
         HomeContent.IsVisible = ready;
         HomeContent.Title = _session.IsPlayer ? "Games" : "Home";
         GameContent.IsVisible = ready;
-        ProfileContent.IsVisible = ready;
         AccountContent.IsVisible = ready;
-        ScoreboardItem.IsVisible = ready && _session.CanControlScoreboard;
+        RankingContent.IsVisible = ready;
+        ManageContent.IsVisible = ready && _session.CanControlScoreboard;
+        InviteContent.IsVisible = ready && _session.CanControlScoreboard;
+        ScoreboardItem.IsVisible =ready && _session.CanControlScoreboard;
         ConnectionContent.IsVisible = ready && _session.CanControlScoreboard;
         SshTab.IsVisible = _session.CanUseSsh;
+    }
+
+    private static readonly string[] _controlRoutes =
+        ["manage", "invite", "playeredit", "scoreboard", "admin-teams", "admin-player", "admin-stats", "addscoreboardplayer", "playerstatsdetail", "connect"];
+
+    private static readonly string[] _sshRoutes = ["admin-ssh"];
+
+    private static readonly string[] _debugRoutes = ["debugocr", "debugtable"];
+
+    private void OnShellNavigating(object? sender, ShellNavigatingEventArgs e)
+    {
+        var segments = e.Target.Location.OriginalString
+            .Split(['/', '?'], StringSplitOptions.RemoveEmptyEntries);
+
+        var blocked = segments.Any(s =>
+            (!_session.CanControlScoreboard && _controlRoutes.Contains(s, StringComparer.OrdinalIgnoreCase)) ||
+            (!_session.CanUseSsh && _sshRoutes.Contains(s, StringComparer.OrdinalIgnoreCase)) ||
+            (_session.IsPlayer && _debugRoutes.Contains(s, StringComparer.OrdinalIgnoreCase)));
+
+        if (blocked && e.CanCancel)
+        {
+            e.Cancel();
+        }
     }
 
     public static async Task DisplayToastAsync(string message)

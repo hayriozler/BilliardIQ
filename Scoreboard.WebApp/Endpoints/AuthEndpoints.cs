@@ -19,9 +19,16 @@ public static class AuthEndpoints
         {
             var user = await auth.VerifyAsync(email, password);
             var memberships = user is null ? [] : await auth.MembershipsAsync(user.Id);
-            if (user is null || memberships.Count == 0)
+            var playerLogin = user is not null && memberships.Count == 0 ? await auth.LoginToAsync(user.Id, null) : null;
+            if (user is null || (memberships.Count == 0 && playerLogin is null))
             {
                 return Results.Redirect($"/login?error=1&email={Uri.EscapeDataString(email ?? "")}");
+            }
+
+            if (playerLogin is not null)
+            {
+                await SignInAsync(context, playerLogin);
+                return Results.LocalRedirect(playerLogin.User.MustChangePassword ? AuthClaims.PlayerAccountHome : AuthClaims.PlayerHome);
             }
 
             if (memberships.Count > 1)
@@ -137,7 +144,9 @@ public static class AuthEndpoints
     private static Task SignInAsync(HttpContext context, LoginResult result) =>
         context.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
-            AuthClaims.CreatePrincipal(result.User, result.Staff, result.Organization, CookieAuthenticationDefaults.AuthenticationScheme),
+            result.Staff is { } staff
+                ? AuthClaims.CreatePrincipal(result.User, staff, result.Organization, CookieAuthenticationDefaults.AuthenticationScheme)
+                : AuthClaims.CreatePlayerPrincipal(result.User, result.Player!, result.Organization, CookieAuthenticationDefaults.AuthenticationScheme),
             new AuthenticationProperties { IsPersistent = true });
 
     private static bool IsLocal(string? url) =>

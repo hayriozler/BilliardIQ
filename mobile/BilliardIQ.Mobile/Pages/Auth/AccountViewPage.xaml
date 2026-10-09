@@ -5,6 +5,7 @@
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
     xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Auth"
+    xmlns:controls="clr-namespace:BilliardIQ.Mobile.Pages.Controls"
     x:DataType="pageModels:AccountPageModel"
     x:Class="BilliardIQ.Mobile.Pages.Auth.AccountViewPage"
     x:Name="AccountPage"
@@ -31,6 +32,27 @@
                     <Label Text="{Binding OrganizationName}" FontSize="13" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+            <VerticalStackLayout Spacing="10" IsVisible="{Binding IsPlayer}">
+                <Label Text="{Binding L[Account_Name]}" FontSize="12" TextColor="Gray" />
+                <Label Text="{Binding FullName}" FontSize="16" />
+                <controls:PlayerProfileForm />
+            </VerticalStackLayout>
+
+            <Label Text="{Binding L[Account_DisplayName]}" FontSize="12" TextColor="Gray" IsVisible="{Binding IsNotPlayer}" />
+            <Entry Text="{Binding DisplayName, Mode=TwoWay}" MaxLength="100" IsVisible="{Binding IsNotPlayer}" />
+
+            <Label Text="{Binding L[Account_Phone]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding Phone, Mode=TwoWay}" Keyboard="Telephone" MaxLength="30" />
+            <Label Text="{Binding L[Account_Language]}" FontSize="12" TextColor="Gray" />
+            <Picker ItemsSource="{Binding LanguageNames}" SelectedIndex="{Binding LanguageIndex, Mode=TwoWay}" />
+
+            <Button Text="{Binding L[Account_Save]}"
+                    Command="{Binding SaveProfileCommand}"
+                    IsEnabled="{Binding IsIdle}"
+                    BackgroundColor="#2E7D32" TextColor="White" />
 
             <Button Text="{Binding L[Account_ChangeOrganization]}"
                     Command="{Binding ChangeOrganizationCommand}"

@@ -4,5 +4,13 @@ namespace BilliardIQ.Mobile.Pages.Players;
 
 public partial class PlayerHomeViewPage : BasePage
 {
-    public PlayerHomeViewPage(PlayerHomePageModel model) : base(model) => InitializeComponent();
+    public PlayerHomeViewPage(PlayerHomePageModel model) : base(model)
+    {
+        InitializeComponent();
+        model.ChartUpdated += () => MainThread.BeginInvokeOnMainThread(() =>
+        {
+            AverageChart.Invalidate();
+            HighRunChart.Invalidate();
+        });
+    }
 }

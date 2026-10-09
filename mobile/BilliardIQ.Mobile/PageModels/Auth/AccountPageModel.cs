@@ -1,10 +1,12 @@
+using BilliardIQ.Mobile.Services;
 using BilliardIQ.Mobile.Services.Api;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace BilliardIQ.Mobile.PageModels.Auth;
 
-public partial class AccountPageModel(AuthService auth, SessionStore session) : BasePageModel
+public partial class AccountPageModel(AuthService auth, SessionStore session, ApiClient api, AvatarImageService avatars, AvatarPickerSession picker, CatalogService catalogs)
+    : PlayerProfileFormModel(avatars, picker, catalogs)
 {
     [ObservableProperty]
     public partial string DisplayName { get; set; } = "";
@@ -28,23 +30,27 @@ public partial class AccountPageModel(AuthService auth, SessionStore session) : 
     public partial string EmailPassword { get; set; } = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasMessage))]
-    public partial string Message { get; set; } = "";
+    [NotifyPropertyChangedFor(nameof(IsNotPlayer))]
+    public partial bool IsPlayer { get; set; }
 
-    [ObservableProperty]
-    public partial bool MessageIsError { get; set; }
+    public bool IsNotPlayer => !IsPlayer;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsIdle))]
-    public partial bool IsBusy { get; set; }
+    protected override bool CanEditName => false;
 
-    public bool HasMessage => Message.Length > 0;
+    protected override Task<FullProfileDto> FetchProfileAsync() =>
+        api.GetAsync<FullProfileDto>("api/mobile/player/profile");
 
-    public bool IsIdle => !IsBusy;
+    protected override Task<FullProfileDto> StoreProfileAsync(ProfileUpdateRequest request) =>
+        api.PutAsync<FullProfileDto>("api/mobile/player/profile", request);
 
     [RelayCommand]
-    private void Appearing()
+    private async Task Appearing()
     {
+        if (ConsumePickerReturn())
+        {
+            return;
+        }
+
         var current = session.Current;
         if (current is null)
         {
@@ -56,9 +62,17 @@ public partial class AccountPageModel(AuthService auth, SessionStore session) : 
         Role = current.Role;
         OrganizationName = current.Organization?.Name ?? "";
         CanSwitchOrganization = current.Organizations.Count > 1;
+        IsPlayer = current.Role == ApiRoles.Player;
         NewEmail = "";
         EmailPassword = "";
         Message = "";
+        Phone = current.User.Phone ?? "";
+        LanguageIndex = current.User.Locale.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+
+        if (IsPlayer)
+        {
+            await LoadProfileAsync();
+        }
     }
 
     [RelayCommand]
@@ -66,6 +80,27 @@ public partial class AccountPageModel(AuthService auth, SessionStore session) : 
 
     [RelayCommand]
     private Task ChangePassword() => Shell.Current.GoToAsync(AuthService.ChangePasswordRoute);
+
+    [RelayCommand]
+    private async Task SaveProfile()
+    {
+        var saved = IsPlayer ? await SaveFormAsync() : await SaveOwnAccountAsync();
+        if (!saved)
+        {
+            return;
+        }
+
+        try
+        {
+            await auth.RefreshSessionAsync();
+        }
+        catch (Exception ex) when (ApiErrorText.IsExpected(ex))
+        {
+        }
+
+        LocalizationManager.Instance.SetLanguage(LanguageIndex == 0 ? "tr" : "en");
+        DisplayName = session.Current?.User.DisplayName ?? DisplayName;
+    }
 
     [RelayCommand]
     private async Task ChangeEmail()
@@ -82,7 +117,7 @@ public partial class AccountPageModel(AuthService auth, SessionStore session) : 
         try
         {
             await auth.ChangeEmailAsync(NewEmail.Trim(), EmailPassword);
-            Appearing();
+            await Appearing();
             MessageIsError = false;
             Message = L["Account_EmailChanged"];
         }
@@ -104,6 +139,35 @@ public partial class AccountPageModel(AuthService auth, SessionStore session) : 
         {
             await auth.SignOutAsync();
             await Shell.Current.GoToAsync(AuthService.LoginRoute);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task<bool> SaveOwnAccountAsync()
+    {
+        Message = "";
+        if (DisplayName.Trim().Length == 0)
+        {
+            ShowError(L["Auth_Required"]);
+            return false;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var phone = string.IsNullOrWhiteSpace(Phone) ? "" : Phone.Trim();
+            await api.PutAsync("api/mobile/me/profile", new UpdateProfileRequest(DisplayName.Trim(), LanguageIndex == 1 ? "en-US" : "tr-TR", phone));
+            MessageIsError = false;
+            Message = L["Account_Saved"];
+            return true;
+        }
+        catch (Exception ex) when (ApiErrorText.IsExpected(ex))
+        {
+            ShowError(ApiErrorText.For(ex, L));
+            return false;
         }
         finally
         {

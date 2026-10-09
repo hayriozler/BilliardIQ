@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Ranking"
+    x:DataType="pageModels:RankingPageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Ranking.RankingViewPage"
+    x:Name="RankingPage"
+    Title="{Binding L[Rank_Title]}">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=RankingPage}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </ContentPage.Behaviors>
+
+    <Grid RowDefinitions="Auto, Auto, Auto, *" RowSpacing="8">
+
+        <Border Grid.Row="0" BackgroundColor="#1E3A5F" StrokeThickness="0" Padding="15,12">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="12" />
+            </Border.StrokeShape>
+            <Grid ColumnDefinitions="*, *, *" RowDefinitions="Auto, Auto, Auto, Auto" ColumnSpacing="8" RowSpacing="4">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label Text="{Binding L[Rank_Players]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
+                    <Label Text="{Binding Overview.ActivePlayers}" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                    <Label Text="{Binding L[Stats_Matches]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
+                    <Label Text="{Binding Overview.PlayerMatches}" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                    <Label Text="{Binding L[Stats_Average]}" FontSize="11" TextColor="#90CAF9" HorizontalOptions="Center" />
+                    <Label Text="{Binding Overview.AveragePerInning, StringFormat='{0:F3}'}" FontSize="20" FontAttributes="Bold" TextColor="#FFD54F" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+                <Label Grid.Row="1" Grid.ColumnSpan="3" FontSize="12" TextColor="White" Margin="0,8,0,0">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="{Binding L[Rank_SortAverage], StringFormat='{0}: '}" TextColor="#90CAF9" />
+                            <Span Text="{Binding TopAverageText}" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+                <Label Grid.Row="2" Grid.ColumnSpan="3" FontSize="12" TextColor="White">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="{Binding L[Rank_SortHighRun], StringFormat='{0}: '}" TextColor="#90CAF9" />
+                            <Span Text="{Binding TopHighRunText}" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+                <Label Grid.Row="3" Grid.ColumnSpan="3" FontSize="12" TextColor="White">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="{Binding L[Rank_SortWins], StringFormat='{0}: '}" TextColor="#90CAF9" />
+                            <Span Text="{Binding MostWinsText}" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*, *" ColumnSpacing="8">
+            <Picker Grid.Column="0"
+                    Title="{Binding L[Rank_Period]}"
+                    ItemsSource="{Binding PeriodNames}"
+                    SelectedIndex="{Binding PeriodIndex, Mode=TwoWay}" />
+            <Picker Grid.Column="1"
+                    Title="{Binding L[Rank_Sort]}"
+                    ItemsSource="{Binding SortNames}"
+                    SelectedIndex="{Binding SortIndex, Mode=TwoWay}" />
+        </Grid>
+
+        <Label Grid.Row="2" Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13"
+               IsVisible="{Binding HasError}" />
+
+        <RefreshView Grid.Row="3" IsRefreshing="{Binding IsLoading, Mode=OneWay}" Command="{Binding LoadCommand}">
+            <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="6" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.EmptyView>
+                    <Label Text="{Binding L[Rank_Empty]}" TextColor="Gray" HorizontalOptions="Center" Margin="0,30" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="pageModels:RankingItem">
+                        <Border Padding="10,8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F2F2F2, Dark=#2A2A2A}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenPlayerCommand}"
+                                    CommandParameter="{Binding PlayerId}" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="30, 44, *, Auto" ColumnSpacing="8">
+                                <Label Grid.Column="0" Text="{Binding Rank}" FontSize="16" FontAttributes="Bold"
+                                       TextColor="Gray" VerticalOptions="Center" HorizontalOptions="Center" />
+                                <Grid Grid.Column="1" WidthRequest="44" HeightRequest="44" VerticalOptions="Center">
+                                    <Image Source="{Binding Image}" IsVisible="{Binding HasImage}" Aspect="AspectFill" />
+                                    <Border IsVisible="{Binding HasNoImage}" StrokeThickness="0" BackgroundColor="#90A4AE">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="22" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding Initial}" TextColor="White" FontSize="18" FontAttributes="Bold"
+                                               HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                </Grid>
+                                <VerticalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding Subtitle}" FontSize="11" TextColor="Gray" LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="3" VerticalOptions="Center" Spacing="0">
+                                    <Label Text="{Binding Value}" FontSize="18" FontAttributes="Bold" HorizontalOptions="End" />
+                                    <Label Text="{Binding ValueLabel}" FontSize="10" TextColor="Gray" HorizontalOptions="End" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</basePages:BasePage>

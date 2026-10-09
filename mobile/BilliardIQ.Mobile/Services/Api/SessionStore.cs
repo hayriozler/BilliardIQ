@@ -2,7 +2,7 @@ namespace BilliardIQ.Mobile.Services.Api;
 
 public sealed class SessionStore
 {
-    private const string RefreshTokenKey = "api_refresh_token";
+    private const string _refreshTokenKey = "api_refresh_token";
 
     public ApiSession? Current { get; private set; }
 
@@ -22,11 +22,11 @@ public sealed class SessionStore
 
     public event EventHandler? Changed;
 
-    public async Task<string?> GetRefreshTokenAsync()
+    public static async Task<string?> GetRefreshTokenAsync()
     {
         try
         {
-            return await SecureStorage.Default.GetAsync(RefreshTokenKey);
+            return await SecureStorage.Default.GetAsync(_refreshTokenKey);
         }
         catch
         {
@@ -41,7 +41,7 @@ public sealed class SessionStore
         {
             try
             {
-                await SecureStorage.Default.SetAsync(RefreshTokenKey, refresh);
+                await SecureStorage.Default.SetAsync(_refreshTokenKey, refresh);
             }
             catch
             {
@@ -62,7 +62,7 @@ public sealed class SessionStore
         Current = null;
         try
         {
-            SecureStorage.Default.Remove(RefreshTokenKey);
+            SecureStorage.Default.Remove(_refreshTokenKey);
         }
         catch
         {

@@ -1,5 +1,5 @@
 @page "/products"
-@attribute [Authorize]
+@attribute [Authorize(Policy = AuthClaims.StaffPolicy)]
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 

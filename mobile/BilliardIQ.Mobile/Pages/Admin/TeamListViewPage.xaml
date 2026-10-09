@@ -18,16 +18,28 @@
             Command="{Binding AppearingCommand}" />
     </basePages:BasePage.Behaviors>
 
-    <Grid Padding="20" RowDefinitions="Auto, Auto, *" RowSpacing="10">
+    <Grid Padding="20" RowDefinitions="Auto, Auto, Auto, *" RowSpacing="10">
 
-        <Entry Grid.Row="0"
+        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" ColumnSpacing="10" IsVisible="{Binding IsNotConnected}">
+            <Label Grid.Column="0"
+                   Text="{Binding L[Connect_StatusDisconnected]}"
+                   TextColor="Gray" VerticalOptions="Center" />
+            <Button Grid.Column="1"
+                    Text="{Binding L[Connect_Connect]}"
+                    Command="{Binding GoToConnectCommand}"
+                    BackgroundColor="{StaticResource Primary}" TextColor="White"
+                    FontAttributes="Bold"
+                    CornerRadius="10" HeightRequest="44" Padding="14,0" />
+        </Grid>
+
+        <Entry Grid.Row="1"
                Text="{Binding Name, Mode=TwoWay}"
                Placeholder="{Binding L[Admin_TeamName]}" />
-        <Label Grid.Row="0" Text="{Binding NameError}" TextColor="Red"
+        <Label Grid.Row="1" Text="{Binding NameError}" TextColor="Red"
                IsVisible="{Binding HasNameError}" FontSize="12"
                VerticalOptions="End" Margin="0,0,0,-20" />
 
-        <Grid Grid.Row="1" ColumnDefinitions="*, Auto" ColumnSpacing="10">
+        <Grid Grid.Row="2" ColumnDefinitions="*, Auto" ColumnSpacing="10">
             <Button Grid.Column="0"
                     Text="{Binding SaveButtonText}"
                     Command="{Binding AddTeamCommand}"
@@ -43,7 +55,7 @@
                     CornerRadius="10" HeightRequest="44" Padding="14,0" />
         </Grid>
 
-        <CollectionView Grid.Row="2" ItemsSource="{Binding Teams}" SelectionMode="None">
+        <CollectionView Grid.Row="3" ItemsSource="{Binding Teams}" SelectionMode="None">
             <CollectionView.ItemsLayout>
                 <LinearItemsLayout Orientation="Vertical" ItemSpacing="6"/>
             </CollectionView.ItemsLayout>

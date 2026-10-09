@@ -15,5 +15,17 @@
   "İlk {0} oyuncu gösteriliyor; aramayı veya filtreleri daraltın.": "Showing the first {0} players; narrow the search or filters.",
   "Salon seçin": "Choose a venue",
   "Hangi salona giriş yapmak istiyorsunuz?": "Which venue do you want to sign in to?",
-  "Başka bir hesapla giriş yap": "Sign in with another account"
+  "Başka bir hesapla giriş yap": "Sign in with another account",
+  "Hesabım": "My account",
+  "Profilinizi ve şifrenizi buradan güncelleyin.": "Update your profile and password here.",
+  "Devam etmeden önce şifrenizi değiştirmelisiniz.": "You must change your password before you continue.",
+  "Kaydedildi.": "Saved.",
+  "Profil": "Profile",
+  "Görünen ad": "Display name",
+  "Telefon": "Phone",
+  "Dil": "Language",
+  "Fotoğrafı kaldır": "Remove photo",
+  "Yeni şifre (tekrar)": "New password (again)",
+  "Yeni şifreler eşleşmiyor.": "The new passwords do not match.",
+  "Bu sayfaya erişim yetkiniz yok.": "You do not have access to this page."
 }

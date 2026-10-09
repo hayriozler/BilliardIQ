@@ -38,5 +38,11 @@
   "Üyelere göre ort. / el": "Average per inning by member",
   "Bu takımda oyuncu yok.": "This team has no players.",
   "Son maçlar": "Recent matches",
-  "Oyuncu": "Player"
+  "Oyuncu": "Player",
+  "Maç detayı": "Match details",
+  "Skor temposu": "Scoring pace",
+  "El başına sayı": "Points per inning",
+  "Bu maç için el geçmişi yok.": "There is no inning history for this match.",
+  "Skor geçmişi": "Score history",
+  "Detaylar": "Details"
 }

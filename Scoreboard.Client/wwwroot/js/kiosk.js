@@ -123,3 +123,10 @@ export function startFireworks(slot) {
     fireworksState = { canvas, frame: 0, timer: setTimeout(stopFireworks, 15000) };
     fireworksState.frame = requestAnimationFrame(frame);
 }
+
+export function scrollPickerActive() {
+    const row = document.querySelector(".picker-row.active");
+    if (row) {
+        row.scrollIntoView({ block: "nearest" });
+    }
+}

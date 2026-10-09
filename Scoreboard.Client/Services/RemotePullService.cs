@@ -12,6 +12,7 @@ public partial class RemotePullService(
     IOptions<RemoteSyncOptions> options,
     SystemPowerService systemPower,
     LanguageSync languageSync,
+    ServerClock clock,
     ILogger<RemotePullService> logger) : BackgroundService
 {
     private const string _photosFolder = "PlayerSet";
@@ -86,6 +87,11 @@ public partial class RemotePullService(
 
         LogSendGet();
         var organizationPulled = await IsOrganizationPulledAsync(ct);
+        if (organizationPulled && !await HasTimeZoneAsync(ct))
+        {
+            await PullTimeZoneAsync(http, ct);
+        }
+
         RemoteOrganization? organization = null;
         RemoteChanges changes;
         try
@@ -132,6 +138,7 @@ public partial class RemotePullService(
         {
             languageChanged = await ApplyServerLanguageAsync(db, organization!.Language, ct);
             await ApplyOrganizationNameAsync(db, organization.Name, ct);
+            await ApplyTimeZoneAsync(db, organization.TimeZone, ct);
             await MarkOrganizationPulledAsync(db, ct);
         }
 
@@ -140,6 +147,11 @@ public partial class RemotePullService(
         await UpsertPlayersAsync(db, photoPaths, players, teams, changes.Full, changes.DeletedIdsOf("Player"), ct);
 
         await transaction.CommitAsync(ct);
+        if (organization is not null)
+        {
+            clock.UseTimeZone(organization.TimeZone);
+        }
+
         _resync = false;
 
         if (languageChanged)
@@ -192,6 +204,51 @@ public partial class RemotePullService(
 
         await db.SaveChangesAsync(ct);
     }
+
+    private async Task<bool> HasTimeZoneAsync(CancellationToken ct)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.SettingsSet.AsNoTracking().AnyAsync(s => s.Id == "TimeZone", ct);
+    }
+
+    private async Task PullTimeZoneAsync(HttpClient http, CancellationToken ct)
+    {
+        try
+        {
+            var organization = await http.GetFromJsonAsync<RemoteOrganization>("scoreboard/organization", _jsonOptions, ct);
+            if (organization is null)
+            {
+                return;
+            }
+
+            await using var db = await dbFactory.CreateDbContextAsync(ct);
+            await ApplyTimeZoneAsync(db, organization.TimeZone, ct);
+            clock.UseTimeZone(organization.TimeZone);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+        {
+            LogTimeZonePullFailed(ex);
+        }
+    }
+
+    private static async Task ApplyTimeZoneAsync(DataContext db, string? timeZone, CancellationToken ct)
+    {
+        var value = timeZone?.Trim() ?? "";
+        var setting = await db.SettingsSet.FirstOrDefaultAsync(s => s.Id == "TimeZone", ct);
+        if (setting is null)
+        {
+            db.SettingsSet.Add(new Setting { Id = "TimeZone", Value = value });
+        }
+        else
+        {
+            setting.Value = value;
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not read the organization time zone; the system time zone is used for now.")]
+    private partial void LogTimeZonePullFailed(Exception ex);
 
     private async Task<bool> IsOrganizationPulledAsync(CancellationToken ct)
     {
@@ -481,7 +538,7 @@ public partial class RemotePullService(
         }
     }
 
-    private record RemoteOrganization(string Name, string Language);
+    private record RemoteOrganization(string Name, string Language, string? TimeZone = null);
 
     private record RemoteChangeGroup(string EntityType, string State, List<JsonElement>? Items, List<int>? Ids);
 

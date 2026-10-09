@@ -128,6 +128,7 @@
             <Editor Text="{Binding Notes}" Placeholder="{Binding L[NewGame_NotesPlaceholder]}"
                     AutoSize="TextChanges" MinimumHeightRequest="80" />
 
+            <VerticalStackLayout IsVisible="False" Spacing="0">
             <!-- Scoreboard Photo -->
             <Label Text="{Binding L[NewGame_ScoreboardPhoto]}" FontAttributes="Bold" />
             <Grid ColumnDefinitions="Auto, Auto, *, Auto" ColumnSpacing="8">
@@ -176,6 +177,7 @@
                        FontSize="13"
                        HorizontalOptions="Center" />
             </Border>
+            </VerticalStackLayout>
 
             <!-- Save button (new game) -->
             <Button Text="{Binding L[Action_Save]}"

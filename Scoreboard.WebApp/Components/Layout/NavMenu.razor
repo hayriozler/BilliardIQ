@@ -16,6 +16,23 @@
                 <strong>@context.User.FindFirst(AuthClaims.OrganizationName)?.Value</strong>
             </div>
 
+            @if (context.User.IsPlayer())
+            {
+                <nav>
+                    <div class="nav-group">
+                        <div class="nav-items">
+                            @if (!context.User.MustChangePassword())
+                            {
+                                <NavLink href="/stats/players"><span class="nav-ico">📈</span>@L["Oyuncu istatistikleri"]</NavLink>
+                                <NavLink href="/stats/teams"><span class="nav-ico">🛡️</span>@L["Takım istatistikleri"]</NavLink>
+                            }
+                            <NavLink href="/account"><span class="nav-ico">👤</span>@L["Hesabım"]</NavLink>
+                        </div>
+                    </div>
+                </nav>
+            }
+            else
+            {
             <nav>
                 <div class="nav-group @(IsOpen("ops") ? "" : "collapsed")">
                     <button type="button" class="nav-toggle" aria-expanded="@IsOpen("ops")" @onclick='() => ToggleAsync("ops")'><span>@L["İşletme"]</span><span class="chev">▾</span></button>
@@ -84,12 +101,13 @@
                     }
                 </div>
             </nav>
+            }
 
             <LanguageSwitcher />
 
             <div class="user-box">
                 <strong>@context.User.Identity?.Name</strong>
-                <span>@string.Join(", ", context.User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => Enum.TryParse<StaffRole>(c.Value, out var r) ? Format.Role(r) : c.Value))</span>
+                <span>@string.Join(", ", context.User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value == MobileClaims.Player ? L["Oyuncu"] : Enum.TryParse<StaffRole>(c.Value, out var r) ? Format.Role(r) : c.Value))</span>
                 <form method="post" action="/logout">
                     <button type="submit">@L["Çıkış yap"]</button>
                 </form>

@@ -21,16 +21,21 @@ public partial class PlayerListPageModel : BasePageModel
         _repository = repository;
         _connection = connection;
         _errorHandler = errorHandler;
+        _connection.StateChanged += OnConnectionStateChanged;
     }
 
     public ObservableCollection<ScoreboardPlayer> Players => _session.Players;
 
+    public bool IsNotConnected => _connection.State != PiConnectionState.Connected;
+
+    private void OnConnectionStateChanged(object? sender, PiConnectionState state) =>
+        MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(nameof(IsNotConnected)));
+
     [RelayCommand]
-    private async Task Appearing()
-    {
-        if (_connection.State != PiConnectionState.Connected)
-            await Shell.Current.GoToAsync("//connect");
-    }
+    private Task GoToConnect() => Shell.Current.GoToAsync("//connect");
+
+    [RelayCommand]
+    private void Appearing() => OnPropertyChanged(nameof(IsNotConnected));
 
     [RelayCommand]
     private async Task AddPlayer() => await Shell.Current.GoToAsync("addscoreboardplayer");

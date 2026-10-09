@@ -4,6 +4,10 @@ using BilliardIQ.Mobile.PageModels.Auth;
 using BilliardIQ.Mobile.Pages.Auth;
 using BilliardIQ.Mobile.Services.Api;
 using BilliardIQ.Mobile.PageModels.Admin;
+using BilliardIQ.Mobile.PageModels.Manage;
+using BilliardIQ.Mobile.PageModels.Ranking;
+using BilliardIQ.Mobile.Pages.Ranking;
+using BilliardIQ.Mobile.Pages.Manage;
 using BilliardIQ.Mobile.PageModels.Analyzers;
 using BilliardIQ.Mobile.PageModels.ConnectionPageModels;
 using BilliardIQ.Mobile.PageModels.GamePageModels;
@@ -68,20 +72,14 @@ public static class MauiProgram
         builder.Services.AddTransient<DebugTableAnalysisViewPage>();
 #endif
         builder.Services.AddSingleton<DatabaseExecutor>();
-        builder.Services.AddSingleton<PlayerRepository>();
         builder.Services.AddSingleton<ScoreboardPlayerSession>();
+        builder.Services.AddSingleton<ScoreboardPlayerRepository>();
         builder.Services.AddSingleton<GameRepository>();
-        builder.Services.AddSingleton<LocationRepository>();
         builder.Services.AddSingleton<IErrorHandler, ModalErrorHandler>();
-        builder.Services.AddSingleton<IAlertHandler, ShowAlertHandler>();
         builder.Services.AddSingleton<ScoreboardOcrService>();
         builder.Services.AddSingleton<BallDetectionService>();
         builder.Services.AddSingleton<OpenCvBallDetector>();
         builder.Services.AddSingleton<TableVisionService>();
-        builder.Services.AddSingleton<PlayerProfilePageModel>();
-        builder.Services.AddSingleton<PlayerProfileViewPage>();
-        builder.Services.AddTransient<CitySearchPageModel>();
-        builder.Services.AddTransient<CitySearchPage>();
         builder.Services.AddSingleton<GameListPageModel>();
         builder.Services.AddSingleton<GameListViewPage>();
         builder.Services.AddSingleton<IUnityBridgeService, UnityBridgeService>();
@@ -94,7 +92,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<ScoreboardPageModel>();
         builder.Services.AddSingleton<ScoreboardViewPage>();
         builder.Services.AddSingleton<TeamRepository>();
-        builder.Services.AddSingleton<ScoreboardPlayerRepository>();
         builder.Services.AddSingleton<MatchResultRepository>();
         builder.Services.AddSingleton<MatchScoreStatRepository>();
         builder.Services.AddSingleton<TeamSession>();
@@ -120,10 +117,23 @@ public static class MauiProgram
         builder.Services.AddSingleton<ChangePasswordViewPage>();
         builder.Services.AddSingleton<AccountPageModel>();
         builder.Services.AddSingleton<AccountViewPage>();
-        builder.Services.AddSingleton<PlayerHomePageModel>();
-        builder.Services.AddSingleton<PlayerHomeViewPage>();
+        builder.Services.AddSingleton<AvatarImageService>();
+        builder.Services.AddSingleton<GameSyncService>();
+        builder.Services.AddSingleton<AvatarPickerSession>();
+        builder.Services.AddSingleton<CatalogService>();
+        builder.Services.AddTransientWithShellRoute<PlayerHomeViewPage, PlayerHomePageModel>("playerhome");
+        builder.Services.AddTransientWithShellRoute<MatchDetailViewPage, MatchDetailPageModel>("matchdetail");
+        builder.Services.AddSingleton<RankingPageModel>();
+        builder.Services.AddSingleton<RankingViewPage>();
+        builder.Services.AddSingleton<ManageListPageModel>();
+        builder.Services.AddSingleton<ManageListViewPage>();
+        builder.Services.AddSingleton<InvitePageModel>();
+        builder.Services.AddSingleton<InviteViewPage>();
         builder.Services.AddSingleton<AppShell>();
         builder.Services.AddTransientWithShellRoute<RegisterViewPage, RegisterPageModel>("register");
+        builder.Services.AddTransientWithShellRoute<ForgotPasswordViewPage, ForgotPasswordPageModel>("forgotpassword");
+        builder.Services.AddTransientWithShellRoute<AvatarPickerViewPage, AvatarPickerPageModel>("avatarpicker");
+        builder.Services.AddTransientWithShellRoute<PlayerEditViewPage, PlayerEditPageModel>("playeredit");
         builder.Services.AddTransientWithShellRoute<NewGameViewPage, NewGamePageModel>("newgame");
         builder.Services.AddTransientWithShellRoute<AddScoreboardPlayerViewPage, AddScoreboardPlayerPageModel>("addscoreboardplayer");
         builder.Services.AddTransientWithShellRoute<PlayerStatsDetailViewPage, PlayerStatsDetailPageModel>("playerstatsdetail");
@@ -137,7 +147,6 @@ public static class MauiProgram
         teamSession.LoadExisting(app.Services.GetRequiredService<TeamRepository>().GetAllAsync().GetAwaiter().GetResult());
 
         var playerSession = app.Services.GetRequiredService<ScoreboardPlayerSession>();
-        playerSession.LoadExisting(app.Services.GetRequiredService<ScoreboardPlayerRepository>().GetAllAsync().GetAwaiter().GetResult());
 
         return app;
     }

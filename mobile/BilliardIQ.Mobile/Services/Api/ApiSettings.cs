@@ -2,16 +2,20 @@ namespace BilliardIQ.Mobile.Services.Api;
 
 public static class ApiSettings
 {
-    private const string BaseUrlKey = "api_base_url";
-    private const string DefaultBaseUrl = "https://www.billiardiq.com/";
+    private const string _baseUrlKey = "api_base_url";
+#if DEBUG
+    private const string _defaultBaseUrl = "http://localhost:8080/";
+#else
+    private const string _defaultBaseUrl = "https://www.billiardiq.com/";
+#endif
 
     public static string BaseUrl
     {
         get
         {
-            var value = Preferences.Default.Get(BaseUrlKey, DefaultBaseUrl);
+            var value = Preferences.Default.Get(_baseUrlKey, _defaultBaseUrl);
             return value.EndsWith('/') ? value : value + "/";
         }
-        set => Preferences.Default.Set(BaseUrlKey, value);
+        set => Preferences.Default.Set(_baseUrlKey, value);
     }
 }

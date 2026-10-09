@@ -29,11 +29,21 @@
                    Placeholder="{Binding L[Auth_Email]}"
                    Keyboard="Email"
                    IsEnabled="{Binding IsIdle}" />
-            <Entry Text="{Binding Password, Mode=TwoWay}"
-                   Placeholder="{Binding L[Auth_Password]}"
-                   IsPassword="True"
-                   IsEnabled="{Binding IsIdle}"
-                   ReturnCommand="{Binding SignInCommand}" />
+            <Grid ColumnDefinitions="*,Auto">
+                <Entry Text="{Binding Password, Mode=TwoWay}"
+                       Placeholder="{Binding L[Auth_Password]}"
+                       IsPassword="{Binding IsPasswordHidden}"
+                       IsEnabled="{Binding IsIdle}"
+                       ReturnCommand="{Binding SignInCommand}" />
+                <Button Grid.Column="1"
+                        Text="{Binding PasswordToggleGlyph}"
+                        Command="{Binding TogglePasswordCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="Gray"
+                        FontSize="20"
+                        Padding="8,0"
+                        VerticalOptions="Center" />
+            </Grid>
 
             <Label Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13"
                    IsVisible="{Binding HasError}" />
@@ -43,6 +53,11 @@
             <Button Text="{Binding L[Auth_SignIn]}"
                     Command="{Binding SignInCommand}"
                     IsEnabled="{Binding IsIdle}" />
+            <Button Text="{Binding L[Forgot_Link]}"
+                    Command="{Binding ForgotPasswordCommand}"
+                    IsEnabled="{Binding IsIdle}"
+                    BackgroundColor="Transparent"
+                    TextColor="Gray" />
             <Button Text="{Binding L[Auth_HaveInvite]}"
                     Command="{Binding RegisterCommand}"
                     IsEnabled="{Binding IsIdle}"

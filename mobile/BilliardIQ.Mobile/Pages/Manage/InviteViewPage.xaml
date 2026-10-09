@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Manage"
+    xmlns:api="clr-namespace:BilliardIQ.Mobile.Services.Api"
+    x:DataType="pageModels:InvitePageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Manage.InviteViewPage"
+    x:Name="InvitePage"
+    Title="{Binding L[Invite_Title]}">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=InvitePage}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </ContentPage.Behaviors>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="12" Spacing="12">
+
+            <Label Text="{Binding L[Invite_Hint]}" TextColor="Gray" FontSize="14" />
+
+            <Grid ColumnDefinitions="*, *" ColumnSpacing="6">
+                <Button Grid.Column="0" Text="{Binding L[Invite_Existing]}" Command="{Binding ShowExistingCommand}" />
+                <Button Grid.Column="1" Text="{Binding L[Invite_New]}" Command="{Binding ShowNewCommand}" />
+            </Grid>
+
+            <Picker IsVisible="{Binding IsExisting}"
+                    Title="{Binding L[Invite_PickPlayer]}"
+                    ItemsSource="{Binding Players}"
+                    ItemDisplayBinding="{Binding Nickname, x:DataType=api:InvitablePlayerDto}"
+                    SelectedItem="{Binding SelectedPlayer, Mode=TwoWay}" />
+
+            <VerticalStackLayout IsVisible="{Binding IsNewPlayer}" Spacing="8">
+                <Entry Text="{Binding NewName, Mode=TwoWay}" Placeholder="{Binding L[Invite_FullName]}" MaxLength="100" />
+                <Entry Text="{Binding NewNickname, Mode=TwoWay}" Placeholder="{Binding L[Invite_Nickname]}" MaxLength="100" />
+            </VerticalStackLayout>
+
+            <Label Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13" IsVisible="{Binding HasError}" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+            <Button Text="{Binding L[Invite_Create]}" Command="{Binding CreateCommand}" />
+
+            <VerticalStackLayout IsVisible="{Binding HasResult}" Spacing="10" HorizontalOptions="Center">
+                <Label Text="{Binding ResultTitle}" FontSize="16" FontAttributes="Bold" HorizontalOptions="Center" />
+                <Image Source="{Binding QrImage}" WidthRequest="240" HeightRequest="240" HorizontalOptions="Center" BackgroundColor="White" />
+                <Label Text="{Binding Code}" FontSize="32" FontAttributes="Bold" CharacterSpacing="4" HorizontalOptions="Center" />
+                <Label Text="{Binding ExpiresText}" FontSize="12" TextColor="Gray" HorizontalOptions="Center" />
+                <Button Text="{Binding L[Invite_ShareCode]}" Command="{Binding ShareCodeCommand}" />
+                <Button Text="{Binding L[Invite_ShareQr]}" Command="{Binding ShareQrCommand}" />
+                <Button Text="{Binding L[Invite_Copy]}" Command="{Binding CopyCodeCommand}"
+                        BackgroundColor="Transparent" TextColor="{StaticResource Primary}" />
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</basePages:BasePage>

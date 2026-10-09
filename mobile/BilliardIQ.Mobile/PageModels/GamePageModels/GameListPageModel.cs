@@ -1,14 +1,17 @@
 using BilliardIQ.Mobile.Data;
 using BilliardIQ.Mobile.Models;
-using BilliardIQ.Mobile.Pages.Analyzers;
-using BilliardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Services.Api;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace BilliardIQ.Mobile.PageModels.GamePageModels;
 
-public partial class GameListPageModel(GameRepository GameRepo, PlayerRepository PlayerRepo, IAlertHandler AlertHandler, IServiceProvider Services) : BasePageModel
+public partial class GameListPageModel(GameRepository GameRepo, GameSyncService Sync, SessionStore Session) : BasePageModel
 {
+    public bool IsPlayer => Session.IsPlayer;
+
+    [RelayCommand]
+    private Task OpenStats() => Shell.Current.GoToAsync("playerhome");
 
     [ObservableProperty]
     public partial IReadOnlyList<Game> Games { get; set; } = [];
@@ -19,6 +22,7 @@ public partial class GameListPageModel(GameRepository GameRepo, PlayerRepository
     [RelayCommand]
     private async Task Appearing(string Limit)
     {
+        await Sync.SyncPendingAsync();
         Games = await GameRepo.GetGamesAsync(int.Parse(Limit));
         Stats = await GameRepo.GetStatsAsync();
     }
@@ -28,15 +32,6 @@ public partial class GameListPageModel(GameRepository GameRepo, PlayerRepository
     {
         if (game is null)
         {
-            var player = await PlayerRepo.GetPlayerAsync();
-            if (player is null)
-            {
-                await AlertHandler.ShowAlertAsync("NewGame_NoProfile_Title",
-                    "NewGame_NoProfile_Message",
-                    "NewGame_NoProfile_Ok");
-                await Shell.Current.GoToAsync("//profile");
-                return;
-            }
             await Shell.Current.GoToAsync("newgame");
         }
         else
@@ -51,22 +46,17 @@ public partial class GameListPageModel(GameRepository GameRepo, PlayerRepository
     [RelayCommand]
     private async Task Delete(Game? game)
     {
+        if (game is not null && (await GameRepo.GetGameByIdAsync(game.Id))?.RemoteId is > 0 and var remoteId && !await Sync.DeleteRemoteAsync(remoteId))
+        {
+            await Shell.Current.DisplayAlertAsync(L["NewGame_DeleteFailed"], L["Auth_NetworkError"], "OK");
+            return;
+        }
+
         var isDeleted = await GameRepo.DeleteGame(game?.Id);
         if (isDeleted)
         {
             Games = await GameRepo.GetGamesAsync();
             Stats = await GameRepo.GetStatsAsync();
         }
-    }
-
-    [RelayCommand]
-    private async Task NavigateToPhoto()
-    {
-#if ANDROID
-        ((Android.App.Activity)Microsoft.Maui.ApplicationModel.Platform.CurrentActivity!)
-            .RequestedOrientation = Android.Content.PM.ScreenOrientation.Portrait;
-#endif
-        var page = Services.GetRequiredService<PhotoAnalyzerViewPage>();
-        await Shell.Current.Navigation.PushModalAsync(page, animated: false);
     }
 }

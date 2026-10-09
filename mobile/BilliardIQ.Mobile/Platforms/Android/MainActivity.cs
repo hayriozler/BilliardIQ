@@ -1,6 +1,8 @@
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
+using Android.OS;
+using BilliardIQ.Mobile.Utilities;
 
 namespace BilliardIQ.Mobile.Platforms.Android;
 
@@ -12,8 +14,25 @@ namespace BilliardIQ.Mobile.Platforms.Android;
         ConfigChanges.ScreenSize | ConfigChanges.Orientation |
         ConfigChanges.UiMode | ConfigChanges.ScreenLayout |
         ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
+[IntentFilter(
+    [Intent.ActionView],
+    Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
+    DataScheme = InviteLink.Scheme,
+    DataHost = InviteLink.Host)]
 public class MainActivity : MauiAppCompatActivity
 {
+    protected override void OnCreate(Bundle? savedInstanceState)
+    {
+        base.OnCreate(savedInstanceState);
+        InviteLink.Offer(Intent?.DataString);
+    }
+
+    protected override void OnNewIntent(Intent? intent)
+    {
+        base.OnNewIntent(intent);
+        InviteLink.Offer(intent?.DataString);
+    }
+
     /// <summary>
     /// Called whenever MainActivity comes to the foreground.
     /// When Unity's BilliardUnityActivity calls moveTaskToBack(), Android

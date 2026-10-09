@@ -6,12 +6,31 @@ public sealed class ServerClock
 
     private long _offsetTicks;
 
-    public DateTime Now => DateTimeOffset.UtcNow.AddTicks(Interlocked.Read(ref _offsetTicks)).ToLocalTime().DateTime;
+    private TimeZoneInfo _zone = TimeZoneInfo.Local;
+
+    public DateTime Now => TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow.AddTicks(Interlocked.Read(ref _offsetTicks)), Volatile.Read(ref _zone)).DateTime;
 
     public void Observe(DateTimeOffset serverTime)
     {
         var difference = serverTime - DateTimeOffset.UtcNow;
         Interlocked.Exchange(ref _offsetTicks, difference.Duration() > _tolerance ? difference.Ticks : 0);
+    }
+
+    public void UseTimeZone(string? id)
+    {
+        var zone = TimeZoneInfo.Local;
+        if (!string.IsNullOrWhiteSpace(id))
+        {
+            try
+            {
+                zone = TimeZoneInfo.FindSystemTimeZoneById(id);
+            }
+            catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+            {
+            }
+        }
+
+        Volatile.Write(ref _zone, zone);
     }
 }
 

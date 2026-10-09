@@ -1,0 +1,39 @@
+@inject NavigationManager Nav
+
+@if (_denied)
+{
+    <div class="card empty">@L["Bu sayfaya erişim yetkiniz yok."]</div>
+}
+else
+{
+    <RedirectToLogin />
+}
+
+@code {
+    private bool _denied;
+
+    [CascadingParameter] private Task<AuthenticationState>? State { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = State is null ? null : (await State).User;
+        if (user is null || !user.IsPlayer())
+        {
+            return;
+        }
+
+        _denied = true;
+        var home = user.MustChangePassword() ? AuthClaims.PlayerAccountHome : AuthClaims.PlayerHome;
+        var path = "/" + Nav.ToBaseRelativePath(Nav.Uri);
+        var end = path.IndexOfAny(['?', '#']);
+        if (end >= 0)
+        {
+            path = path[..end];
+        }
+
+        if (!string.Equals(path, home, StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo(home, replace: true);
+        }
+    }
+}

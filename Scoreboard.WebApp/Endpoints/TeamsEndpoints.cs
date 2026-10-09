@@ -8,7 +8,7 @@ public static class TeamsEndpoints
 {
     public static RouteGroupBuilder MapTeamsEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/teams").WithTags("Teams").RequireAuthorization();
+        var group = app.MapGroup("/api/teams").WithTags("Teams").RequireAuthorization(AuthClaims.StaffPolicy);
         var write = group.MapGroup("").RequireAuthorization(AuthClaims.ManagePolicy);
 
         group.MapGet("/", (ScoreboardDataService data) =>

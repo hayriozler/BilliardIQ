@@ -1,5 +1,5 @@
 @page "/stats/teams/{Id:int}"
-@attribute [Authorize]
+@attribute [Authorize(Policy = AuthClaims.StatsPolicy)]
 @inject ScopedRunner Db
 @inject TenantContext TenantContext
 
@@ -59,7 +59,7 @@ else if (_detail is not null)
         <h2>@L["Üyeler"] (@_detail.Members.Count)</h2>
         @if (_detail.Members.Count == 0)
         {
-            <div class="empty">@L["Bu takımda oyuncu yok."] <a href="/teams">@L["Takımlar"]</a></div>
+            <div class="empty">@L["Bu takımda oyuncu yok."] @if (_tenant?.CanManage == true) { <a href="/teams">@L["Takımlar"]</a> }</div>
         }
         else
         {

@@ -113,14 +113,16 @@
         </CollectionView>
 
         <!-- Bottom Action Buttons -->
-        <Grid Grid.Row="2" ColumnDefinitions="Auto, *" Padding="10,0">
-            <controls:NewPhotoButton
-                Grid.Column="0"
-                Command="{Binding NavigateToPhotoCommand}"
-                HorizontalOptions="Start"
-                Margin="0" />
+        <Grid Grid.Row="2" Padding="10,0" ColumnDefinitions="Auto, *, Auto">
+            <Button Grid.Column="0"
+                    Text="{Binding L[GameList_Stats]}"
+                    Command="{Binding OpenStatsCommand}"
+                    IsVisible="{Binding IsPlayer}"
+                    HeightRequest="60"
+                    CornerRadius="30"
+                    VerticalOptions="End" />
             <controls:NewGameButton
-                Grid.Column="1"
+                Grid.Column="2"
                 Command="{Binding NavigateToGameCommand}"
                 HorizontalOptions="End"
                 Margin="0" />

@@ -10,7 +10,7 @@ namespace Scoreboard.WebApp.Services;
 
 public record MobileOrganization(int Id, string Name);
 
-public record MobileUser(int Id, string DisplayName, string? Email, string Locale, int? PlayerId);
+public record MobileUser(int Id, string DisplayName, string? Email, string Locale, int? PlayerId, string? Phone = null);
 
 public record MobileSession(
     string AccessToken,
@@ -25,7 +25,8 @@ public record MobileSession(
 
 public record PlayerAccount(int PlayerId, string Email, string TemporaryPassword);
 
-public record PlayerInviteInfo(string Code, DateTimeOffset ExpiresAt);
+public record PlayerInviteInfo(string Code, DateTimeOffset ExpiresAt, int PlayerId, string PlayerName);
+public record InvitablePlayer(int Id, string Nickname, string Name);
 
 public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService tokens, JwtSettings settings, SessionRevalidator sessions)
 {
@@ -227,6 +228,13 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         return new PlayerAccount(player.Id, user.Email ?? "", password);
     }
 
+    public Task<List<InvitablePlayer>> ListInvitablePlayersAsync() =>
+        db.PlayerSet.AsNoTracking()
+            .Where(p => p.DeletedAt == null && !p.IsSystem && p.UserId == null)
+            .OrderBy(p => p.DisplayName)
+            .Select(p => new InvitablePlayer(p.Id, p.Nickname ?? p.DisplayName, (p.FirstName + " " + p.LastName).Trim()))
+            .ToListAsync();
+
     public async Task<PlayerInviteInfo> CreateInviteAsync(int playerId)
     {
         var player = await db.PlayerSet.FirstOrDefaultAsync(p => p.Id == playerId && p.DeletedAt == null && !p.IsSystem)
@@ -252,7 +260,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         var invite = new PlayerInvite { OrganizationId = db.CurrentOrganizationId, PlayerId = playerId, Code = code, ExpiresAt = now + _inviteLifetime };
         db.PlayerInviteSet.Add(invite);
         await db.SaveChangesAsync();
-        return new PlayerInviteInfo(code, invite.ExpiresAt);
+        return new PlayerInviteInfo(code, invite.ExpiresAt, player.Id, player.DisplayName);
     }
 
     public async Task<MobileSession> RegisterWithInviteAsync(string code, string email, string password, string? deviceName)
@@ -387,7 +395,7 @@ public class MobileAuthService(DataContext db, AuthService auth, JwtTokenService
         return new MobileSession(
             access, expiresAt, rawRefreshToken, identity.Role, user.MustChangePassword,
             identity.Organization is null,
-            new MobileUser(user.Id, user.DisplayName, user.Email, user.Locale, identity.Player?.Id),
+            new MobileUser(user.Id, user.DisplayName, user.Email, user.Locale, identity.Player?.Id, user.Phone),
             identity.Organization,
             identity.Organizations);
     }

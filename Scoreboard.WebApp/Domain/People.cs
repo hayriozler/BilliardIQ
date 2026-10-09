@@ -67,11 +67,8 @@ public class Player : BaseEntity
     public string? Nickname { get; set; }
     public int? ShortcutNumber { get; set; }
     public string DisplayName { get; set; } = default!;
-    public DateOnly? BirthDate { get; set; }
-    public Gender? Gender { get; set; }
     public string? Nationality { get; set; }
     public string? PhotoUrl { get; set; }
-    public Handedness? Handedness { get; set; }
     public string? FederationLicenseNo { get; set; }
     public DateOnly? LicenseValidUntil { get; set; }
     public int? AssociationId { get; set; }

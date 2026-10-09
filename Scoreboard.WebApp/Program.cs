@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
@@ -36,6 +37,8 @@ builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingAuthenticati
 builder.Services.AddCredentialRateLimiting();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<MobileAuthService>();
+builder.Services.AddScoped<PasswordResetService>();
+builder.Services.AddSingleton<IPasswordResetNotifier, LoggingPasswordResetNotifier>();
 
 var jwt = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
 if (string.IsNullOrWhiteSpace(jwt.Key) && builder.Environment.IsDevelopment())
@@ -64,6 +67,8 @@ builder.Services.AddScoped<GeoSeedService>();
 builder.Services.AddSingleton<OrganizationRunner>();
 builder.Services.AddScoped<Scoreboard.WebApp.Services.Tournaments.CupService>();
 builder.Services.AddScoped<StatsService>();
+builder.Services.AddScoped<ExternalMatchService>();
+builder.Services.AddScoped<PlayerProfileService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ClientIdService>();
 builder.Services.AddScoped<DevelopmentSeedService>();
@@ -129,7 +134,27 @@ builder.Services.AddAuthentication().AddJwtBearer(JwtSettings.Scheme, options =>
     };
 });
 builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(AuthClaims.ManagePolicy, policy => policy.RequireRole(nameof(StaffRole.Owner), nameof(StaffRole.Manager)))
+    .SetDefaultPolicy(new AuthorizationPolicyBuilder(CookieAuthenticationDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.IsStaff())
+        .Build())
+    .AddPolicy(AuthClaims.StaffPolicy, policy => policy
+        .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.IsStaff()))
+    .AddPolicy(AuthClaims.StatsPolicy, policy => policy
+        .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.IsStaff() || (c.User.IsPlayer() && !c.User.MustChangePassword())))
+    .AddPolicy(AuthClaims.PlayerAccountPolicy, policy => policy
+        .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.IsPlayer()))
+    .AddPolicy(AuthClaims.ManagePolicy, policy => policy
+        .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.IsStaff())
+        .RequireRole(nameof(StaffRole.Owner), nameof(StaffRole.Manager)))
     .AddPolicy(JwtSettings.MobileAnyPolicy, policy => policy
         .AddAuthenticationSchemes(JwtSettings.Scheme)
         .RequireAuthenticatedUser())
@@ -273,12 +298,16 @@ app.MapAuthEndpoints();
 app.MapOrganizationEndpoints();
 app.MapScoreboardEndpoints();
 app.MapMobileEndpoints();
+app.MapMobileManageEndpoints();
+app.MapMobileExternalMatchEndpoints();
+app.MapMobileStatsEndpoints();
+app.MapMobileProfileEndpoints();
 
 app.MapPost("/culture", async (HttpContext context, DataContext db, SystemPlayerService systemPlayers, [FromForm] string lang, [FromForm] string? returnUrl) =>
 {
     if (Loc.Languages.Any(l => l.Code == lang))
     {
-        if (context.User.Identity?.IsAuthenticated == true && context.User.FindFirst(AuthClaims.OrganizationId) is not null)
+        if (context.User.IsStaff() && context.User.FindFirst(AuthClaims.OrganizationId) is not null)
         {
             var organizationId = context.User.GetOrganizationId();
             await db.OrganizationSet.Where(o => o.Id == organizationId).ExecuteUpdateAsync(o => o.SetProperty(x => x.Language, lang));

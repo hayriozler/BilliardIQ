@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Scoreboard.Common;
 using Scoreboard.WebApp.Data;
 using Scoreboard.WebApp.Security;
 using Scoreboard.WebApp.Services;
@@ -9,11 +10,13 @@ public record MobileLoginRequest(string Email, string Password, string? DeviceNa
 public record MobileRefreshRequest(string RefreshToken);
 public record MobileOrganizationRequest(int OrganizationId);
 public record MobilePasswordRequest(string CurrentPassword, string NewPassword);
+public record MobileForgotPasswordRequest(string Email);
+public record MobileResetPasswordRequest(string Email, string Code, string NewPassword);
 public record MobileInviteRegisterRequest(string Code, string Email, string Password, string? DeviceName);
 public record MobileProfileRequest(string? DisplayName, string? Locale, string? Phone);
 public record MobileEmailRequest(string Email, string Password);
 public record MobilePlayerAccountRequest(string Email);
-public record MobilePlayerProfileRequest(string Name, string? Nickname, int? AvatarId, string? PhotoBase64);
+public record MobileNewInviteRequest(string Name, string? Nickname);
 
 public record MobilePlayerProfile(int Id, string Name, string? Nickname, string DisplayName, int? AvatarId, string? PhotoUrl, Level Level, int? ShortcutNumber);
 
@@ -28,6 +31,10 @@ public static class MobileEndpoints
     public static IEndpointRouteBuilder MapMobileEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/mobile").WithTags("Mobile");
+
+        group.MapGet("/avatars/{seed:int}", (int seed) =>
+            Results.Text(AvatarGenerator.ToSvg(seed, 128), "image/svg+xml"))
+            .AllowAnonymous();
 
         var auth = group.MapGroup("/auth");
 
@@ -54,6 +61,25 @@ public static class MobileEndpoints
             try
             {
                 return Results.Ok(await mobile.RegisterWithInviteAsync(request.Code, request.Email, request.Password, request.DeviceName));
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(loc.Error(ex));
+            }
+        }).RequireRateLimiting(RateLimitPolicies.Credentials);
+
+        auth.MapPost("/forgot-password", async (MobileForgotPasswordRequest request, PasswordResetService reset) =>
+        {
+            await reset.RequestAsync(request.Email);
+            return Results.NoContent();
+        }).RequireRateLimiting(RateLimitPolicies.Credentials);
+
+        auth.MapPost("/reset-password", async (MobileResetPasswordRequest request, PasswordResetService reset, Loc loc) =>
+        {
+            try
+            {
+                await reset.ResetAsync(request.Email, request.Code, request.NewPassword);
+                return Results.NoContent();
             }
             catch (ArgumentException ex)
             {
@@ -124,22 +150,6 @@ public static class MobileEndpoints
             return Results.Ok(new MobilePlayerHome(ToProfile(detail.Player), detail.Summary, last));
         });
 
-        player.MapGet("/profile", async (HttpContext context, PlayerService players) =>
-            await players.GetAsync(context.User.GetPlayerId()) is { } p ? Results.Ok(ToProfile(p)) : Results.NotFound());
-
-        player.MapPut("/profile", async (MobilePlayerProfileRequest request, HttpContext context, PlayerService players, Loc loc) =>
-        {
-            try
-            {
-                var updated = await players.UpdateOwnProfileAsync(context.User.GetPlayerId(), request.Name, request.Nickname, request.AvatarId, request.PhotoBase64);
-                return Results.Ok(ToProfile(updated));
-            }
-            catch (ArgumentException ex)
-            {
-                return Results.BadRequest(loc.Error(ex));
-            }
-        });
-
         var manage = group.MapGroup("/players").RequireAuthorization(JwtSettings.MobileManagerPolicy);
 
         manage.MapPost("/{id:int}/account", async (int id, MobilePlayerAccountRequest request, MobileAuthService mobile, Loc loc) =>
@@ -159,6 +169,21 @@ public static class MobileEndpoints
             try
             {
                 return Results.Ok(await mobile.ResetPlayerPasswordAsync(id));
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(loc.Error(ex));
+            }
+        });
+
+        manage.MapGet("/invitable", async (MobileAuthService mobile) => Results.Ok(await mobile.ListInvitablePlayersAsync()));
+
+        manage.MapPost("/invite-new", async (MobileNewInviteRequest request, PlayerService players, MobileAuthService mobile, Loc loc) =>
+        {
+            try
+            {
+                var player = await players.UpsertAsync(0, request.Nickname ?? "", request.Name ?? "", null, "", Level.Intermidiate, "", "", null);
+                return Results.Ok(await mobile.CreateInviteAsync(player.Id));
             }
             catch (ArgumentException ex)
             {

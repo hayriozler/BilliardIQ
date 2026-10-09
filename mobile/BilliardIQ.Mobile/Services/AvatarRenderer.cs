@@ -13,6 +13,11 @@ public static class AvatarRenderer
     public static async Task<byte[]> RenderPngAsync(string svgFileName, int size = 300)
     {
         using var stream = await FileSystem.OpenAppPackageFileAsync(svgFileName);
+        return RenderPng(stream, size);
+    }
+
+    public static byte[] RenderPng(Stream stream, int size = 300)
+    {
         using var svg = new SKSvg();
         var picture = svg.Load(stream);
         if (picture is null || picture.CullRect.Width <= 0 || picture.CullRect.Height <= 0) return [];

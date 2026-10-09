@@ -10,9 +10,8 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
     public DbSet<MatchResult> MatchResultSet { get; set; }
     public DbSet<Team> TeamSet { get; set; }
     public DbSet<Club> ClubSet { get; set; }
-    public DbSet<ScoreEvent> ScoreEventSet { get; set; }
+    public DbSet<MatchHistory> MatchHistorySet { get; set; }
     public DbSet<Setting> SettingsSet { get; set; }
-    public DbSet<MatchScoreStat> MatchScoreStatSet { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ScoreboardState>().HasKey(p => p.Id);
@@ -35,13 +34,9 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
         modelBuilder.Entity<MatchResult>().Property(m => m.Id).UseAutoincrement();
         modelBuilder.Entity<MatchResult>().ToTable("match_result");
 
-        modelBuilder.Entity<ScoreEvent>().HasKey(e => e.Id);
-        modelBuilder.Entity<ScoreEvent>().Property(e => e.Id).UseAutoincrement();
-        modelBuilder.Entity<ScoreEvent>().ToTable("score_event");
-
-        modelBuilder.Entity<MatchScoreStat>().HasKey(s => s.Id);
-        modelBuilder.Entity<MatchScoreStat>().Property(s => s.Id).UseAutoincrement();
-        modelBuilder.Entity<MatchScoreStat>().ToTable("match_score_stat");
+        modelBuilder.Entity<MatchHistory>().HasKey(h => h.Id);
+        modelBuilder.Entity<MatchHistory>().Property(h => h.Id).UseAutoincrement();
+        modelBuilder.Entity<MatchHistory>().ToTable("match_history");
 
         modelBuilder.Entity<Setting>().HasKey(s => s.Id);
         modelBuilder.Entity<Setting>().ToTable("Settings");

@@ -1,5 +1,5 @@
 @page "/tournaments/{Id:int}"
-@attribute [Authorize]
+@attribute [Authorize(Policy = AuthClaims.StaffPolicy)]
 @using Scoreboard.WebApp.Services.Tournaments
 @inject ScopedRunner Db
 @inject TenantContext TenantContext

@@ -10,6 +10,8 @@
     xmlns:connection="clr-namespace:BilliardIQ.Mobile.Pages.Connection"
     xmlns:scoreboard="clr-namespace:BilliardIQ.Mobile.Pages.Scoreboard"
     xmlns:admin="clr-namespace:BilliardIQ.Mobile.Pages.Admin"
+    xmlns:manage="clr-namespace:BilliardIQ.Mobile.Pages.Manage"
+    xmlns:ranking="clr-namespace:BilliardIQ.Mobile.Pages.Ranking"
     xmlns:stats="clr-namespace:BilliardIQ.Mobile.Pages.Stats"
     xmlns:ssh="clr-namespace:BilliardIQ.Mobile.Pages.Ssh"
     Shell.FlyoutBehavior="Flyout"
@@ -37,12 +39,6 @@
         Shell.FlyoutItemIsVisible="False" />
 
     <ShellContent
-        x:Name="PlayerHomeContent"
-        Title="My stats"
-        ContentTemplate="{DataTemplate players:PlayerHomeViewPage}"
-        Route="playerhome" />
-
-    <ShellContent
         x:Name="HomeContent"
         Title="Home"
         ContentTemplate="{DataTemplate games:GameListViewPage}"
@@ -50,9 +46,27 @@
 
     <ShellContent
         x:Name="GameContent"
-        Title="Game"
+        Title="Play Game"
         ContentTemplate="{DataTemplate play:GamePlayViewPage}"
         Route="game" />
+
+    <ShellContent
+        x:Name="ManageContent"
+        Title="Management"
+        ContentTemplate="{DataTemplate manage:ManageListViewPage}"
+        Route="manage" />
+
+    <ShellContent
+        x:Name="InviteContent"
+        Title="Invite player"
+        ContentTemplate="{DataTemplate manage:InviteViewPage}"
+        Route="invite" />
+
+    <ShellContent
+        x:Name="RankingContent"
+        Title="Ranking"
+        ContentTemplate="{DataTemplate ranking:RankingViewPage}"
+        Route="ranking" />
 
     <FlyoutItem x:Name="ScoreboardItem" Title="Scoreboard Admin">
         <Tab Title="Score">
@@ -88,12 +102,6 @@
         ContentTemplate="{DataTemplate connection:ConnectionViewPage}"
         Route="connect"
         Shell.FlyoutItemIsVisible="False" />
-
-    <ShellContent
-        x:Name="ProfileContent"
-        Title="Profile"
-        ContentTemplate="{DataTemplate players:PlayerProfileViewPage}"
-        Route="profile" />
 
     <ShellContent
         x:Name="AccountContent"

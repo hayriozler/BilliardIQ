@@ -25,11 +25,21 @@ public sealed class ApiClient
     public Task<T> GetAsync<T>(string path, CancellationToken ct = default) =>
         SendAsync<T>(HttpMethod.Get, path, null, true, ct);
 
+    public async Task<byte[]> GetBytesAsync(string path, CancellationToken ct = default)
+    {
+        using var response = await SendOnceAsync(HttpMethod.Get, path, null, false, ct);
+        await EnsureSuccessAsync(response);
+        return await response.Content.ReadAsByteArrayAsync(ct);
+    }
+
     public Task<T> PostAsync<T>(string path, object? body, bool authorize = true, CancellationToken ct = default) =>
         SendAsync<T>(HttpMethod.Post, path, body, authorize, ct);
 
     public Task PostAsync(string path, object? body, bool authorize = true, CancellationToken ct = default) =>
         SendAsync(HttpMethod.Post, path, body, authorize, ct);
+
+    public Task DeleteAsync(string path, CancellationToken ct = default) =>
+        SendAsync(HttpMethod.Delete, path, null, true, ct);
 
     public Task PutAsync(string path, object? body, CancellationToken ct = default) =>
         SendAsync(HttpMethod.Put, path, body, true, ct);
@@ -98,7 +108,14 @@ public sealed class ApiClient
             request.Content = JsonContent.Create(body, options: _json);
         }
 
-        return await _http.SendAsync(request, ct);
+        try
+        {
+            return await _http.SendAsync(request, ct);
+        }
+        catch (Exception ex) when (ex is WebException or IOException)
+        {
+            throw new HttpRequestException(ex.Message, ex);
+        }
     }
 
     private async Task EnsureFreshTokenAsync(CancellationToken ct)
@@ -111,7 +128,7 @@ public sealed class ApiClient
 
     private async Task<bool> RefreshCoreAsync(CancellationToken ct)
     {
-        var refreshToken = await _session.GetRefreshTokenAsync();
+        var refreshToken = await SessionStore.GetRefreshTokenAsync();
         if (string.IsNullOrEmpty(refreshToken))
         {
             if (_session.IsSignedIn)

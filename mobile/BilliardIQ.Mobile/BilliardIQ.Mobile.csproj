@@ -73,6 +73,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="bash.exe.stackdump" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Maui.Camera" Version="6.1.0" />
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.100" />
@@ -83,6 +87,7 @@
 		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.29.0" />
 		<!-- SkiaSharp: image decode/resize for ONNX preprocessing (transitively available, made explicit) -->
 		<PackageReference Include="SkiaSharp" Version="4.151.1" />
+		<PackageReference Include="QRCoder" Version="1.6.0" />
 		<!-- EmguCV: OpenCV .NET wrapper — HoughCircles + findContours for ball/corner detection -->
 		<PackageReference Include="Emgu.CV" Version="4.13.0.5924" />
 		<PackageReference Include="SSH.NET" Version="2026.0.0" />

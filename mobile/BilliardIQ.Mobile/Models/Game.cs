@@ -24,5 +24,6 @@ public class Game
     [MaxLength(300)]
     public string? Notes { get; set; }    
     public byte[]? ScoreboardThumbnail { get; set; }
+    public int RemoteId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;  
 }

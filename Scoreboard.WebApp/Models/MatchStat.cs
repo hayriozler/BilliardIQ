@@ -39,6 +39,7 @@ public class MatchStat
 
     public int BucketMinutes { get; set; }
     public List<MatchStatBucket> Buckets { get; set; } = [];
+    public List<MatchStatHistory> History { get; set; } = [];
 
     public DateTimeOffset RecordedAt { get; set; } = DateTimeOffset.UtcNow;
 }
@@ -51,4 +52,17 @@ public class MatchStatBucket
     public int PlayerSlot { get; set; }
     public int BucketIndex { get; set; }
     public int TotalPoints { get; set; }
+}
+
+public class MatchStatHistory
+{
+    public int Id { get; set; }
+    public int MatchStatId { get; set; }
+    public MatchStat MatchStat { get; set; } = default!;
+    public int? PlayerId { get; set; }
+    public int PlayerSlot { get; set; }
+    public int Inning { get; set; }
+    public int Score { get; set; }
+    public int TotalScore { get; set; }
+    public DateTimeOffset? PlayedAt { get; set; }
 }
