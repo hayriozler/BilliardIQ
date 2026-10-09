@@ -16,6 +16,7 @@ public record MobileInviteRegisterRequest(string Code, string Email, string Pass
 public record MobileProfileRequest(string? DisplayName, string? Locale, string? Phone);
 public record MobileEmailRequest(string Email, string Password);
 public record MobilePlayerAccountRequest(string Email);
+public record MobileNewInviteRequest(string Name, string? Nickname);
 
 public record MobilePlayerProfile(int Id, string Name, string? Nickname, string DisplayName, int? AvatarId, string? PhotoUrl, Level Level, int? ShortcutNumber);
 
@@ -168,6 +169,21 @@ public static class MobileEndpoints
             try
             {
                 return Results.Ok(await mobile.ResetPlayerPasswordAsync(id));
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(loc.Error(ex));
+            }
+        });
+
+        manage.MapGet("/invitable", async (MobileAuthService mobile) => Results.Ok(await mobile.ListInvitablePlayersAsync()));
+
+        manage.MapPost("/invite-new", async (MobileNewInviteRequest request, PlayerService players, MobileAuthService mobile, Loc loc) =>
+        {
+            try
+            {
+                var player = await players.UpsertAsync(0, request.Nickname ?? "", request.Name ?? "", null, "", Level.Intermidiate, "", "", null);
+                return Results.Ok(await mobile.CreateInviteAsync(player.Id));
             }
             catch (ArgumentException ex)
             {
