@@ -95,8 +95,10 @@
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="13"/>
                                     </Border.StrokeShape>
-                                    <Label Text="{Binding ResultLetter}"
-                                           TextColor="White" FontAttributes="Bold" FontSize="12"
+                                    <Label Text="{Binding ResultGlyph}"
+                                           FontFamily="MaterialIcons"
+                                           SemanticProperties.Description="{Binding ResultLetter}"
+                                           TextColor="White" FontSize="16"
                                            HorizontalOptions="Center" VerticalOptions="Center" />
                                 </Border>
 

@@ -17,6 +17,7 @@ public class PlayerMatchEntry
 
     public Color ResultColor => Won ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828");
     public string ResultLetter => LocalizationManager.Instance[Won ? "PlayerStats_Win" : "PlayerStats_Loss"];
+    public string ResultGlyph => char.ConvertFromUtf32(Won ? 0xE8DC : 0xE8DB);
 
     public bool HasStartedAt => StartedAt is not null;
     public bool HasEndedAt => EndedAt is not null;

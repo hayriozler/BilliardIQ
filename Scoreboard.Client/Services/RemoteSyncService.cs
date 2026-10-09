@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Text;
+using System.Text.Json;
 
 namespace Scoreboard.Client.Services;
 
@@ -110,7 +112,7 @@ public partial class RemoteSyncService(
                     inning = h.Inning,
                     score = h.Score,
                     totalScore = h.TotalScore,
-                    playedAt = h.Timestamp
+                    playedAt = ToUtc(h.Timestamp)
                 })
                 .ToList();
 
@@ -132,14 +134,18 @@ public partial class RemoteSyncService(
                 player1Target = match.Player1Target,
                 player2Target = match.Player2Target,
                 winner = match.Winner,
-                playedAt = match.PlayedAt,
-                startedAt = match.StartedAt,
-                endedAt = match.EndedAt,
+                playedAt = ToUtc(match.PlayedAt),
+                startedAt = ToUtc(match.StartedAt),
+                endedAt = ToUtc(match.EndedAt),
+                utcOffsetMinutes = (int)TimeZoneInfo.Local.GetUtcOffset(match.EndedAt ?? match.PlayedAt).TotalMinutes,
                 history
             };
 
             LogSendMatchResult(match.Id, match.Player1Name, match.Player1Score, match.Player2Name, match.Player2Score, match.Winner);
-            var response = await http.PostAsJsonAsync("stats", payload, ct);
+            var json = JsonSerializer.Serialize(payload, JsonSerializerOptions.Web);
+            LogSendMatchPayload(match.Id, json);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await http.PostAsync("stats", content, ct);
             var body = await response.Content.ReadAsStringAsync(ct);
             LogReceivedMatchResultResponse(match.Id, response.StatusCode, body);
 
@@ -153,6 +159,10 @@ public partial class RemoteSyncService(
             await db.SaveChangesAsync(ct);
         }
     }
+
+    private static DateTime ToUtc(DateTime local) => DateTime.SpecifyKind(local, DateTimeKind.Local).ToUniversalTime();
+
+    private static DateTime? ToUtc(DateTime? local) => local is { } value ? ToUtc(value) : null;
 
     private async Task CleanupMatchesAsync(DataContext db, CancellationToken ct)
     {
@@ -224,6 +234,9 @@ public partial class RemoteSyncService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "SEND match result {MatchId} to stats: {Player1Name}({Player1Score}) vs {Player2Name}({Player2Score}) winner={Winner}")]
     private partial void LogSendMatchResult(int matchId, string player1Name, int player1Score, string player2Name, int player2Score, int winner);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "SEND payload for match {MatchId}: {Json}")]
+    private partial void LogSendMatchPayload(int matchId, string json);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "RECEIVED response for match {MatchId}: {Status} {Body}")]
     private partial void LogReceivedMatchResultResponse(int matchId, System.Net.HttpStatusCode status, string body);

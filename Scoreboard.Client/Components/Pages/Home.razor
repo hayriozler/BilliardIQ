@@ -1083,6 +1083,11 @@ else
         }
 
         var winner = DetermineWinner();
+        var firstTurnAt = DbContext.MatchHistorySet
+            .Where(h => h.MatchResultId == null && h.Timestamp >= _gameStartedAt)
+            .OrderBy(h => h.Timestamp)
+            .Select(h => (DateTime?)h.Timestamp)
+            .FirstOrDefault();
         var matchResult = new MatchResult
         {
             PlayedAt = DateTime.Now,
@@ -1102,7 +1107,7 @@ else
             Player1Target = Current.IsHandicap ? Current.Player1Target : 0,
             Player2Target = Current.IsHandicap ? Current.Player2Target : 0,
             Winner = winner,
-            StartedAt = _gameStartedAt,
+            StartedAt = firstTurnAt ?? _gameStartedAt,
             EndedAt = DateTime.Now
         };
         using var transaction = DbContext.Database.BeginTransaction();

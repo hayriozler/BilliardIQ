@@ -23,7 +23,6 @@ public static class MatchStatsEndpoints
         {
             var tableId = context.GetTableId();
             var stats = await db.MatchStatSet
-                .Include(s => s.Buckets)
                 .Where(s => tableId == null || s.TableId == tableId)
                 .OrderByDescending(s => s.PlayedAt)
                 .Take(200)
@@ -122,8 +121,5 @@ public static class MatchStatsEndpoints
         s.Id, s.TableNo,
         s.Player1ExternalId, s.Player1Name, s.Player1Score, s.Player1Avg, s.Player1HighRun,
         s.Player2ExternalId, s.Player2Name, s.Player2Score, s.Player2Avg, s.Player2HighRun,
-        s.Inning, s.MatchTarget, s.IsHandicap, s.Player1Target, s.Player2Target, s.Winner, s.PlayedAt, s.StartedAt, s.EndedAt, s.RecordedAt,
-        s.BucketMinutes,
-        s.Buckets.OrderBy(b => b.PlayerSlot).ThenBy(b => b.BucketIndex)
-            .Select(b => new ScoreBucketDto(b.PlayerSlot, b.BucketIndex, b.TotalPoints)).ToList());
+        s.Inning, s.MatchTarget, s.IsHandicap, s.Player1Target, s.Player2Target, s.Winner, s.PlayedAt, s.StartedAt, s.EndedAt, s.RecordedAt);
 }
