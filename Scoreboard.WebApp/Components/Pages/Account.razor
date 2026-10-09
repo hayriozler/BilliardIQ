@@ -171,7 +171,7 @@ else
             var p = _profile;
             var update = new PlayerDetailsUpdate(
                 null, null, _nickname, _avatarId, _photoBase64, _removePhoto && _photoBase64 is null,
-                p.Level, p.LicenseNo, p.LicenseValidUntil, p.BirthDate, p.Gender, p.Handedness,
+                p.Level, p.LicenseNo, p.LicenseValidUntil,
                 _phone, _locale,
                 p.CountryId, p.RegionId, p.CityId, p.AssociationId);
             await Db.RunAsync((PlayerProfileService s) => s.UpdateAsync(_playerId, update, canChangeName: false));

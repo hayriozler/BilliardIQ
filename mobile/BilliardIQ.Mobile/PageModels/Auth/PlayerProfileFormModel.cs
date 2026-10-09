@@ -45,15 +45,6 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
     public partial string LicenseValidUntil { get; set; } = "";
 
     [ObservableProperty]
-    public partial string BirthDate { get; set; } = "";
-
-    [ObservableProperty]
-    public partial int GenderIndex { get; set; }
-
-    [ObservableProperty]
-    public partial int HandednessIndex { get; set; }
-
-    [ObservableProperty]
     public partial string Phone { get; set; } = "";
 
     [ObservableProperty]
@@ -114,12 +105,6 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
     public IReadOnlyList<string> LevelNames =>
         [L["Account_LevelBeginner"], L["Account_LevelIntermediate"], L["Account_LevelAdvanced"], L["Account_LevelProfessional"]];
 
-    public IReadOnlyList<string> GenderNames =>
-        ["-", L["Account_GenderMale"], L["Account_GenderFemale"], L["Account_GenderOther"], L["Account_GenderUndisclosed"]];
-
-    public IReadOnlyList<string> HandednessNames =>
-        ["-", L["Account_HandRight"], L["Account_HandLeft"]];
-
     public IReadOnlyList<string> LanguageNames => ["Türkçe", "English"];
 
     protected abstract Task<FullProfileDto> FetchProfileAsync();
@@ -153,7 +138,7 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
     protected async Task<bool> SaveFormAsync()
     {
         Message = "";
-        if (!TryParseDate(BirthDate, out var birth) || !TryParseDate(LicenseValidUntil, out var license))
+        if (!TryParseDate(LicenseValidUntil, out var license))
         {
             ShowError(L["Account_DateInvalid"]);
             return false;
@@ -172,9 +157,6 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
                 _levelValues[Math.Clamp(LevelIndex, 0, _levelValues.Length - 1)],
                 NullIfEmpty(LicenseNo),
                 license,
-                birth,
-                GenderIndex <= 0 ? null : GenderIndex - 1,
-                HandednessIndex <= 0 ? null : HandednessIndex - 1,
                 NullIfEmpty(Phone) ?? "",
                 LanguageIndex == 1 ? "en-US" : "tr-TR",
                 SelectedId(_catalog?.Countries, CountryIndex),
@@ -279,9 +261,6 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
         LevelIndex = Math.Max(0, Array.IndexOf(_levelValues, p.Level));
         LicenseNo = p.LicenseNo ?? "";
         LicenseValidUntil = p.LicenseValidUntil ?? "";
-        BirthDate = p.BirthDate ?? "";
-        GenderIndex = p.Gender is { } g ? g + 1 : 0;
-        HandednessIndex = p.Handedness is { } h ? h + 1 : 0;
         Phone = p.Phone ?? "";
         LanguageIndex = p.Locale is { } l && l.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
         ShortcutNumber = p.ShortcutNumber?.ToString() ?? "";

@@ -5,13 +5,13 @@ namespace Scoreboard.WebApp.Endpoints;
 
 public record MobileOwnProfileRequest(
     string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
-    Level? Level, string? LicenseNo, DateOnly? LicenseValidUntil, DateOnly? BirthDate, Gender? Gender, Handedness? Handedness,
+    Level? Level, string? LicenseNo, DateOnly? LicenseValidUntil,
     string? Phone, string? Locale,
     int? CountryId = null, int? RegionId = null, int? CityId = null, int? AssociationId = null);
 
 public record MobileManagedProfileRequest(
     string? FirstName, string? LastName, string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
-    Level? Level, string? LicenseNo, DateOnly? LicenseValidUntil, DateOnly? BirthDate, Gender? Gender, Handedness? Handedness,
+    Level? Level, string? LicenseNo, DateOnly? LicenseValidUntil,
     string? Phone, string? Locale,
     int? CountryId = null, int? RegionId = null, int? CityId = null, int? AssociationId = null);
 
@@ -36,7 +36,7 @@ public static class MobileProfileEndpoints
             {
                 var update = new PlayerDetailsUpdate(
                     null, null, request.Nickname, request.AvatarId, request.PhotoBase64, request.RemovePhoto,
-                    request.Level, request.LicenseNo, request.LicenseValidUntil, request.BirthDate, request.Gender, request.Handedness,
+                    request.Level, request.LicenseNo, request.LicenseValidUntil,
                     request.Phone, request.Locale,
                     request.CountryId, request.RegionId, request.CityId, request.AssociationId);
                 return Results.Ok(await profiles.UpdateAsync(context.User.GetPlayerId(), update, canChangeName: false));
@@ -60,7 +60,7 @@ public static class MobileProfileEndpoints
             {
                 var update = new PlayerDetailsUpdate(
                     request.FirstName, request.LastName, request.Nickname, request.AvatarId, request.PhotoBase64, request.RemovePhoto,
-                    request.Level, request.LicenseNo, request.LicenseValidUntil, request.BirthDate, request.Gender, request.Handedness,
+                    request.Level, request.LicenseNo, request.LicenseValidUntil,
                     request.Phone, request.Locale,
                     request.CountryId, request.RegionId, request.CityId, request.AssociationId);
                 return Results.Ok(await profiles.UpdateAsync(id, update, canChangeName: true));

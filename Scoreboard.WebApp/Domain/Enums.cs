@@ -17,8 +17,6 @@ public enum Level
     Professional = 8
 }
 
-public enum Gender { Male, Female, Other, Undisclosed }
-public enum Handedness { Right, Left }
 public enum ClubMembershipRole { Member, Captain, Coach, Manager }
 public enum TeamMemberRole { Captain, Player, Reserve }
 public enum MembershipTier { Standard, Silver, Gold, Student }

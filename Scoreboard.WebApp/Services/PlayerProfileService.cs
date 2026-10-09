@@ -6,13 +6,13 @@ namespace Scoreboard.WebApp.Services;
 
 public record PlayerDetailsUpdate(
     string? FirstName, string? LastName, string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
-    Level? Level, string? LicenseNo, DateOnly? LicenseValidUntil, DateOnly? BirthDate, Gender? Gender, Handedness? Handedness,
+    Level? Level, string? LicenseNo, DateOnly? LicenseValidUntil,
     string? Phone, string? Locale,
     int? CountryId = null, int? RegionId = null, int? CityId = null, int? AssociationId = null);
 
 public record MobileFullProfile(
     int Id, string FirstName, string LastName, string? Nickname, string DisplayName, int? AvatarId, string? PhotoUrl,
-    Level Level, int? ShortcutNumber, DateOnly? BirthDate, Gender? Gender, Handedness? Handedness,
+    Level Level, int? ShortcutNumber,
     string? LicenseNo, DateOnly? LicenseValidUntil, string? AssociationName, string? RegionName, string? CountryName, string? CityName,
     string? Email, string? Phone, string? Locale, bool HasAccount, IReadOnlyList<string> Clubs, IReadOnlyList<string> Teams,
     int? CountryId, int? RegionId, int? CityId, int? AssociationId);
@@ -44,7 +44,7 @@ public class PlayerProfileService(DataContext db, PlayerService players, MobileA
 
         return new MobileFullProfile(
             player.Id, player.FirstName, player.LastName, player.Nickname, player.DisplayName, player.AvatarId, player.PhotoUrl,
-            player.Level, player.ShortcutNumber, player.BirthDate, player.Gender, player.Handedness,
+            player.Level, player.ShortcutNumber,
             player.FederationLicenseNo, player.LicenseValidUntil, player.Association?.Name, player.Region?.Name, player.CountryRef?.Name, player.CityRef?.Name,
             player.User?.Email ?? player.Email, player.User?.Phone, player.User?.Locale, player.UserId is not null, clubs, teams,
             player.CountryId, player.RegionId, player.CityId, player.AssociationId);
@@ -60,21 +60,6 @@ public class PlayerProfileService(DataContext db, PlayerService players, MobileA
         if (update.Level is { } level && !Enum.IsDefined(level))
         {
             throw new ArgumentException("Geçersiz seviye.");
-        }
-
-        if (update.Gender is { } gender && !Enum.IsDefined(gender))
-        {
-            throw new ArgumentException("Geçersiz cinsiyet.");
-        }
-
-        if (update.Handedness is { } hand && !Enum.IsDefined(hand))
-        {
-            throw new ArgumentException("Geçersiz değer.");
-        }
-
-        if (update.BirthDate is { } birth && (birth > DateOnly.FromDateTime(DateTime.UtcNow) || birth.Year < 1900))
-        {
-            throw new ArgumentException("Doğum tarihi geçersiz.");
         }
 
         if (update.LicenseNo is { Length: > 50 })
@@ -148,9 +133,6 @@ public class PlayerProfileService(DataContext db, PlayerService players, MobileA
         player.Level = update.Level ?? player.Level;
         player.FederationLicenseNo = string.IsNullOrWhiteSpace(update.LicenseNo) ? null : update.LicenseNo.Trim();
         player.LicenseValidUntil = update.LicenseValidUntil;
-        player.BirthDate = update.BirthDate;
-        player.Gender = update.Gender;
-        player.Handedness = update.Handedness;
         player.CountryId = country?.Id;
         player.CityId = city?.Id;
         player.RegionId = update.RegionId;

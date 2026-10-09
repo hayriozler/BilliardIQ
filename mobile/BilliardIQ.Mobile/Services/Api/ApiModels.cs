@@ -77,14 +77,14 @@ public sealed record ManageTeamDto(int Id, string Name, List<ManageTeamPlayerDto
 
 public sealed record FullProfileDto(
     int Id, string FirstName, string LastName, string? Nickname, string DisplayName, int? AvatarId, string? PhotoUrl,
-    int Level, int? ShortcutNumber, string? BirthDate, int? Gender, int? Handedness,
+    int Level, int? ShortcutNumber,
     string? LicenseNo, string? LicenseValidUntil, string? AssociationName, string? RegionName, string? CountryName, string? CityName,
     string? Email, string? Phone, string? Locale, bool HasAccount, List<string> Clubs, List<string> Teams,
     int? CountryId, int? RegionId, int? CityId, int? AssociationId);
 
 public sealed record ProfileUpdateRequest(
     string? FirstName, string? LastName, string? Nickname, int? AvatarId, string? PhotoBase64, bool RemovePhoto,
-    int? Level, string? LicenseNo, string? LicenseValidUntil, string? BirthDate, int? Gender, int? Handedness,
+    int? Level, string? LicenseNo, string? LicenseValidUntil,
     string? Phone, string? Locale,
     int? CountryId, int? RegionId, int? CityId, int? AssociationId);
 
