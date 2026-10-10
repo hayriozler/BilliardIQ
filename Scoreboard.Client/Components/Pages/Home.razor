@@ -1081,11 +1081,11 @@ else
     private bool _gameEnded;
     private DateTime _gameStartedAt = DateTime.Now;
 
-    private void EndGame(bool celebrate = true)
+    private int EndGame(bool celebrate = true)
     {
         if (_gameEnded)
         {
-            return;
+            return 0;
         }
 
         var winner = DetermineWinner();
@@ -1133,15 +1133,43 @@ else
         {
             _ = SetFireworksAsync(winner);
         }
+
+        return winner;
+    }
+
+    private bool _finishingGame;
+
+    private async Task NewGameAsync()
+    {
+        if (_finishingGame)
+        {
+            await SetFireworksAsync(0);
+            return;
+        }
+
+        if (!_gameEnded && Current.Player1Score > 0 && Current.Player2Score > 0)
+        {
+            _finishingGame = true;
+            try
+            {
+                var winner = EndGame(celebrate: false);
+                if (winner != 0)
+                {
+                    StateHasChanged();
+                    await SetFireworksAsync(winner);
+                }
+            }
+            finally
+            {
+                _finishingGame = false;
+            }
+        }
+
+        NewGame();
     }
 
     private void NewGame()
     {
-        if (Current.Player1Score != 0 || Current.Player2Score != 0)
-        {
-            EndGame(celebrate: false);
-        }
-
         _gameEnded = false;
         _showMatchEnd = false;
         _ = SetFireworksAsync(0);
@@ -1354,9 +1382,6 @@ else
             case ScoreboardCommand.EndGame:
                 EndGame();
                 break;
-            case ScoreboardCommand.NewGame:
-                NewGame();
-                break;
             case ScoreboardCommand.ExtendMatch:
                 if (GetIntPayload(payload) is int extraPoints and > 0)
                 {
@@ -1424,7 +1449,14 @@ else
 
         foreach (var message in messages)
         {
-            ApplyCommand(message.Command, message.Payload);
+            if (message.Command == ScoreboardCommand.NewGame)
+            {
+                await NewGameAsync();
+            }
+            else
+            {
+                ApplyCommand(message.Command, message.Payload);
+            }
         }
 
         await PersistAsync();
