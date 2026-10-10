@@ -153,4 +153,5 @@ rm -f ~/.config/chromium/Singleton*
 | `migrate-from-zeymera.sh` | Pi, once | Renames an old zeymera-scoreboard install (folder, service, autostart path, sudoers rules) to billiardiq-scoreboard |
 | `launch-kiosk.sh` | Pi, every boot (via autostart) | Waits for the app, then launches Chromium in kiosk mode |
 | `setup-autostart.sh` | Pi, once | Wires `launch-kiosk.sh` into `/etc/xdg/labwc/autostart` |
+| `setup-screen-off.sh` | Pi, once | apt-installs `swayidle` and `wlopm` and adds a screen off timer (default 1800 s without input; pass the seconds as the first argument) to `/etc/xdg/labwc/autostart` |
 | `publish-and-deploy.ps1` | Windows, every redeploy | Publish → strip local data → stop service → remove old binaries → scp → sync unit → start service |
