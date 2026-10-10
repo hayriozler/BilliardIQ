@@ -267,10 +267,10 @@ else
             </div>
             <div class="control-group">
                 <button @onclick="() => DispatchAsync(ScoreboardCommand.NewGame)">@L.T("NewGame")</button>
-                <button @onclick="() => DispatchAsync(ScoreboardCommand.EndGame)" disabled="@_gameEnded">@L.T("EndGame")</button>
             </div>
             <p class="hint">@L.T("ControlsHint")</p>
         </div>
+        <div class="version-tag">@AppVersion</div>
     }
 
     @if (_notice is not null)
@@ -287,7 +287,7 @@ else
                 <div class="warmup-picker-options match-end-options">
                     <button @onclick="() => DispatchAsync(ScoreboardCommand.ExtendMatch, 5)">+5 &rarr; @ExtendedLabel(5) <small>[5]</small></button>
                     <button @onclick="() => DispatchAsync(ScoreboardCommand.ExtendMatch, 10)">+10 &rarr; @ExtendedLabel(10) <small>[0]</small></button>
-                    <button @onclick="() => DispatchAsync(ScoreboardCommand.EndGame)">@L.T("EndMatch") <small>[*]</small></button>
+                    <button @onclick="() => DispatchAsync(ScoreboardCommand.NewGame)">@L.T("NewGame") <small>[*]</small></button>
                 </div>
                 <button class="picker-close" @onclick="() => _showMatchEnd = false">@L.T("Close") <small>[Del]</small></button>
             </div>
@@ -373,6 +373,12 @@ else
 
 @code {
     private bool _showControls;
+
+    private static readonly string AppVersion = FormatVersion(typeof(Home).Assembly.GetName().Version);
+
+    private static string FormatVersion(Version? version) => version is null
+        ? ""
+        : version.Build > 0 ? $"v{version.Major}.{version.Minor}.{version.Build}" : $"v{version.Major}.{version.Minor}";
     private IJSObjectReference? _kiosk;
     private ElementReference board;
     private readonly CancellationTokenSource _shotClockCts = new();
@@ -1075,7 +1081,7 @@ else
     private bool _gameEnded;
     private DateTime _gameStartedAt = DateTime.Now;
 
-    private void EndGame()
+    private void EndGame(bool celebrate = true)
     {
         if (_gameEnded)
         {
@@ -1123,7 +1129,7 @@ else
         Current.ShotClockActive = false;
         _showMatchEnd = false;
         _gameEnded = true;
-        if (winner != 0)
+        if (celebrate && winner != 0)
         {
             _ = SetFireworksAsync(winner);
         }
@@ -1131,6 +1137,11 @@ else
 
     private void NewGame()
     {
+        if (Current.Player1Score != 0 || Current.Player2Score != 0)
+        {
+            EndGame(celebrate: false);
+        }
+
         _gameEnded = false;
         _showMatchEnd = false;
         _ = SetFireworksAsync(0);
@@ -1198,7 +1209,7 @@ else
                     await DispatchAsync(ScoreboardCommand.ExtendMatch, 10);
                     break;
                 case "*":
-                    await DispatchAsync(ScoreboardCommand.EndGame);
+                    await DispatchAsync(ScoreboardCommand.NewGame);
                     break;
                 case "Delete" or ".":
                     _showMatchEnd = false;
@@ -1284,7 +1295,6 @@ else
             "+" or "=" => ScoreboardCommand.IncrementPoints,
             "-" or "_" => ScoreboardCommand.DecrementPoints,
             "Enter" => ScoreboardCommand.CommitPoints,
-            "Delete" or "." => ScoreboardCommand.EndGame,
             "y" or "Y" or "4" or "ArrowLeft" => ScoreboardCommand.SwapPlayers,
             "n" or "N" or "8" or "ArrowUp" => ScoreboardCommand.NewGame,
             _ => null
@@ -1292,8 +1302,7 @@ else
 
         if (!_showControls && command is not (ScoreboardCommand.ToggleControls or ScoreboardCommand.ToggleShotClock
             or ScoreboardCommand.SelectPlayer1 or ScoreboardCommand.SelectPlayer2
-            or ScoreboardCommand.IncrementPoints or ScoreboardCommand.DecrementPoints or ScoreboardCommand.CommitPoints
-            or ScoreboardCommand.EndGame))
+            or ScoreboardCommand.IncrementPoints or ScoreboardCommand.DecrementPoints or ScoreboardCommand.CommitPoints))
         {
             command = null;
         }
