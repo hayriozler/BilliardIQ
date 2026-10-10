@@ -727,3 +727,16 @@
 .picker-close:hover {
     border-color: var(--red);
 }
+
+.version-tag {
+    position: fixed;
+    right: 1.2vw;
+    bottom: 1.2vh;
+    padding: 0.4vh 0.8vw;
+    background: rgba(10, 10, 10, 0.85);
+    border: 1px solid var(--red-dark);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--white);
+    z-index: 20;
+}
