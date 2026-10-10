@@ -1147,7 +1147,7 @@ else
             return;
         }
 
-        if (!_gameEnded && Current.Player1Score > 0 && Current.Player2Score > 0)
+        if (!_gameEnded && (Current.Player1Score > 0 || Current.Player2Score > 0))
         {
             _finishingGame = true;
             try
