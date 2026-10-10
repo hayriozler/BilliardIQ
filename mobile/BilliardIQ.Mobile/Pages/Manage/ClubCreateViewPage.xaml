@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Manage"
+    x:DataType="pageModels:ClubCreatePageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Manage.ClubCreateViewPage"
+    Shell.FlyoutBehavior="Disabled"
+    Title="{Binding L[Create_NewClub]}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="10">
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+            <Label Text="{Binding L[Create_ClubName]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding Name, Mode=TwoWay}" MaxLength="200" />
+            <Label Text="{Binding L[Create_ShortName]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding ShortName, Mode=TwoWay}" Placeholder="KBSK" MaxLength="20" />
+            <Label Text="{Binding L[Account_City]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding City, Mode=TwoWay}" />
+            <Label Text="{Binding L[Create_Color]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding PrimaryColor, Mode=TwoWay}" Placeholder="#C8102E" />
+
+            <Label Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13" IsVisible="{Binding HasError}" />
+
+            <Button Text="{Binding L[Account_Save]}"
+                    Command="{Binding SaveCommand}"
+                    IsEnabled="{Binding IsIdle}"
+                    BackgroundColor="#2E7D32" TextColor="White" />
+            <Button Text="{Binding L[Action_Cancel]}"
+                    Command="{Binding BackCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</basePages:BasePage>

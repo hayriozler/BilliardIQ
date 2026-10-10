@@ -167,6 +167,11 @@ builder.Services.AddAuthorizationBuilder()
         .RequireAuthenticatedUser()
         .RequireAssertion(c => c.User.HasOrganization() && c.User.FindFirst(MobileClaims.MustChangePassword) is null
             && (c.User.IsInRole(MobileClaims.Admin) || c.User.IsInRole(MobileClaims.Manager))))
+    .AddPolicy(JwtSettings.MobileAdminPolicy, policy => policy
+        .AddAuthenticationSchemes(JwtSettings.Scheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(c => c.User.HasOrganization() && c.User.FindFirst(MobileClaims.MustChangePassword) is null
+            && c.User.IsInRole(MobileClaims.Admin)))
     .AddPolicy(JwtSettings.MobilePlayerPolicy, policy => policy
         .AddAuthenticationSchemes(JwtSettings.Scheme)
         .RequireAuthenticatedUser()

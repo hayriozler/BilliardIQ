@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<basePages:BasePage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.Manage"
+    x:DataType="pageModels:PlayerCreatePageModel"
+    x:Class="BilliardIQ.Mobile.Pages.Manage.PlayerCreateViewPage"
+    x:Name="PlayerCreatePage"
+    Shell.FlyoutBehavior="Disabled"
+    Title="{Binding L[Create_NewPlayer]}">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=PlayerCreatePage}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </ContentPage.Behaviors>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="10">
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+            <Grid WidthRequest="110" HeightRequest="110" HorizontalOptions="Center">
+                <Image Source="{Binding Picture}" IsVisible="{Binding HasPicture}" Aspect="AspectFill" />
+                <Border IsVisible="{Binding HasNoPicture}" StrokeThickness="0" BackgroundColor="#90A4AE">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="55" />
+                    </Border.StrokeShape>
+                </Border>
+            </Grid>
+            <Grid ColumnDefinitions="*, *" RowDefinitions="Auto, Auto" ColumnSpacing="8" RowSpacing="8">
+                <Button Grid.Row="0" Grid.Column="0" Text="{Binding L[Account_TakePhoto]}" Command="{Binding TakePhotoCommand}" />
+                <Button Grid.Row="0" Grid.Column="1" Text="{Binding L[Account_ChoosePhoto]}" Command="{Binding ChoosePhotoCommand}" />
+                <Button Grid.Row="1" Grid.Column="0" Text="{Binding L[Account_ChooseAvatar]}" Command="{Binding PickAvatarCommand}" />
+                <Button Grid.Row="1" Grid.Column="1" Text="{Binding L[Account_RemovePhoto]}" Command="{Binding RemovePhotoCommand}"
+                        BackgroundColor="Gray" />
+            </Grid>
+
+            <Label Text="{Binding L[Account_Nickname]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding Nickname, Mode=TwoWay}" MaxLength="100" />
+            <Label Text="{Binding L[Create_FullName]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding Name, Mode=TwoWay}" MaxLength="200" />
+            <Label Text="{Binding L[Create_Email]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding Email, Mode=TwoWay}" Keyboard="Email" MaxLength="200" />
+            <Label Text="{Binding L[Account_Level]}" FontSize="12" TextColor="Gray" />
+            <Picker ItemsSource="{Binding LevelNames}" SelectedIndex="{Binding LevelIndex, Mode=TwoWay}" />
+            <Label Text="{Binding L[Account_ShortcutNumber]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding ShortcutNumber, Mode=TwoWay}" Keyboard="Numeric" MaxLength="4" Placeholder="1 - 9999" />
+            <Label Text="{Binding L[Account_LicenseNo]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding LicenseNo, Mode=TwoWay}" MaxLength="50" />
+            <Label Text="{Binding L[Account_LicenseValidUntil]}" FontSize="12" TextColor="Gray" />
+            <Entry Text="{Binding LicenseValidUntil, Mode=TwoWay}" Placeholder="yyyy-MM-dd" Keyboard="Numeric" />
+            <Label Text="{Binding L[Account_Association]}" FontSize="12" TextColor="Gray" />
+            <Picker ItemsSource="{Binding AssociationNames}" SelectedIndex="{Binding AssociationIndex, Mode=TwoWay}" />
+            <Label Text="{Binding L[Account_Region]}" FontSize="12" TextColor="Gray" />
+            <Picker ItemsSource="{Binding RegionNames}" SelectedIndex="{Binding RegionIndex, Mode=TwoWay}" />
+            <Label Text="{Binding L[Account_Country]}" FontSize="12" TextColor="Gray" />
+            <Picker ItemsSource="{Binding CountryNames}" SelectedIndex="{Binding CountryIndex, Mode=TwoWay}" />
+            <Label Text="{Binding L[Account_City]}" FontSize="12" TextColor="Gray" />
+            <Picker ItemsSource="{Binding CityNames}" SelectedIndex="{Binding CityIndex, Mode=TwoWay}" />
+
+            <Label Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13" IsVisible="{Binding HasError}" />
+
+            <Button Text="{Binding L[Account_Save]}"
+                    Command="{Binding SaveCommand}"
+                    IsEnabled="{Binding IsIdle}"
+                    BackgroundColor="#2E7D32" TextColor="White" />
+            <Button Text="{Binding L[Action_Cancel]}"
+                    Command="{Binding BackCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</basePages:BasePage>

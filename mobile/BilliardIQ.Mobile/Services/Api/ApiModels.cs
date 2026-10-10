@@ -106,3 +106,14 @@ public sealed class ApiException(int statusCode, string message) : Exception(mes
 public sealed record InvitablePlayerDto(int Id, string Nickname, string Name);
 
 public sealed record InviteDto(string Code, DateTimeOffset ExpiresAt, int PlayerId, string PlayerName);
+
+public sealed record ManageClubDto(int Id, string Name, string ShortName, string? City, string? PrimaryColor);
+
+public sealed record CreatePlayerRequest(
+    string? Nickname, string Name, int? AvatarId, string? PhotoBase64, string? Email, int Level,
+    int? ShortcutNumber, string? LicenseNo, string? LicenseValidUntil,
+    int? AssociationId, int? RegionId, int? CountryId, int? CityId);
+
+public sealed record CreateTeamRequest(string Name, int? ClubId, int? AvatarId);
+
+public sealed record CreateClubRequest(string Name, string? ShortName, string? City, string? PrimaryColor);

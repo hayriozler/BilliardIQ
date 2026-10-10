@@ -68,6 +68,8 @@ public partial class AppShell : Shell
     private static readonly string[] _controlRoutes =
         ["manage", "invite", "playeredit", "scoreboard", "admin-teams", "admin-player", "admin-stats", "addscoreboardplayer", "playerstatsdetail", "connect"];
 
+    private static readonly string[] _adminRoutes = ["playernew", "teamnew", "clubnew"];
+
     private static readonly string[] _sshRoutes = ["admin-ssh"];
 
     private static readonly string[] _debugRoutes = ["debugocr", "debugtable"];
@@ -79,6 +81,7 @@ public partial class AppShell : Shell
 
         var blocked = segments.Any(s =>
             (!_session.CanControlScoreboard && _controlRoutes.Contains(s, StringComparer.OrdinalIgnoreCase)) ||
+            (!_session.IsAdmin && _adminRoutes.Contains(s, StringComparer.OrdinalIgnoreCase)) ||
             (!_session.CanUseSsh && _sshRoutes.Contains(s, StringComparer.OrdinalIgnoreCase)) ||
             (_session.IsPlayer && _debugRoutes.Contains(s, StringComparer.OrdinalIgnoreCase)));
 
