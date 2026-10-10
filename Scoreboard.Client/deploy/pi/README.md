@@ -153,5 +153,5 @@ rm -f ~/.config/chromium/Singleton*
 | `migrate-from-zeymera.sh` | Pi, once | Renames an old zeymera-scoreboard install (folder, service, autostart path, sudoers rules) to billiardiq-scoreboard |
 | `launch-kiosk.sh` | Pi, every boot (via autostart) | Waits for the app, then launches Chromium in kiosk mode |
 | `setup-autostart.sh` | Pi, once | Wires `launch-kiosk.sh` into `/etc/xdg/labwc/autostart` |
-| `setup-screen-off.sh` | Pi, once | apt-installs `swayidle` and `wlopm` and adds a screen off timer (default 1800 s without input; pass the seconds as the first argument) to `/etc/xdg/labwc/autostart` |
+| `setup-screen-off.sh` | Pi, once | apt-installs `swayidle`, `wlopm` and `imv`, then writes one `swayidle` line to `/etc/xdg/labwc/autostart` (an older line is replaced): after 600 s without input the image is shown full screen, after 3600 s the image closes and the monitor turns off, any input undoes it. Arguments: image path (default `~/screensaver.jpg`, copied by hand, not in the repo), seconds until the image, seconds until the monitor turns off. Without the image file only the monitor off step is set up |
 | `publish-and-deploy.ps1` | Windows, every redeploy | Publish → strip local data → stop service → remove old binaries → scp → sync unit → start service |
