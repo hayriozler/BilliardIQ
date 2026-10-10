@@ -17,10 +17,12 @@ export function stopFireworks() {
         return;
     }
 
+    const finished = fireworksState.resolve;
     cancelAnimationFrame(fireworksState.frame);
     clearTimeout(fireworksState.timer);
     fireworksState.canvas.remove();
     fireworksState = null;
+    finished();
 }
 
 export function startFireworks(slot) {
@@ -120,8 +122,10 @@ export function startFireworks(slot) {
         fireworksState.frame = requestAnimationFrame(frame);
     };
 
-    fireworksState = { canvas, frame: 0, timer: setTimeout(stopFireworks, 15000) };
+    fireworksState = { canvas, frame: 0, timer: setTimeout(stopFireworks, 15000), resolve: () => {} };
+    const finished = new Promise(resolve => { fireworksState.resolve = resolve; });
     fireworksState.frame = requestAnimationFrame(frame);
+    return finished;
 }
 
 export function scrollPickerActive() {
