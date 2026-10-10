@@ -17,18 +17,21 @@
             Command="{Binding AppearingCommand}" />
     </ContentPage.Behaviors>
 
-    <Grid RowDefinitions="Auto, Auto, *" RowSpacing="8">
+    <Grid RowDefinitions="Auto, Auto, *, Auto" RowSpacing="8">
 
-        <Grid Grid.Row="0" ColumnDefinitions="*, *, *" ColumnSpacing="6">
-            <Button Grid.Column="0" Text="{Binding L[Manage_Tables]}"
+        <Grid Grid.Row="0" ColumnDefinitions="*, *, *, *" ColumnSpacing="4">
+            <Button Grid.Column="0" Text="{Binding L[Manage_Tables]}" FontSize="12" Padding="4,0"
                     Command="{Binding ShowCommand}"
                     CommandParameter="{x:Static pageModels:ManageKind.Tables}" />
-            <Button Grid.Column="1" Text="{Binding L[Manage_Players]}"
+            <Button Grid.Column="1" Text="{Binding L[Manage_Players]}" FontSize="12" Padding="4,0"
                     Command="{Binding ShowCommand}"
                     CommandParameter="{x:Static pageModels:ManageKind.Players}" />
-            <Button Grid.Column="2" Text="{Binding L[Manage_Teams]}"
+            <Button Grid.Column="2" Text="{Binding L[Manage_Teams]}" FontSize="12" Padding="4,0"
                     Command="{Binding ShowCommand}"
                     CommandParameter="{x:Static pageModels:ManageKind.Teams}" />
+            <Button Grid.Column="3" Text="{Binding L[Manage_Clubs]}" FontSize="12" Padding="4,0"
+                    Command="{Binding ShowCommand}"
+                    CommandParameter="{x:Static pageModels:ManageKind.Clubs}" />
         </Grid>
 
         <Label Grid.Row="1" Text="{Binding ErrorMessage}" TextColor="Red" FontSize="13"
@@ -81,5 +84,10 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
         </RefreshView>
+
+        <Button Grid.Row="3" Text="{Binding L[Manage_Add]}"
+                Command="{Binding AddCommand}"
+                IsVisible="{Binding CanAdd}"
+                BackgroundColor="#2E7D32" TextColor="White" />
     </Grid>
 </basePages:BasePage>

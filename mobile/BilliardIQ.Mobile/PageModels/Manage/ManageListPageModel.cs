@@ -8,7 +8,8 @@ public enum ManageKind
 {
     Tables,
     Players,
-    Teams
+    Teams,
+    Clubs
 }
 
 public sealed record ManageRow(string Title, string Subtitle, string Badge, Color BadgeColor, ImageSource? Image = null, int Id = 0)
@@ -22,7 +23,7 @@ public sealed record ManageRow(string Title, string Subtitle, string Badge, Colo
     public string Initial => Title.Length > 0 ? Title[..1].ToUpperInvariant() : "?";
 }
 
-public partial class ManageListPageModel(ApiClient api, AvatarImageService avatars) : BasePageModel
+public partial class ManageListPageModel(ApiClient api, AvatarImageService avatars, SessionStore session) : BasePageModel
 {
     private static readonly Color _green = Color.FromArgb("#2E7D32");
     private static readonly Color _blue = Color.FromArgb("#1565C0");
@@ -30,6 +31,7 @@ public partial class ManageListPageModel(ApiClient api, AvatarImageService avata
     private static readonly Color _grey = Color.FromArgb("#616161");
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanAdd))]
     public partial ManageKind Kind { get; set; } = ManageKind.Tables;
 
     [ObservableProperty]
@@ -44,8 +46,31 @@ public partial class ManageListPageModel(ApiClient api, AvatarImageService avata
 
     public bool HasError => ErrorMessage.Length > 0;
 
+    public bool CanAdd => session.IsAdmin && Kind != ManageKind.Tables;
+
     [RelayCommand]
-    private Task Appearing() => LoadAsync();
+    private Task Appearing()
+    {
+        OnPropertyChanged(nameof(CanAdd));
+        return LoadAsync();
+    }
+
+    [RelayCommand]
+    private Task Add()
+    {
+        if (!session.IsAdmin)
+        {
+            return Task.CompletedTask;
+        }
+
+        return Kind switch
+        {
+            ManageKind.Players => Shell.Current.GoToAsync("playernew"),
+            ManageKind.Teams => Shell.Current.GoToAsync("teamnew"),
+            ManageKind.Clubs => Shell.Current.GoToAsync("clubnew"),
+            _ => Task.CompletedTask
+        };
+    }
 
     [RelayCommand]
     private Task Open(ManageRow row) =>
@@ -69,7 +94,8 @@ public partial class ManageListPageModel(ApiClient api, AvatarImageService avata
             {
                 ManageKind.Tables => (await api.GetAsync<List<ManageTableDto>>("api/mobile/manage/tables")).Select(ToRow).ToList(),
                 ManageKind.Players => await Task.WhenAll((await api.GetAsync<List<ManagePlayerDto>>("api/mobile/manage/players")).Where(p => !p.IsSystem).Select(ToRowAsync)),
-                _ => await Task.WhenAll((await api.GetAsync<List<ManageTeamDto>>("api/mobile/manage/teams")).Select(ToRowAsync))
+                ManageKind.Teams => await Task.WhenAll((await api.GetAsync<List<ManageTeamDto>>("api/mobile/manage/teams")).Select(ToRowAsync)),
+                _ => (await api.GetAsync<List<ManageClubDto>>("api/mobile/manage/clubs")).Select(ToRow).ToList()
             };
         }
         catch (Exception ex) when (ApiErrorText.IsExpected(ex))
@@ -97,6 +123,9 @@ public partial class ManageListPageModel(ApiClient api, AvatarImageService avata
         };
         return new ManageRow(title, subtitle, badge, color);
     }
+
+    private ManageRow ToRow(ManageClubDto c) =>
+        new(c.Name, c.City ?? "", c.ShortName, _blue, Id: c.Id);
 
     private async Task<ManageRow> ToRowAsync(ManagePlayerDto p)
     {

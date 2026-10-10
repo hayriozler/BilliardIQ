@@ -11,6 +11,7 @@ public class JwtSettings
     public const string MobilePolicy = "Mobile";
     public const string MobileAnyPolicy = "MobileAny";
     public const string MobileManagerPolicy = "MobileManager";
+    public const string MobileAdminPolicy = "MobileAdmin";
     public const string MobilePlayerPolicy = "MobilePlayer";
 
     public string Key { get; set; } = "";
