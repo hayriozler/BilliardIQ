@@ -89,17 +89,22 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     [ObservableProperty]
     public partial string PlayerSearchText { get; set; } = "";
 
+    [ObservableProperty]
+    public partial string PlayersEmptyText { get; set; } = "";
+
     partial void OnPlayerSearchTextChanged(string value) => RefreshFilteredPlayers();
 
     private async Task LoadPlayersAsync()
     {
+        PlayersEmptyText = L["NewGame_NoPlayers"];
         try
         {
             _allPlayers = await _api.GetAsync<List<PlayerLookupDto>>("api/mobile/players/lookup");
         }
         catch (Exception ex) when (ApiErrorText.IsExpected(ex))
         {
-            System.Diagnostics.Debug.WriteLine($"Player lookup error: {ex.Message}");
+            // Show why the list is empty (e.g. endpoint missing on the server this build points to).
+            PlayersEmptyText = ApiErrorText.For(ex, L);
         }
         RefreshFilteredPlayers();
     }

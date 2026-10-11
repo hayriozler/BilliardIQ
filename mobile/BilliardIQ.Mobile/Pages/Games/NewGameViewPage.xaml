@@ -59,7 +59,7 @@
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                     <CollectionView.EmptyView>
-                        <Label Text="{Binding L[NewGame_NoPlayers]}" TextColor="Gray"
+                        <Label Text="{Binding PlayersEmptyText}" TextColor="Gray"
                                HorizontalOptions="Center" Margin="0,16" />
                     </CollectionView.EmptyView>
                 </CollectionView>
