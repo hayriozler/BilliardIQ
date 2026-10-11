@@ -35,6 +35,15 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
     [NotifyPropertyChangedFor(nameof(HasNoPicture))]
     public partial bool HasPicture { get; set; }
 
+    // Photo and avatar are separate fields on the server and are previewed/kept independently:
+    // Picture/HasPicture is the avatar, PhotoPicture/HasPhoto is the photo.
+    [ObservableProperty]
+    public partial ImageSource? PhotoPicture { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoPhoto))]
+    public partial bool HasPhoto { get; set; }
+
     [ObservableProperty]
     public partial int LevelIndex { get; set; } = 1;
 
@@ -101,6 +110,8 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
     public bool IsIdle => !IsBusy;
 
     public bool HasNoPicture => !HasPicture;
+
+    public bool HasNoPhoto => !HasPhoto;
 
     public IReadOnlyList<string> LevelNames =>
         [L["Account_LevelBeginner"], L["Account_LevelIntermediate"], L["Account_LevelAdvanced"], L["Account_LevelProfessional"]];
@@ -189,9 +200,6 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
         picker.Begin(id =>
         {
             AvatarId = id;
-            _pendingPhoto = null;
-            _photoUrl = null;
-            _removePhoto = false;
             _ = RefreshPictureAsync();
         });
         return Shell.Current.GoToAsync("avatarpicker");
@@ -333,16 +341,19 @@ public abstract partial class PlayerProfileFormModel(AvatarImageService avatars,
 
     private async Task RefreshPictureAsync()
     {
+        Picture = await avatars.GetAsync(AvatarId, null);
+        HasPicture = Picture is not null;
+
         if (_pendingPhoto is { Length: > 0 } bytes)
         {
-            Picture = ImageSource.FromStream(() => new MemoryStream(bytes));
+            PhotoPicture = ImageSource.FromStream(() => new MemoryStream(bytes));
         }
         else
         {
-            Picture = await avatars.GetAsync(AvatarId, _removePhoto ? null : _photoUrl);
+            PhotoPicture = _removePhoto ? null : await avatars.GetAsync(null, _photoUrl);
         }
 
-        HasPicture = Picture is not null;
+        HasPhoto = PhotoPicture is not null;
     }
 
     private async Task SetPhotoAsync(FileResult? file)
