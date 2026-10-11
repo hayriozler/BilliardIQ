@@ -30,6 +30,12 @@ public class TableService(DataContext db)
         return tables.Select(t => new TableView(t, t.CurrentSession)).ToList();
     }
 
+    // Last IP each table's scoreboard client reported while syncing (ClientSync.IpAddress), keyed by table id.
+    public async Task<Dictionary<int, string>> ScoreboardIpsAsync() =>
+        await db.ClientSyncSet.AsNoTracking()
+            .Where(s => s.OrganizationId == db.CurrentOrganizationId && s.IpAddress != null)
+            .ToDictionaryAsync(s => s.TableId, s => s.IpAddress!);
+
     public async Task<DashboardSummary> SummaryAsync()
     {
         var organization = await GetOrganizationAsync();

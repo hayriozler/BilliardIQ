@@ -132,6 +132,12 @@ public static class MobileEndpoints
             }
         }).RequireAuthorization(JwtSettings.MobilePolicy);
 
+        // Full, unfiltered player list for pickers (e.g. opponent selection); name fields only.
+        group.MapGet("/players/lookup", async (ScoreboardDataService data) =>
+            Results.Ok((await data.ListPlayersAsync())
+                .Select(p => new { p.Id, p.Nickname, p.Name, p.IsSystem, p.SystemSlot })))
+            .RequireAuthorization(JwtSettings.MobilePolicy);
+
         var player = group.MapGroup("/player").RequireAuthorization(JwtSettings.MobilePlayerPolicy);
 
         player.MapGet("/home", async (HttpContext context, StatsService stats) =>

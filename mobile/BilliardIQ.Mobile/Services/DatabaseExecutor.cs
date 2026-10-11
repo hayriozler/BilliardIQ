@@ -4,7 +4,11 @@ using Microsoft.Extensions.Logging;
 using System.Reflection;
 
 namespace BilliardIQ.Mobile.Services;
+#if DEBUG
 public class DatabaseExecutor(ILogger<DatabaseExecutor> Logger)
+#else
+public class DatabaseExecutor
+#endif
 {
     internal static SqliteConnection GetNewDbConnection() =>new(Constants.DatabasePath);
 
@@ -22,7 +26,9 @@ public class DatabaseExecutor(ILogger<DatabaseExecutor> Logger)
         }
         catch (Exception e)
         {
+#if DEBUG
             Logger.LogError(e, "Error dbExecution");
+#endif
             throw;
         }
        
@@ -48,7 +54,9 @@ public class DatabaseExecutor(ILogger<DatabaseExecutor> Logger)
         }
         catch (Exception e)
         {
+#if DEBUG
             Logger.LogError(e, "Error Executing");
+#endif
             throw;
         }
         finally
@@ -120,7 +128,9 @@ public class DatabaseExecutor(ILogger<DatabaseExecutor> Logger)
         }
         catch (Exception e)
         {
+#if DEBUG
             Logger.LogError(e, "Error Reading data");
+#endif
             throw;
         }
         finally

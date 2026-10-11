@@ -3,7 +3,6 @@ using BilliardIQ.Mobile.Data;
 using BilliardIQ.Mobile.PageModels.Auth;
 using BilliardIQ.Mobile.Pages.Auth;
 using BilliardIQ.Mobile.Services.Api;
-using BilliardIQ.Mobile.PageModels.Admin;
 using BilliardIQ.Mobile.PageModels.Manage;
 using BilliardIQ.Mobile.PageModels.Ranking;
 using BilliardIQ.Mobile.Pages.Ranking;
@@ -15,8 +14,6 @@ using BilliardIQ.Mobile.PageModels.PlayerPageModels;
 using BilliardIQ.Mobile.PageModels.PlayPageModels;
 using BilliardIQ.Mobile.PageModels.ScoreboardPageModels;
 using BilliardIQ.Mobile.PageModels.Ssh;
-using BilliardIQ.Mobile.PageModels.Stats;
-using BilliardIQ.Mobile.Pages.Admin;
 using BilliardIQ.Mobile.Pages.Analyzers;
 using BilliardIQ.Mobile.Pages.Connection;
 using BilliardIQ.Mobile.Pages.Games;
@@ -24,7 +21,6 @@ using BilliardIQ.Mobile.Pages.Play;
 using BilliardIQ.Mobile.Pages.Players;
 using BilliardIQ.Mobile.Pages.Scoreboard;
 using BilliardIQ.Mobile.Pages.Ssh;
-using BilliardIQ.Mobile.Pages.Stats;
 using BilliardIQ.Mobile.Services;
 using Plugin.Maui.OCR;
 using CommunityToolkit.Maui;
@@ -63,9 +59,10 @@ public static class MauiProgram
                 fonts.AddFont("MaterialIcons-Regular.ttf", "MaterialIcons");
             });
 
-#if DEBUG
+        // Logging must be registered in all configurations: repositories/services depend on ILogger<T>.
         builder.Logging.AddDebug();
         builder.Services.AddLogging(configure => configure.AddDebug());
+#if DEBUG
         builder.Services.AddTransient<DebugOcrPageModel>();
         builder.Services.AddTransient<DebugOcrViewPage>();
         builder.Services.AddTransient<DebugTableAnalysisPageModel>();
@@ -95,12 +92,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<MatchResultRepository>();
         builder.Services.AddSingleton<MatchScoreStatRepository>();
         builder.Services.AddSingleton<TeamSession>();
-        builder.Services.AddSingleton<TeamListPageModel>();
-        builder.Services.AddSingleton<TeamListViewPage>();
-        builder.Services.AddSingleton<PlayerListPageModel>();
-        builder.Services.AddSingleton<PlayerListViewPage>();
-        builder.Services.AddSingleton<PlayerStatsListPageModel>();
-        builder.Services.AddSingleton<PlayerStatsListViewPage>();
         builder.Services.AddSingleton<SshConnectionRepository>();
         builder.Services.AddSingleton<ISshClientService, SshClientService>();
         builder.Services.AddSingleton<SshConsolePageModel>();
@@ -138,8 +129,6 @@ public static class MauiProgram
         builder.Services.AddTransientWithShellRoute<TeamCreateViewPage, TeamCreatePageModel>("teamnew");
         builder.Services.AddTransientWithShellRoute<ClubCreateViewPage, ClubCreatePageModel>("clubnew");
         builder.Services.AddTransientWithShellRoute<NewGameViewPage, NewGamePageModel>("newgame");
-        builder.Services.AddTransientWithShellRoute<AddScoreboardPlayerViewPage, AddScoreboardPlayerPageModel>("addscoreboardplayer");
-        builder.Services.AddTransientWithShellRoute<PlayerStatsDetailViewPage, PlayerStatsDetailPageModel>("playerstatsdetail");
         builder.Services.AddTransient<PhotoAnalyzerPageModel>();
         builder.Services.AddTransient<PhotoAnalyzerViewPage>();
         new DatabaseMigrationService(builder.Services.BuildServiceProvider().GetRequiredService<DatabaseExecutor>()).RunMigrationAsync().GetAwaiter().GetResult();
@@ -150,6 +139,7 @@ public static class MauiProgram
         teamSession.LoadExisting(app.Services.GetRequiredService<TeamRepository>().GetAllAsync().GetAwaiter().GetResult());
 
         var playerSession = app.Services.GetRequiredService<ScoreboardPlayerSession>();
+        playerSession.LoadExisting(app.Services.GetRequiredService<ScoreboardPlayerRepository>().GetAllAsync().GetAwaiter().GetResult());
 
         return app;
     }

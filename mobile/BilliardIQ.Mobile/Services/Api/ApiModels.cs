@@ -37,7 +37,6 @@ public sealed record ForgotPasswordRequest(string Email);
 
 public sealed record ResetPasswordRequest(string Email, string Code, string NewPassword);
 
-public sealed record ChangeEmailRequest(string Email, string Password);
 
 public sealed record UpdateProfileRequest(string? DisplayName, string? Locale, string? Phone);
 
@@ -67,7 +66,11 @@ public sealed record MatchStatDetail(
 
 public sealed record PlayerHomeDto(PlayerProfileDto Player, StatSummaryDto Summary, List<PlayerMatchDto> LastMatches);
 
-public sealed record ManageTableDto(int Id, int Number, int? ScoreboardNo, string? Label, int Type, int Status, DateTimeOffset? SessionOpenedAt);
+public sealed record ManageTableDto(int Id, int Number, int? ScoreboardNo, string? Label, int Type, int Status, DateTimeOffset? SessionOpenedAt, string? IpAddress = null)
+{
+    public string DisplayName => string.IsNullOrWhiteSpace(Label) ? $"Table {Number}" : $"{Number} - {Label}";
+    public string IpText => IpAddress ?? "—";
+}
 
 public sealed record ManagePlayerDto(int Id, string Nickname, string Name, string? PhotoPath, int? AvatarId, int Level, int? ShortcutNumber, string? AssociationName, bool IsSystem);
 
@@ -104,6 +107,11 @@ public sealed class ApiException(int statusCode, string message) : Exception(mes
 }
 
 public sealed record InvitablePlayerDto(int Id, string Nickname, string Name);
+
+public sealed record PlayerLookupDto(int Id, string Nickname, string Name, bool IsSystem, int? SystemSlot)
+{
+    public string DisplayName => string.IsNullOrWhiteSpace(Nickname) ? Name : Nickname;
+}
 
 public sealed record InviteDto(string Code, DateTimeOffset ExpiresAt, int PlayerId, string PlayerName);
 

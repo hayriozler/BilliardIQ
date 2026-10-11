@@ -93,7 +93,7 @@ public partial class ManageListPageModel(ApiClient api, AvatarImageService avata
             Rows = Kind switch
             {
                 ManageKind.Tables => (await api.GetAsync<List<ManageTableDto>>("api/mobile/manage/tables")).Select(ToRow).ToList(),
-                ManageKind.Players => await Task.WhenAll((await api.GetAsync<List<ManagePlayerDto>>("api/mobile/manage/players")).Where(p => !p.IsSystem).Select(ToRowAsync)),
+                ManageKind.Players => await Task.WhenAll((await api.GetAsync<List<ManagePlayerDto>>("api/mobile/manage/players")).Select(ToRowAsync)),
                 ManageKind.Teams => await Task.WhenAll((await api.GetAsync<List<ManageTeamDto>>("api/mobile/manage/teams")).Select(ToRowAsync)),
                 _ => (await api.GetAsync<List<ManageClubDto>>("api/mobile/manage/clubs")).Select(ToRow).ToList()
             };
@@ -131,7 +131,7 @@ public partial class ManageListPageModel(ApiClient api, AvatarImageService avata
     {
         var subtitle = p.Name == p.Nickname ? "" : p.Name;
         var badge = p.ShortcutNumber is { } n ? $"#{n}" : "";
-        return new ManageRow(p.Nickname, subtitle, badge, _blue, await avatars.GetAsync(p.AvatarId, p.PhotoPath), p.Id);
+        return new ManageRow(p.Nickname, subtitle, badge, _blue, await avatars.GetAsync(p.AvatarId, p.PhotoPath), p.IsSystem ? 0 : p.Id); // system players can't be edited (Id 0 = not openable)
     }
 
     private async Task<ManageRow> ToRowAsync(ManageTeamDto t) =>

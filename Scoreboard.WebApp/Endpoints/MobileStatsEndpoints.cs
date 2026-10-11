@@ -62,7 +62,7 @@ public static class MobileStatsEndpoints
         {
             var range = new StatsPeriod(period ?? StatsPeriod.Default.Kind, from, to);
             var detail = await stats.PlayerAsync(playerId, range.Since, range.Until);
-            if (detail is null || detail.Player.IsSystem)
+            if (detail is null)
             {
                 return Results.NotFound();
             }
@@ -102,7 +102,7 @@ public static class MobileStatsEndpoints
         var range = new StatsPeriod(period ?? StatsPeriod.Default.Kind, from, to);
         var rows = await stats.PlayersAsync(range.Since, range.Until);
         return [.. rows
-            .Where(r => !r.Player.IsSystem && r.Summary.Matches > 0)
+            .Where(r => r.Summary.Matches > 0)
             .Select(r => new RankingRow(
                 0, r.Player.Id, r.Player.DisplayName, r.Player.AvatarId, r.Player.PhotoUrl,
                 r.Summary.Matches, r.Summary.Wins, r.Summary.Losses, r.Summary.WinPercent,
