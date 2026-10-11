@@ -3,10 +3,20 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:basePages="clr-namespace:BilliardIQ.Mobile.Pages.BasePages"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:api="clr-namespace:BilliardIQ.Mobile.Services.Api"
     xmlns:pageModels="clr-namespace:BilliardIQ.Mobile.PageModels.ConnectionPageModels"
     x:DataType="pageModels:ConnectionPageModel"
     x:Class="BilliardIQ.Mobile.Pages.Connection.ConnectionViewPage"
+    x:Name="ConnectionPage"
     Title="{Binding L[Connect_Title]}">
+
+    <basePages:BasePage.Behaviors>
+        <toolkit:EventToCommandBehavior
+            BindingContext="{Binding Source={x:Reference Name=ConnectionPage}, Path=BindingContext}"
+            EventName="Appearing"
+            Command="{Binding AppearingCommand}" />
+    </basePages:BasePage.Behaviors>
 
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
@@ -36,6 +46,27 @@
             <Label Text="{Binding ConnectionHint}"
                    IsVisible="{Binding HasConnectionHint}"
                    TextColor="#C62828" FontSize="13" />
+
+            <VerticalStackLayout Spacing="6" IsVisible="{Binding IsNotConnected}">
+                <Label Text="{Binding L[Connect_SelectTable]}" FontAttributes="Bold" />
+                <CollectionView ItemsSource="{Binding Tables}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedTable, Mode=TwoWay}"
+                                MaximumHeightRequest="240">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="api:ManageTableDto">
+                            <Grid ColumnDefinitions="*, Auto" Padding="10,12">
+                                <Label Grid.Column="0" Text="{Binding DisplayName}" VerticalOptions="Center" />
+                                <Label Grid.Column="1" Text="{Binding IpText}" TextColor="Gray" FontSize="12" VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    <CollectionView.EmptyView>
+                        <Label Text="{Binding L[Connect_NoTables]}" TextColor="Gray"
+                               HorizontalOptions="Center" Margin="0,12" />
+                    </CollectionView.EmptyView>
+                </CollectionView>
+            </VerticalStackLayout>
 
             <VerticalStackLayout Spacing="10">
                 <Label Text="{Binding L[Connect_WebSocketUrl]}" FontSize="13" TextColor="Gray"/>

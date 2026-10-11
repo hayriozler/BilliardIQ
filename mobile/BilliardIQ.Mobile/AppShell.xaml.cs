@@ -66,7 +66,7 @@ public partial class AppShell : Shell
     }
 
     private static readonly string[] _controlRoutes =
-        ["manage", "invite", "playeredit", "scoreboard", "admin-teams", "admin-player", "admin-stats", "addscoreboardplayer", "playerstatsdetail", "connect"];
+        ["manage", "invite", "playeredit", "scoreboard", "connect"];
 
     private static readonly string[] _adminRoutes = ["playernew", "teamnew", "clubnew"];
 

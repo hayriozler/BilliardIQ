@@ -105,6 +105,13 @@ public partial class ScoreboardPageModel : BasePageModel
     [RelayCommand]
     private async Task Appearing()
     {
+        // Opening Scoreboard with no connection → let the user pick a table to connect to.
+        if (_connection.State == PiConnectionState.Disconnected)
+        {
+            await Shell.Current.GoToAsync("//connect");
+            return;
+        }
+
         if (_connection.State != PiConnectionState.Connected)
         {
             return;

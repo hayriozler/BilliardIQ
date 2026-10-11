@@ -20,7 +20,11 @@ internal class ScoreboardPlayerRow
     public int ShortcutNumber { get; set; }
 }
 
+#if DEBUG
 public class ScoreboardPlayerRepository(ILogger<ScoreboardPlayerRepository> Logger, DatabaseExecutor dbExecutor) : BaseRepo
+#else
+public class ScoreboardPlayerRepository(DatabaseExecutor dbExecutor) : BaseRepo
+#endif
 {
     public async Task UpsertAsync(ScoreboardPlayer player)
     {
@@ -48,15 +52,19 @@ public class ScoreboardPlayerRepository(ILogger<ScoreboardPlayerRepository> Logg
                 ShortcutNumber = excluded.ShortcutNumber",
             parameters);
 
+#if DEBUG
         if (ok) Logger.LogInformation("Scoreboard player {Id} upserted", player.Id);
         else Logger.LogDebug("Something went wrong upserting scoreboard player {Id}", player.Id);
+#endif
     }
 
     public async Task DeleteAsync(int id)
     {
         var ok = await dbExecutor.ExecuteAsync("DELETE FROM ScoreboardPlayers WHERE Id = @Id;", [new("@Id", id)]);
+#if DEBUG
         if (ok) Logger.LogInformation("Scoreboard player {Id} deleted", id);
         else Logger.LogDebug("Something went wrong deleting scoreboard player {Id}", id);
+#endif
     }
 
     public async Task<IReadOnlyList<ScoreboardPlayer>> GetAllAsync()

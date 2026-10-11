@@ -5,7 +5,7 @@ using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Endpoints;
 
-public record MobileTable(int Id, int Number, int? ScoreboardNo, string? Label, TableType Type, TableStatus Status, DateTimeOffset? SessionOpenedAt);
+public record MobileTable(int Id, int Number, int? ScoreboardNo, string? Label, TableType Type, TableStatus Status, DateTimeOffset? SessionOpenedAt, string? IpAddress = null);
 
 public record MobileCreatePlayerRequest(
     string? Nickname, string Name, int? AvatarId, string? PhotoBase64, string? Email, Level Level,
@@ -24,9 +24,16 @@ public static class MobileManageEndpoints
             .WithTags("MobileManage")
             .RequireAuthorization(JwtSettings.MobileManagerPolicy);
 
-        group.MapGet("/tables", async (TableService tables) =>
-            (await tables.ListAsync()).Select(v => new MobileTable(
-                v.Table.Id, v.Table.Number, v.Table.ScoreboardNo, v.Table.Label, v.Table.Type, v.Table.Status, v.Session?.OpenedAt)));
+        // scoreboardOnly=true → only tables flagged for a scoreboard (ScoreboardNo set).
+        group.MapGet("/tables", async (TableService tables, bool? scoreboardOnly) =>
+        {
+            var ips = await tables.ScoreboardIpsAsync();
+            return (await tables.ListAsync())
+                .Where(v => scoreboardOnly != true || v.Table.ScoreboardNo is not null)
+                .Select(v => new MobileTable(
+                    v.Table.Id, v.Table.Number, v.Table.ScoreboardNo, v.Table.Label, v.Table.Type, v.Table.Status, v.Session?.OpenedAt,
+                    ips.GetValueOrDefault(v.Table.Id)));
+        });
 
         group.MapGet("/players", (ScoreboardDataService data) => data.ListPlayersAsync());
 

@@ -15,16 +15,19 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     private readonly GameRepository _gameRepo;
     private readonly IOcrService _ocrService;
     private readonly GameSyncService _sync;
+    private readonly ApiClient _api;
+    private List<PlayerLookupDto> _allPlayers = [];
     private int? _gameId = null;
 
     private const string _recentLocationsKey = "recent_locations";
     private const int _maxRecentLocations = 3;
 
-    public NewGamePageModel(GameRepository GameRepo, IOcrService ocrService, GameSyncService sync)
+    public NewGamePageModel(GameRepository GameRepo, IOcrService ocrService, GameSyncService sync, ApiClient api)
     {
         _gameRepo = GameRepo;
         _ocrService = ocrService;
         _sync = sync;
+        _api = api;
         Date = DateTime.Today;
         MinimumDate = DateTime.Today.AddDays(-7);
         MaximumDate = DateTime.Today.AddDays(7);
@@ -75,6 +78,69 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     [RelayCommand]
     private void SelectLocation(string location) => Location = location;
 
+    // ── Opponent picker ──────────────────────────────────────────────────────
+    public ObservableCollection<PlayerLookupDto> FilteredPlayers { get; } = [];
+    public bool HasNoPlayers => FilteredPlayers.Count == 0;
+    public bool HasOpponent => !string.IsNullOrWhiteSpace(OpponentName);
+
+    [ObservableProperty]
+    public partial bool IsPlayerPickerOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string PlayerSearchText { get; set; } = "";
+
+    partial void OnPlayerSearchTextChanged(string value) => RefreshFilteredPlayers();
+
+    private async Task LoadPlayersAsync()
+    {
+        try
+        {
+            _allPlayers = await _api.GetAsync<List<PlayerLookupDto>>("api/mobile/players/lookup");
+        }
+        catch (Exception ex) when (ApiErrorText.IsExpected(ex))
+        {
+            System.Diagnostics.Debug.WriteLine($"Player lookup error: {ex.Message}");
+        }
+        RefreshFilteredPlayers();
+    }
+
+    // All players from the server; system (default) players first, then alphabetically.
+    // The only narrowing is the user's own search text.
+    private void RefreshFilteredPlayers()
+    {
+        var search = PlayerSearchText?.Trim() ?? "";
+        var matches = _allPlayers
+            .Where(p => search.Length == 0
+                || p.Nickname.Contains(search, StringComparison.CurrentCultureIgnoreCase)
+                || p.Name.Contains(search, StringComparison.CurrentCultureIgnoreCase))
+            .OrderByDescending(p => p.IsSystem)
+            .ThenBy(p => p.SystemSlot ?? int.MaxValue)
+            .ThenBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase);
+
+        FilteredPlayers.Clear();
+        foreach (var player in matches) FilteredPlayers.Add(player);
+        OnPropertyChanged(nameof(HasNoPlayers));
+    }
+
+    [RelayCommand]
+    private void TogglePlayerPicker()
+    {
+        if (!IsPlayerPickerOpen)
+        {
+            PlayerSearchText = "";
+            RefreshFilteredPlayers();
+        }
+        IsPlayerPickerOpen = !IsPlayerPickerOpen;
+    }
+
+    [RelayCommand]
+    private void SelectOpponent(PlayerLookupDto? player)
+    {
+        if (player is null) return;
+        OpponentName = player.DisplayName;
+        IsPlayerPickerOpen = false;
+    }
+
     // ── Form lifecycle ────────────────────────────────────────────────────────
     [ObservableProperty]
     [NotifyDataErrorInfo]
@@ -92,6 +158,7 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     [RelayCommand]
     private async Task Appearing()
     {
+        await LoadPlayersAsync();
         if (_gameId is null) return;
         LoadRecentLocations();
         var game = await _gameRepo.GetGameByIdAsync(_gameId.Value);
@@ -311,6 +378,7 @@ public partial class NewGamePageModel : BasePageModel, IQueryAttributable
     [NotifyDataErrorInfo]
     [Required(ErrorMessage = "Opponent name is required")]
     [MinLength(2, ErrorMessage = "Minimum 2 characters")]
+    [NotifyPropertyChangedFor(nameof(HasOpponent))]
     [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
     public partial string? OpponentName { get; set; }
 

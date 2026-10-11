@@ -13,7 +13,11 @@ internal class TeamRow
     public string Name { get; set; } = "";
 }
 
+#if DEBUG
 public class TeamRepository(ILogger<TeamRepository> Logger, DatabaseExecutor dbExecutor) : BaseRepo
+#else
+public class TeamRepository(DatabaseExecutor dbExecutor) : BaseRepo
+#endif
 {
     public async Task UpsertAsync(ScoreboardTeam team)
     {
@@ -28,15 +32,19 @@ public class TeamRepository(ILogger<TeamRepository> Logger, DatabaseExecutor dbE
               ON CONFLICT(Id) DO UPDATE SET RemoteId = excluded.RemoteId, Name = excluded.Name",
             parameters);
 
+#if DEBUG
         if (ok) Logger.LogInformation("Team {Id} upserted", team.Id);
         else Logger.LogDebug("Something went wrong upserting team {Id}", team.Id);
+#endif
     }
 
     public async Task DeleteAsync(int id)
     {
         var ok = await dbExecutor.ExecuteAsync("DELETE FROM Teams WHERE Id = @Id;", [new("@Id", id)]);
+#if DEBUG
         if (ok) Logger.LogInformation("Team {Id} deleted", id);
         else Logger.LogDebug("Something went wrong deleting team {Id}", id);
+#endif
     }
 
     public async Task<IReadOnlyList<ScoreboardTeam>> GetAllAsync()

@@ -26,7 +26,11 @@ internal class MatchResultRow
     public int ScoreDistributionBucketMinutes { get; set; }
 }
 
+#if DEBUG
 public class MatchResultRepository(ILogger<MatchResultRepository> Logger, DatabaseExecutor dbExecutor) : BaseRepo
+#else
+public class MatchResultRepository(DatabaseExecutor dbExecutor) : BaseRepo
+#endif
 {
     public async Task InsertAsync(MatchResult result, IReadOnlyList<MatchScoreStat> scoreDistribution)
     {
@@ -75,7 +79,9 @@ SELECT last_insert_rowid();";
         }
 
         await transaction.CommitAsync();
+#if DEBUG
         Logger.LogInformation("Match result {Id} recorded with {Count} score-distribution rows", matchResultId, scoreDistribution.Count);
+#endif
     }
 
     public async Task<IReadOnlyList<MatchResult>> GetAllAsync()

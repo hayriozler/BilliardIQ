@@ -60,17 +60,6 @@
             <Button Text="{Binding L[Account_ChangePassword]}"
                     Command="{Binding ChangePasswordCommand}" />
 
-            <Label Text="{Binding L[Account_ChangeEmail]}" FontAttributes="Bold" Margin="0,12,0,0" />
-            <Entry Text="{Binding NewEmail, Mode=TwoWay}"
-                   Placeholder="{Binding L[Account_NewEmail]}"
-                   Keyboard="Email" />
-            <Entry Text="{Binding EmailPassword, Mode=TwoWay}"
-                   Placeholder="{Binding L[Pwd_Current]}"
-                   IsPassword="True" />
-            <Button Text="{Binding L[Account_ChangeEmail]}"
-                    Command="{Binding ChangeEmailCommand}"
-                    IsEnabled="{Binding IsIdle}" />
-
             <Label Text="{Binding Message}" FontSize="13" IsVisible="{Binding HasMessage}">
                 <Label.Triggers>
                     <DataTrigger TargetType="Label" Binding="{Binding MessageIsError}" Value="True">

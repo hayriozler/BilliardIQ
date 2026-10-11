@@ -67,13 +67,6 @@ public sealed class AuthService(ApiClient api, SessionStore session)
         session.Update(refreshed);
     }
 
-    public async Task ChangeEmailAsync(string email, string password)
-    {
-        await api.PutAsync("api/mobile/me/email", new ChangeEmailRequest(email, password));
-        var refreshed = await api.GetAsync<ApiSession>("api/mobile/me/");
-        session.Update(refreshed);
-    }
-
     public async Task SignOutAsync()
     {
         var refreshToken = await SessionStore.GetRefreshTokenAsync();

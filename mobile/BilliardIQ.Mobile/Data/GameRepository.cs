@@ -12,7 +12,11 @@ internal class StatsResult
     public double BestAverage { get; set; }
     public int HighestRun { get; set; }
 }
+#if DEBUG
 public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbExecutor) : BaseRepo
+#else
+public class GameRepository(DatabaseExecutor dbExecutor) : BaseRepo
+#endif
 {
     public async Task<Game?> UpsertGameAsync(int? id, Game game)
     {
@@ -28,7 +32,9 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
         {
             if (await GetGameByIdAsync(gameId) is not null)
             {
+#if DEBUG
                 Logger.LogInformation("Game with Id {Id} found. Continue with insertion.", id);
+#endif
                 executeSql = "UPDATE Games SET OpponentName = @OpponentName, Ball = @Ball, Location = @Location, Date = @Date, PlayerScore = @PlayerScore, OpponentScore = @OpponentScore, HighestRun = @HighestRun, Innings = @Innings, Notes = @Notes, ScoreboardThumbnail = @ScoreboardThumbnail Where Id=@Id";
                 parameters.Add(new SqliteParameter("@Id", gameId));
             }
@@ -44,6 +50,7 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
         parameters.Add(new SqliteParameter("@Notes", game.Notes ?? (object)DBNull.Value));
         parameters.Add(new SqliteParameter("@ScoreboardThumbnail", game.ScoreboardThumbnail ?? (object)DBNull.Value));
         var affectedRow = await dbExecutor.ExecuteAsync(executeSql, parameters);
+#if DEBUG
         if (affectedRow)
         {
             Logger.LogInformation("Game upserted with Id {Id}", gameId);
@@ -52,6 +59,7 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
         {
             Logger.LogDebug("Something went wrong....");
         }
+#endif
         result = await GetGameByIdAsync(gameId);
         await RecalculateStatsAsync();
 
@@ -70,10 +78,12 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
                 new("@CreatedAt", DateTime.UtcNow)
             };
         var result = await dbExecutor.ExecuteAsync(@"INSERT INTO GamePhotos(GameId, PhotoName, PhotoPath, CreatedAt) VALUES (@GameId, @PhotoName, @PhotoPath, @CreatedAt)", parameters);
+#if DEBUG
         if (result )
             Logger.LogInformation("Photo has been added successfully");
         else
             Logger.LogDebug("Something went wrong....");
+#endif
     }
 
     public async Task<IReadOnlyList<Game>> GetUnsyncedGamesAsync() =>
@@ -124,7 +134,9 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
     {
         if (id is null)
         {
+#if DEBUG
             Logger.LogWarning("Game Id is null. Cannot delete game.");
+#endif
             return false;
         }
 
@@ -144,7 +156,9 @@ public class GameRepository(ILogger<GameRepository> Logger, DatabaseExecutor dbE
                 DELETE FROM Games WHERE Id = @Id;
                 """,
                 [new("@Id", id)]);
+#if DEBUG
         Logger.LogInformation("Game {Id} deleted", id);
+#endif
     }
 }
 

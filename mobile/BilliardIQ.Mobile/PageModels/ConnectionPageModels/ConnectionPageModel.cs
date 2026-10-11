@@ -1,7 +1,9 @@
 using BilliardIQ.Mobile.Models;
 using BilliardIQ.Mobile.Services;
+using BilliardIQ.Mobile.Services.Api;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Collections.ObjectModel;
 
 namespace BilliardIQ.Mobile.PageModels.ConnectionPageModels;
 
@@ -13,10 +15,53 @@ public partial class ConnectionPageModel : BasePageModel, IDisposable
     private CancellationTokenSource? _operationCts;
     private bool _userCancelled;
 
-    public ConnectionPageModel(IRaspberryPiConnectionService connection)
+    private const string _wsPortAndPath = ":5288/ws";
+
+    private readonly ApiClient _api;
+
+    public ConnectionPageModel(IRaspberryPiConnectionService connection, ApiClient api)
     {
         _connection = connection;
+        _api = api;
         _connection.StateChanged += OnConnectionStateChanged;
+    }
+
+    // Tables the server has flagged for a scoreboard; picking one fills in its registered IP.
+    public ObservableCollection<ManageTableDto> Tables { get; } = [];
+
+    public bool HasNoTables => Tables.Count == 0;
+
+    [ObservableProperty]
+    public partial ManageTableDto? SelectedTable { get; set; }
+
+    partial void OnSelectedTableChanged(ManageTableDto? value)
+    {
+        if (value is null) return;
+
+        if (string.IsNullOrWhiteSpace(value.IpAddress))
+        {
+            ConnectionHint = L["Connect_NoTableIp"];
+            return;
+        }
+
+        ConnectionHint = null;
+        WebSocketUrl = $"ws://{value.IpAddress}{_wsPortAndPath}";
+    }
+
+    [RelayCommand]
+    private async Task Appearing()
+    {
+        try
+        {
+            var tables = await _api.GetAsync<List<ManageTableDto>>("api/mobile/manage/tables?scoreboardOnly=true");
+            Tables.Clear();
+            foreach (var table in tables.OrderBy(t => t.ScoreboardNo ?? t.Number)) Tables.Add(table);
+        }
+        catch (Exception ex) when (ApiErrorText.IsExpected(ex))
+        {
+            ConnectionHint = ApiErrorText.For(ex, L);
+        }
+        OnPropertyChanged(nameof(HasNoTables));
     }
 
     [ObservableProperty]
