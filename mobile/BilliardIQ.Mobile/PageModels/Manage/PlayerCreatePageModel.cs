@@ -193,18 +193,31 @@ public partial class PlayerCreatePageModel(ApiClient api, AvatarImageService ava
         await RefreshPictureAsync();
     }
 
-    protected override void OnAvatarChosen() => _pendingPhoto = null;
+    // Photo and avatar are separate fields on the server, so they are previewed and kept independently:
+    // Picture/HasPicture (base) is the avatar, PhotoPicture/HasPhoto is the photo.
+    [ObservableProperty]
+    public partial ImageSource? PhotoPicture { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoPhoto))]
+    public partial bool HasPhoto { get; set; }
+
+    public bool HasNoPhoto => !HasPhoto;
 
     protected override async Task RefreshPictureAsync()
     {
+        await base.RefreshPictureAsync();
+
         if (_pendingPhoto is { Length: > 0 } bytes)
         {
-            Picture = ImageSource.FromStream(() => new MemoryStream(bytes));
-            HasPicture = true;
-            return;
+            PhotoPicture = ImageSource.FromStream(() => new MemoryStream(bytes));
+            HasPhoto = true;
         }
-
-        await base.RefreshPictureAsync();
+        else
+        {
+            PhotoPicture = null;
+            HasPhoto = false;
+        }
     }
 
     private async Task SetPhotoAsync(FileResult? file)
