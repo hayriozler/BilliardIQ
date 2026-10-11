@@ -4,6 +4,9 @@ obj/
 *.user
 .vs/
 
+## Claude Code (local settings, scratch files, agent worktrees)
+.claude/
+
 ## Build results
 [Dd]ebug/
 [Rr]elease/
