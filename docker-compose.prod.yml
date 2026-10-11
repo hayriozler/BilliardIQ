@@ -3,6 +3,11 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY}/webapp:${IMAGE_TAG}
     container_name: billiardiq-webapp
     restart: unless-stopped
+    # /etc/ssl/cloudflare is shared with the StreamCircle host. Its deploy runs
+    # `chown root:1001 /etc/ssl/cloudflare/*.{pem,key}; chmod 640` on every run, which includes
+    # the billiardiq.com files. The app user (uid 1654) is not in that group, so add it explicitly.
+    group_add:
+      - "1001"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTP_PORTS: "8080"
