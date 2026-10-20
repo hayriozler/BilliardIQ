@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # Downloads the first .zip asset from the repository's latest GitHub release,
-# extracts it to /tmp, copies everything into a target folder except wwwroot,
+# extracts it to /tmp, copies everything into a target folder except the database folder
+# under wwwroot (wwwroot/Db),
 # then starts launch-kiosk.sh.
 #
 # Run this ON the Pi:
@@ -60,10 +61,10 @@ if [ "$ENTRY_COUNT" = "1" ] && [ -d "$FIRST_ENTRY" ]; then
 	SOURCE_DIR="$FIRST_ENTRY"
 fi
 
-echo "Copying files to $TARGET_DIR (excluding wwwroot) ..."
+echo "Copying files to $TARGET_DIR (excluding wwwroot/Db) ..."
 rsync -a \
-	--exclude='wwwroot/' \
-	--exclude='wwwRoot/' \
+	--exclude='wwwroot/Db/' \
+	--exclude='wwwRoot/Db/' \
 	"$SOURCE_DIR/" "$TARGET_DIR/"
 
 LAUNCH_SCRIPT="$TARGET_DIR/launch-kiosk.sh"
