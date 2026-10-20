@@ -197,7 +197,7 @@
 .scores {
     flex: 1;
     display: grid;
-    grid-template-columns: 1fr minmax(180px, 0.6fr) 1fr;
+    grid-template-columns: 1fr minmax(150px, 0.45fr) 1fr;
     gap: 2.5vw;
     align-items: stretch;
     min-height: 0;
@@ -396,6 +396,19 @@
     font-weight: 700;
 }
 
+.center-label.current-points-label {
+    font-size: clamp(5.4rem, 13.5vw, 11rem);
+    line-height: 1;
+}
+
+.center-label.active-player-white {
+    color: var(--white);
+}
+
+.center-label.active-player-yellow {
+    color: var(--yellow);
+}
+
 .center-value {
     font-size: clamp(3rem, 7.5vw, 5.8rem);
     font-weight: 800;
@@ -435,8 +448,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.5vh;
-    padding: 1.3vh 0.5vw;
+    gap: 0.65vh;
+    padding: 1.9vh 0.7vw;
     border-left: 1px solid var(--red-dark);
 }
 
@@ -445,14 +458,14 @@
 }
 
 .stat-label {
-    font-size: clamp(0.7rem, 1.3vw, 1.05rem);
+    font-size: clamp(1.05rem, 1.9vw, 1.55rem);
     letter-spacing: 0.14em;
     color: var(--label-gray);
     font-weight: 700;
 }
 
 .stat-value {
-    font-size: clamp(1.5rem, 3vw, 2.6rem);
+    font-size: clamp(2.3rem, 4.4vw, 4rem);
     font-weight: 800;
     color: var(--white);
 }
@@ -467,7 +480,7 @@
     border: 1px solid var(--red);
     border-radius: 3px;
     color: var(--red);
-    font-size: 0.7em;
+    font-size: 0.85em;
     letter-spacing: 0.08em;
 }
 
@@ -475,7 +488,7 @@
     display: flex;
     align-items: center;
     gap: 0.5em;
-    font-size: clamp(1.1rem, 2.2vw, 2rem);
+    font-size: clamp(1.5rem, 2.9vw, 2.7rem);
 }
 
 .handicap-divider {
@@ -690,6 +703,30 @@
     opacity: 0.7;
     font-size: 0.6em;
     font-weight: 600;
+}
+
+.player-picker-dialog.match-end-dialog {
+    max-width: 620px;
+    padding: 2.2rem;
+    gap: 1.4rem;
+}
+
+.player-picker-dialog.match-end-dialog h3 {
+    font-size: clamp(1.5rem, 3.1vw, 2.4rem);
+}
+
+.player-picker-dialog.match-end-dialog .picker-empty {
+    font-size: clamp(1rem, 2vw, 1.5rem);
+}
+
+.player-picker-dialog.match-end-dialog .match-end-options button {
+    padding: 1.25rem 0;
+    font-size: clamp(1.25rem, 2.4vw, 1.9rem);
+}
+
+.player-picker-dialog.match-end-dialog .picker-close {
+    padding: 0.8rem;
+    font-size: clamp(1rem, 1.9vw, 1.4rem);
 }
 
 .picker-buffer {

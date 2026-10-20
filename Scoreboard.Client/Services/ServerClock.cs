@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace Scoreboard.Client.Services;
 
 public sealed class ServerClock
@@ -38,7 +40,19 @@ public sealed class ServerClockHandler(ServerClock clock) : DelegatingHandler
 {
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        var response = await base.SendAsync(request, cancellationToken);
+        HttpResponseMessage response;
+        try
+        {
+            response = await base.SendAsync(request, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            response = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+            {
+                RequestMessage = request
+            };
+        }
+
         if (response.Headers.Date is { } date)
         {
             clock.Observe(date);

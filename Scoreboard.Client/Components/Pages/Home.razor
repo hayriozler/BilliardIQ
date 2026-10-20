@@ -73,11 +73,7 @@ else
                     {
                         <div class="player-avatar-fallback" style="background:@GetAvatarColor(1)">@GetAvatarInitials(1)</div>
                     }
-                </div>
-                @if (Current.ActivePlayer == 1)
-                {
-                    <span class="current-points-badge">@Current.CurrentPoints</span>
-                }
+                </div>                
             </div>
             @if (GetTeamName(1) is { } teamName1)
             {
@@ -97,6 +93,12 @@ else
         </section>
 
         <section class="center-panel">
+                <div class="center-row">
+                    <span class="center-label current-points-label @(Current.ActivePlayer == 1 ? "active-player-white" : "active-player-yellow")">
+                        @Current.CurrentPoints
+                    </span>
+                </div>
+            <div class="center-divider"></div>
             <div class="center-row">
                 <span class="center-label">@L.T("Inning")</span>
                 <span class="center-value inning">@Current.Inning</span>
@@ -124,11 +126,7 @@ else
                     {
                         <div class="player-avatar-fallback" style="background:@GetAvatarColor(2)">@GetAvatarInitials(2)</div>
                     }
-                </div>
-                @if (Current.ActivePlayer == 2)
-                {
-                    <span class="current-points-badge">@Current.CurrentPoints</span>
-                }
+                </div>              
             </div>
             @if (GetTeamName(2) is { } teamName2)
             {
@@ -281,7 +279,7 @@ else
     @if (_showMatchEnd)
     {
         <div class="player-picker-overlay" @onclick:stopPropagation="true">
-            <div class="player-picker-dialog">
+            <div class="player-picker-dialog match-end-dialog">
                 <h3>@L.T("MatchTargetReached")</h3>
                 <p class="picker-empty">@string.Format(L.T("MatchTargetReachedText"), GetDisplayName(MatchLeaderSlot), TargetOf(MatchLeaderSlot))</p>
                 <div class="warmup-picker-options match-end-options">
