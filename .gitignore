@@ -42,3 +42,4 @@ Thumbs.db
 # machine-specific client settings (client id)
 appsettings.Local.json
 bash.exe.stackdump
+/Scoreboard.Client/billiardiq-client-linux-arm64.zip

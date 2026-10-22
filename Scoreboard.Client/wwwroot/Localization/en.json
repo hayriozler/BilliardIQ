@@ -37,5 +37,5 @@
   "Player2Default": "Player 2",
   "Language": "Language",
   "HandicapShort": "HCP",
-  "TargetEntryHint": "Type the digits, Enter confirms, . deletes / closes."
+  "TargetEntryHint": "Type the digits, Enter confirms, . or Del closes."
 }

@@ -27,7 +27,7 @@
 }
 else
 {
-<div @ref="board" class="board" tabindex="0" @onkeydown="HandleKeyDown" @onkeydown:preventDefault="AnyDialogOpen" @onkeyup="HandleKeyUp" @onclick="RequestFullscreenAsync">
+<div @ref="board" class="board" tabindex="0" @onkeydown="HandleKeyDown" @onkeydown:preventDefault="PreventBoardKeyDefault" @onkeyup="HandleKeyUp" @onclick="RequestFullscreenAsync">
 
     <header class="board-header">
         <div class="header-clock">@Clock.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)</div>
@@ -188,89 +188,6 @@ else
         <div class="shot-clock-bar" style="width:@(ShotClockPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div>
     </div>
 
-    @if (_showControls)
-    {
-        <div class="controls-overlay" inert="@AnyDialogOpen" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
-            <div class="control-group">
-                <span>@L.T("P1")</span>
-                @if (GetImageSource(1) is { } imageControl1)
-                {
-                    <img class="player-photo" src="@imageControl1" alt="" />
-                }
-                else
-                {
-                    <div class="player-avatar-fallback" style="background:@GetAvatarColor(1)">@GetAvatarInitials(1)</div>
-                }
-                <input type="text" value="@Current.Player1Name" placeholder="@L.T("Player1Label")"
-                       @onchange="e => DispatchAsync(ScoreboardCommand.RenamePlayer1, e.Value?.ToString())" />
-                <button @onclick="() => OpenPlayerPicker(1)">@L.T("ChoosePlayer")</button>
-            </div>
-            <div class="control-group">
-                <span>@L.T("P2")</span>
-                @if (GetImageSource(2) is { } imageControl2)
-                {
-                    <img class="player-photo" src="@imageControl2" alt="" />
-                }
-                else
-                {
-                    <div class="player-avatar-fallback" style="background:@GetAvatarColor(2)">@GetAvatarInitials(2)</div>
-                }
-                <input type="text" value="@Current.Player2Name" placeholder="@L.T("Player2Default")"
-                       @onchange="e => DispatchAsync(ScoreboardCommand.RenamePlayer2, e.Value?.ToString())" />
-                <button @onclick="() => OpenPlayerPicker(2)">@L.T("ChoosePlayer")</button>
-            </div>
-            <div class="control-group">
-                <span>@L.T("Match")</span>
-                @if (Current.IsHandicap)
-                {
-                    <span>@L.T("P1")</span>
-                    <input type="number" class="match-target" min="@MinHandicapTarget" max="@MaxHandicapTarget" step="1" inputmode="numeric"
-                           @key="(1, _matchInputKey)" value="@Current.Player1Target"
-                           @onchange="e => SetPlayerTargetFromInputAsync(1, e.Value?.ToString())" />
-                    <span>@L.T("P2")</span>
-                    <input type="number" class="match-target" min="@MinHandicapTarget" max="@MaxHandicapTarget" step="1" inputmode="numeric"
-                           @key="(2, _matchInputKey)" value="@Current.Player2Target"
-                           @onchange="e => SetPlayerTargetFromInputAsync(2, e.Value?.ToString())" />
-                }
-                else
-                {
-                    <input type="number" class="match-target" min="@MinMatchTarget" max="@MaxMatchTarget" step="1" inputmode="numeric"
-                           @key="_matchInputKey" value="@Current.MatchTarget"
-                           @onchange="e => SetMatchTargetFromInputAsync(e.Value?.ToString())" />
-                }
-                <button class="@(Current.IsHandicap ? "active" : "")" @onclick="() => DispatchAsync(ScoreboardCommand.ToggleHandicap)">@L.T("HandicapShort")</button>
-            </div>
-            <div class="control-group">
-                <span>@L.T("ShotClock")</span>
-                @if (Current.ShotClockActive)
-                {
-                    <button @onclick="() => DispatchAsync(ScoreboardCommand.ToggleShotClock)">@L.T("Stop")</button>
-                }
-                else
-                {
-                    <button @onclick="() => DispatchAsync(ScoreboardCommand.ToggleShotClock)">@L.T("Start")</button>
-                }
-                <button @onclick="() => DispatchAsync(ScoreboardCommand.ResetShotClock)">@L.T("Reset")</button>
-            </div>
-            <div class="control-group">
-                <button @onclick="OpenWarmupPicker">@L.T("WarmUp")</button>
-            </div>
-            <div class="control-group">
-                <span>@L.T("Language")</span>
-                    <select value="@L.GetLang" @onchange="OnLanguageChanged">
-                    <option value="tr">TR</option>
-                    <option value="en">EN</option>
-                    <option value="nl">NL</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <button @onclick="() => DispatchAsync(ScoreboardCommand.NewGame)">@L.T("NewGame")</button>
-            </div>
-            <p class="hint">@L.T("ControlsHint")</p>
-        </div>
-        <div class="version-tag">@AppVersion</div>
-    }
-
     @if (_notice is not null)
     {
         <div class="notice-toast" role="alert">@_notice</div>
@@ -359,10 +276,39 @@ else
     {
         <div class="player-picker-overlay" @onclick:stopPropagation="true">
             <div class="player-picker-dialog">
-                <h3>@TargetEntryTitle</h3>
-                <div class="picker-buffer">@(_targetBuffer.Length > 0 ? _targetBuffer : TargetOf(_targetEntrySlot).ToString())</div>
+                <h3>@L.T("Match")</h3>
+                <div class="target-entry-grid">
+                    <div class="target-entry-row @(_targetEntrySlot == 1 ? "active" : "")">
+                        <span>@L.T("P1")</span>
+                        <span class="target-entry-value">@TargetEntryDisplay(1)</span>
+                    </div>
+                    <div class="target-entry-row @(_targetEntrySlot == 2 ? "active" : "")">
+                        <span>@L.T("P2")</span>
+                        <span class="target-entry-value">@TargetEntryDisplay(2)</span>
+                    </div>
+                </div>
                 <p class="picker-empty">@L.T("TargetEntryHint")</p>
                 <button class="picker-close" @onclick="CloseTargetEntry">@L.T("Close") <small>[.]</small></button>
+            </div>
+        </div>
+    }
+
+    @if (_showVersionDialog)
+    {
+        <div class="player-picker-overlay" @onclick:stopPropagation="true">
+            <div class="player-picker-dialog version-dialog">
+                <h3>@L.T("Version")</h3>
+                <p class="picker-empty version-value">@AppVersion</p>
+                <div class="version-language-row">
+                    <span>@L.T("Language")</span>
+                    <select class="version-language-select" value="@L.GetLang" @onchange="OnVersionLanguageChanged" @ref="_versionLanguageSelect">
+                        @foreach (var language in AvailableLanguages)
+                        {
+                            <option value="@language">@language.ToUpperInvariant()</option>
+                        }
+                    </select>
+                </div>
+                <button class="picker-close" @onclick="CloseVersionDialog">@L.T("Close") <small>[.]</small></button>
             </div>
         </div>
     }
@@ -370,8 +316,6 @@ else
 }
 
 @code {
-    private bool _showControls;
-
     private static readonly string AppVersion = FormatVersion(typeof(Home).Assembly.GetName().Version);
 
     private static string FormatVersion(Version? version) => version is null
@@ -379,6 +323,7 @@ else
         : version.Build > 0 ? $"v{version.Major}.{version.Minor}.{version.Build}" : $"v{version.Major}.{version.Minor}";
     private IJSObjectReference? _kiosk;
     private ElementReference board;
+    private ElementReference _versionLanguageSelect;
     private readonly CancellationTokenSource _shotClockCts = new();
 
     private Player? _resolvedPlayer1;
@@ -528,7 +473,9 @@ else
 
     private bool _dialogWasOpen;
 
-    private bool AnyDialogOpen => _showMatchEnd || _showPlayerPicker is not null || _showWarmupPicker || _targetEntrySlot != 0;
+    private bool AnyDialogOpen => _showMatchEnd || _showPlayerPicker is not null || _showWarmupPicker || _targetEntrySlot != 0 || _showVersionDialog;
+
+    private bool PreventBoardKeyDefault => AnyDialogOpen && !_showVersionDialog;
 
     private bool _boardOccupiedElsewhere;
 
@@ -540,6 +487,12 @@ else
         });
 
     private string? _organizationName;
+
+    private bool _showVersionDialog;
+    private DateTime _lastStarPressedAtUtc = DateTime.MinValue;
+    private static readonly TimeSpan DoubleStarWindow = TimeSpan.FromMilliseconds(500);
+
+    private IReadOnlyList<string> AvailableLanguages => LocalizationService.Values.Keys.OrderBy(k => k).ToList();
 
     private void LoadOrganizationName() =>
         _organizationName = SyncOptions.Value.IsConfigured
@@ -751,15 +704,90 @@ else
 
     private void StartWarmup(int minutes) => Nav.NavigateTo($"/warmup/{minutes}");
 
+    private void OpenVersionDialog()
+    {
+        if (_targetEntrySlot != 0)
+        {
+            CloseTargetEntry();
+        }
+
+        _showVersionDialog = true;
+        StateHasChanged();
+    }
+
+    private void CloseVersionDialog()
+    {
+        _showVersionDialog = false;
+    }
+
+    private static bool IsSlashKey(string key) => key is "/" or "Divide" or "NumpadDivide";
+
+    private static bool IsStarKey(string key) => key is "*" or "Multiply" or "NumpadMultiply";
+
+    private void OnVersionLanguageChanged(ChangeEventArgs e)
+    {
+        var selectedLanguage = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(selectedLanguage) || !LocalizationService.Values.ContainsKey(selectedLanguage))
+        {
+            return;
+        }
+
+        if (!string.Equals(selectedLanguage, L.GetLang, StringComparison.Ordinal))
+        {
+            L.SetLanguage(selectedLanguage);
+            UpdateDefaultPlayers();
+        }
+    }
+
+    private void StepVersionLanguage(int delta)
+    {
+        var list = AvailableLanguages;
+        if (list.Count == 0)
+        {
+            return;
+        }
+
+        var current = L.GetLang;
+        var index = -1;
+        for (var i = 0; i < list.Count; i++)
+        {
+            if (string.Equals(list[i], current, StringComparison.Ordinal))
+            {
+                index = i;
+                break;
+            }
+        }
+        if (index < 0)
+        {
+            index = 0;
+        }
+
+        var next = (index + delta) % list.Count;
+        if (next < 0)
+        {
+            next += list.Count;
+        }
+
+        var language = list[next];
+        if (!string.Equals(language, current, StringComparison.Ordinal))
+        {
+            L.SetLanguage(language);
+            UpdateDefaultPlayers();
+            StateHasChanged();
+        }
+    }
+
     private int _targetEntrySlot;
     private string _targetBuffer = "";
-
-    private string TargetEntryTitle => Current.IsHandicap ? $"{L.T("Match")} {L.T(_targetEntrySlot == 1 ? "P1" : "P2")}" : L.T("Match");
+    private int? _targetPlayer1Value;
+    private int? _targetPlayer2Value;
 
     private void OpenTargetEntry()
     {
         _targetEntrySlot = 1;
         _targetBuffer = "";
+        _targetPlayer1Value = Current.IsHandicap ? Current.Player1Target : Current.MatchTarget;
+        _targetPlayer2Value = Current.IsHandicap ? Current.Player2Target : Current.MatchTarget;
         StateHasChanged();
     }
 
@@ -767,6 +795,19 @@ else
     {
         _targetEntrySlot = 0;
         _targetBuffer = "";
+        _targetPlayer1Value = null;
+        _targetPlayer2Value = null;
+    }
+
+    private string TargetEntryDisplay(int slot)
+    {
+        if (_targetEntrySlot == slot && _targetBuffer.Length > 0)
+        {
+            return _targetBuffer;
+        }
+
+        var value = slot == 1 ? _targetPlayer1Value : _targetPlayer2Value;
+        return (value ?? TargetOf(slot)).ToString();
     }
 
     private async Task HandleTargetKeyAsync(string key)
@@ -780,16 +821,17 @@ else
                 }
 
                 break;
-            case "." or "Delete" or "Backspace":
-                if (_targetBuffer.Length > 0)
-                {
-                    _targetBuffer = _targetBuffer[..^1];
-                }
-                else
-                {
-                    CloseTargetEntry();
-                }
-
+            case "ArrowUp" or "+" or "=":
+                NudgeTargetEntry(1);
+                break;
+            case "ArrowDown" or "-" or "_":
+                NudgeTargetEntry(-1);
+                break;
+            case "ArrowLeft":
+                SwitchTargetEntrySlot(1);
+                break;
+            case "ArrowRight":
+                SwitchTargetEntrySlot(2);
                 break;
             case "Escape":
                 CloseTargetEntry();
@@ -802,31 +844,90 @@ else
         StateHasChanged();
     }
 
+    private void NudgeTargetEntry(int delta)
+    {
+        var current = int.TryParse(_targetBuffer, out var typed)
+            ? typed
+            : (_targetEntrySlot == 1 ? _targetPlayer1Value : _targetPlayer2Value) ?? TargetOf(_targetEntrySlot == 0 ? 1 : _targetEntrySlot);
+
+        var min = MinHandicapTarget;
+        var max = MaxHandicapTarget;
+        _targetBuffer = Math.Clamp(current + delta, min, max).ToString();
+    }
+
+    private void SwitchTargetEntrySlot(int slot)
+    {
+        SaveTargetBufferToCurrentSlot();
+        _targetEntrySlot = Math.Clamp(slot, 1, 2);
+        _targetBuffer = "";
+    }
+
+    private void SaveTargetBufferToCurrentSlot()
+    {
+        if (_targetEntrySlot is < 1 or > 2)
+        {
+            return;
+        }
+
+        if (!int.TryParse(_targetBuffer, out var buffered))
+        {
+            return;
+        }
+
+        var clamped = Math.Clamp(buffered, MinHandicapTarget, MaxHandicapTarget);
+        if (_targetEntrySlot == 1)
+        {
+            _targetPlayer1Value = clamped;
+        }
+        else
+        {
+            _targetPlayer2Value = clamped;
+        }
+    }
+
     private async Task CommitTargetEntryAsync()
     {
-        if (int.TryParse(_targetBuffer, out var value))
+        var parsed = int.TryParse(_targetBuffer, out var value);
+        var enteredValue = parsed
+            ? value
+            : (_targetEntrySlot == 1 ? _targetPlayer1Value : _targetPlayer2Value) ?? TargetOf(_targetEntrySlot == 0 ? 1 : _targetEntrySlot);
+        var clamped = Math.Clamp(enteredValue, MinHandicapTarget, MaxHandicapTarget);
+
+        if (_targetEntrySlot == 1)
         {
+            _targetPlayer1Value = clamped;
+            _targetBuffer = "";
+            StateHasChanged();
+            return;
+        }
+
+        _targetPlayer2Value = clamped;
+        var player1Target = Math.Clamp(_targetPlayer1Value ?? Current.Player1Target, MinHandicapTarget, MaxHandicapTarget);
+        var player2Target = Math.Clamp(_targetPlayer2Value ?? Current.Player2Target, MinHandicapTarget, MaxHandicapTarget);
+        var enableHandicap = player1Target != player2Target;
+
+        if (enableHandicap)
+        {
+            if (!Current.IsHandicap)
+            {
+                await DispatchAsync(ScoreboardCommand.ToggleHandicap);
+            }
+
+            await DispatchAsync(ScoreboardCommand.SetPlayer1Target, player1Target);
+            await DispatchAsync(ScoreboardCommand.SetPlayer2Target, player2Target);
+        }
+        else
+        {
+            await DispatchAsync(ScoreboardCommand.SetMatchTarget, Math.Clamp(player1Target, MinMatchTarget, MaxMatchTarget));
             if (Current.IsHandicap)
             {
-                await DispatchAsync(_targetEntrySlot == 1 ? ScoreboardCommand.SetPlayer1Target : ScoreboardCommand.SetPlayer2Target, value);
-            }
-            else
-            {
-                await DispatchAsync(ScoreboardCommand.SetMatchTarget, value);
+                await DispatchAsync(ScoreboardCommand.ToggleHandicap);
             }
         }
 
         _targetBuffer = "";
-        if (Current.IsHandicap && _targetEntrySlot == 1)
-        {
-            _targetEntrySlot = 2;
-        }
-        else
-        {
-            CloseTargetEntry();
-            _matchInputKey++;
-        }
-
+        CloseTargetEntry();
+        _matchInputKey++;
         StateHasChanged();
     }
 
@@ -997,13 +1098,6 @@ else
     {
         Current.ShotClockRemaining = Current.ShotClockSeconds;
         Current.ShotClockActive = false;
-    }
-
-    private void OnLanguageChanged(ChangeEventArgs e)
-    {
-        var selectedLanguage = e.Value?.ToString() ?? "en";
-        L.SetLanguage(selectedLanguage);
-        UpdateDefaultPlayers();
     }
 
     private void UpdateDefaultPlayers()
@@ -1207,18 +1301,60 @@ else
             return;
         }
 
+        if (await TryCloseDialogWithDotOrDeleteAsync(e.Key))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        var canOpenVersionWithDoubleStar = !_gameEnded
+            && !_showMatchEnd
+            && !_showWarmupPicker
+            && _targetEntrySlot == 0
+            && _showPlayerPicker is null
+            && !_showVersionDialog;
+        if (canOpenVersionWithDoubleStar && IsStarKey(e.Key))
+        {
+            var now = DateTime.UtcNow;
+            if (now - _lastStarPressedAtUtc <= DoubleStarWindow)
+            {
+                _lastStarPressedAtUtc = DateTime.MinValue;
+                OpenVersionDialog();
+                return;
+            }
+            _lastStarPressedAtUtc = now;
+        }
+
         if (_gameEnded)
         {
             ScoreboardCommand? afterEnd = e.Key switch
             {
-                "c" or "C" or "9" or "PageUp" => ScoreboardCommand.ToggleControls,
-                "n" or "N" or "8" or "ArrowUp" => ScoreboardCommand.NewGame,
+                "n" or "N" or "8" => ScoreboardCommand.NewGame,
                 _ => null
             };
 
             if (afterEnd is not null)
             {
                 await ApplyCommandsAsync([new ScoreboardCommandMessage(afterEnd.Value)]);
+            }
+
+            return;
+        }
+
+        if (_showVersionDialog)
+        {
+            if (e.Key is "." or "Delete" or "Backspace" or "Escape")
+            {
+                CloseVersionDialog();
+                StateHasChanged();
+            }
+            else if (e.Key is "ArrowDown" or "ArrowRight")
+            {
+                StepVersionLanguage(1);
+            }
+            else if (e.Key is "ArrowUp" or "ArrowLeft")
+            {
+                StepVersionLanguage(-1);
             }
 
             return;
@@ -1233,9 +1369,6 @@ else
                     break;
                 case "0" or "Insert":
                     await DispatchAsync(ScoreboardCommand.ExtendMatch, 10);
-                    break;
-                case "*":
-                    await DispatchAsync(ScoreboardCommand.NewGame);
                     break;
                 case "Delete" or ".":
                     _showMatchEnd = false;
@@ -1256,7 +1389,7 @@ else
                 case "2" or "ArrowDown":
                     StartWarmup(10);
                     break;
-                case "3" or "PageDown":
+                case "3":
                     StartWarmup(15);
                     break;
                 case "." or "Delete" or "Backspace" or "Escape":
@@ -1304,7 +1437,7 @@ else
             return;
         }
 
-        if (e.Key is "/")
+        if (IsSlashKey(e.Key))
         {
             OpenTargetEntry();
             return;
@@ -1312,16 +1445,14 @@ else
 
         ScoreboardCommand? command = e.Key switch
         {
-            "c" or "C" or "9" or "PageUp" => ScoreboardCommand.ToggleControls,
-            "t" or "T" or "3" or "PageDown" => ScoreboardCommand.ToggleShotClock,
-            "r" or "R" or "6" or "ArrowRight" => ScoreboardCommand.ResetShotClock,
+            "t" or "T" or "3" => ScoreboardCommand.ToggleShotClock,
+            "r" or "R" or "6" => ScoreboardCommand.ResetShotClock,
             "1" or "End" => ScoreboardCommand.SelectPlayer1,
             "2" or "ArrowDown" => ScoreboardCommand.SelectPlayer2,
-            "*" => ScoreboardCommand.ToggleHandicap,
             "+" or "=" => ScoreboardCommand.IncrementPoints,
             "-" or "_" => ScoreboardCommand.DecrementPoints,
             "Enter" => ScoreboardCommand.CommitPoints,
-            "y" or "Y" or "4" or "ArrowLeft" => ScoreboardCommand.SwapPlayers,
+            "y" or "Y" or "4" => ScoreboardCommand.SwapPlayers,
             "n" or "N" or "8" or "ArrowUp" => ScoreboardCommand.NewGame,
             _ => null
         };
@@ -1332,16 +1463,78 @@ else
         }
     }
 
+    private async Task<bool> TryCloseDialogWithDotOrDeleteAsync(string key)
+    {
+        if (key is not "." and not "Delete")
+        {
+            return false;
+        }
+
+        if (_showVersionDialog)
+        {
+            CloseVersionDialog();
+            return true;
+        }
+
+        if (_showMatchEnd)
+        {
+            _showMatchEnd = false;
+            return true;
+        }
+
+        if (_showWarmupPicker)
+        {
+            CloseWarmupPicker();
+            return true;
+        }
+
+        if (_targetEntrySlot != 0)
+        {
+            SaveTargetBufferToCurrentSlot();
+
+            var player1Target = Math.Clamp(_targetPlayer1Value ?? (Current.IsHandicap ? Current.Player1Target : Current.MatchTarget), MinHandicapTarget, MaxHandicapTarget);
+            var player2Target = Math.Clamp(_targetPlayer2Value ?? (Current.IsHandicap ? Current.Player2Target : Current.MatchTarget), MinHandicapTarget, MaxHandicapTarget);
+            var enableHandicap = player1Target != player2Target;
+
+            if (enableHandicap)
+            {
+                if (!Current.IsHandicap)
+                {
+                    await DispatchAsync(ScoreboardCommand.ToggleHandicap);
+                }
+
+                await DispatchAsync(ScoreboardCommand.SetPlayer1Target, player1Target);
+                await DispatchAsync(ScoreboardCommand.SetPlayer2Target, player2Target);
+            }
+            else
+            {
+                await DispatchAsync(ScoreboardCommand.SetMatchTarget, Math.Clamp(player1Target, MinMatchTarget, MaxMatchTarget));
+                if (Current.IsHandicap)
+                {
+                    await DispatchAsync(ScoreboardCommand.ToggleHandicap);
+                }
+            }
+
+            CloseTargetEntry();
+            _matchInputKey++;
+            return true;
+        }
+
+        if (_showPlayerPicker is not null)
+        {
+            ClosePlayerPicker();
+            return true;
+        }
+
+        return false;
+    }
+
     private void HandleKeyUp(KeyboardEventArgs e) => SystemPower.NotifyKeyUp(e.Key);
 
     private void ApplyCommand(ScoreboardCommand command, JsonElement? payload = null)
     {
         switch (command)
         {
-            case ScoreboardCommand.ToggleControls:
-                _showControls = !_showControls;
-                StateHasChanged();
-                break;
             case ScoreboardCommand.ToggleShotClock:
                 if (Current.ShotClockActive) StopShotClock(); else StartShotClock();
                 break;

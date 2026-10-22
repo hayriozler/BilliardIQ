@@ -498,97 +498,6 @@
     background: var(--red-dark);
 }
 
-.controls-overlay {
-    position: fixed;
-    left: 1.2vw;
-    bottom: 1.2vh;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.8vw;
-    align-items: center;
-    background: rgba(10, 10, 10, 0.85);
-    border: 1px solid var(--red-dark);
-    padding: 0.8vh 1vw;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    z-index: 20;
-}
-
-.control-group {
-    display: flex;
-    align-items: center;
-    gap: 0.4vw;
-}
-
-.control-group button {
-    background: var(--red-dark);
-    color: var(--white);
-    border: none;
-    border-radius: 4px;
-    min-width: 1.8rem;
-    height: 1.8rem;
-    padding: 0 0.5rem;
-    font-weight: 800;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.control-group button:hover {
-    background: var(--red);
-}
-
-.control-group button.active {
-    background: var(--red);
-    box-shadow: 0 0 6px rgba(201, 32, 44, 0.8);
-}
-
-.control-group select,
-.control-group input[type="number"],
-.control-group input[type="text"] {
-    background: var(--red-dark);
-    color: var(--white);
-    border: none;
-    border-radius: 4px;
-    padding: 0.2rem 0.4rem;
-    font-weight: 700;
-}
-
-.control-group input[type="text"] {
-    width: 8rem;
-}
-
-.control-group input[type="number"] {
-    width: 3.4rem;
-    height: 1.5rem;
-    padding: 0 0.3rem;
-    font-size: 0.8rem;
-    text-align: center;
-}
-
-.control-group input[type="text"]::placeholder {
-    color: rgba(242, 242, 242, 0.6);
-}
-
-.control-group a {
-    background: var(--red-dark);
-    color: var(--white);
-    border-radius: 4px;
-    padding: 0.25rem 0.6rem;
-    font-weight: 800;
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.control-group a:hover {
-    background: var(--red);
-}
-
-.hint {
-    margin: 0;
-    color: var(--label-gray);
-    font-size: 0.75rem;
-    flex-basis: 100%;
-}
 
 .player-picker-overlay {
     position: fixed;
@@ -738,6 +647,70 @@
     margin-bottom: 0.6rem;
 }
 
+.target-entry-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.target-entry-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid var(--red-dark);
+    border-radius: 6px;
+    padding: 0.55rem 0.8rem;
+    background: #111;
+    color: var(--label-gray);
+    font-weight: 700;
+}
+
+.target-entry-row.active {
+    border-color: var(--red);
+    background: rgba(201, 32, 44, 0.18);
+    color: var(--white);
+}
+
+.target-entry-value {
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: var(--yellow);
+    background: #1f1f1f;
+    border: 1px solid var(--red-dark);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    min-width: 3.2rem;
+    text-align: center;
+}
+
+.version-dialog {
+    max-width: 460px;
+}
+
+.version-value {
+    text-align: center;
+    font-size: clamp(1.2rem, 2.2vw, 1.8rem);
+    font-weight: 800;
+    color: var(--yellow);
+}
+
+.version-language-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.version-language-select {
+    background: #1f1f1f;
+    color: var(--white);
+    border: 1px solid var(--red-dark);
+    border-radius: 4px;
+    padding: 0.35rem 0.5rem;
+    font-weight: 700;
+}
+
 .picker-shortcut {
     min-width: 3.2rem;
     font-weight: 800;
@@ -765,15 +738,3 @@
     border-color: var(--red);
 }
 
-.version-tag {
-    position: fixed;
-    right: 1.2vw;
-    bottom: 1.2vh;
-    padding: 0.4vh 0.8vw;
-    background: rgba(10, 10, 10, 0.85);
-    border: 1px solid var(--red-dark);
-    border-radius: 6px;
-    font-size: 0.85rem;
-    color: var(--white);
-    z-index: 20;
-}
