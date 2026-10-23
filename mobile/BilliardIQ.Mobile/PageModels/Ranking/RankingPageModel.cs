@@ -83,6 +83,9 @@ public partial class RankingPageModel(ApiClient api, AvatarImageService avatars)
     private Task OpenPlayer(int playerId) => Shell.Current.GoToAsync("playerhome", new Dictionary<string, object> { ["playerId"] = playerId });
 
     [RelayCommand]
+    private Task NewMatch() => Shell.Current.GoToAsync("newgame");
+
+    [RelayCommand]
     private async Task Appearing()
     {
         await LoadAsync();

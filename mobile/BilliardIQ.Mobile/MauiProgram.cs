@@ -77,8 +77,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<BallDetectionService>();
         builder.Services.AddSingleton<OpenCvBallDetector>();
         builder.Services.AddSingleton<TableVisionService>();
-        builder.Services.AddSingleton<GameListPageModel>();
-        builder.Services.AddSingleton<GameListViewPage>();
         builder.Services.AddSingleton<IUnityBridgeService, UnityBridgeService>();
         builder.Services.AddSingleton<GamePlayPageModel>();
         builder.Services.AddSingleton<GamePlayViewPage>();

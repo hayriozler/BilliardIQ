@@ -4,7 +4,6 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:auth="clr-namespace:BilliardIQ.Mobile.Pages.Auth"
-    xmlns:games="clr-namespace:BilliardIQ.Mobile.Pages.Games"
     xmlns:players="clr-namespace:BilliardIQ.Mobile.Pages.Players"
     xmlns:play="clr-namespace:BilliardIQ.Mobile.Pages.Play"
     xmlns:connection="clr-namespace:BilliardIQ.Mobile.Pages.Connection"
@@ -37,10 +36,10 @@
         Shell.FlyoutItemIsVisible="False" />
 
     <ShellContent
-        x:Name="HomeContent"
-        Title="Home"
-        ContentTemplate="{DataTemplate games:GameListViewPage}"
-        Route="home" />
+        x:Name="RankingContent"
+        Title="Ranking"
+        ContentTemplate="{DataTemplate ranking:RankingViewPage}"
+        Route="ranking" />
 
     <ShellContent
         x:Name="GameContent"
@@ -59,12 +58,6 @@
         Title="Invite player"
         ContentTemplate="{DataTemplate manage:InviteViewPage}"
         Route="invite" />
-
-    <ShellContent
-        x:Name="RankingContent"
-        Title="Ranking"
-        ContentTemplate="{DataTemplate ranking:RankingViewPage}"
-        Route="ranking" />
 
     <FlyoutItem x:Name="ScoreboardItem" Title="Scoreboard Admin">
         <Tab Title="Score">

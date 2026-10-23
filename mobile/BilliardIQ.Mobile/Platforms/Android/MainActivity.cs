@@ -56,7 +56,7 @@ public class MainActivity : MauiAppCompatActivity
             try
             {
                 if (Shell.Current is not null)
-                    await Shell.Current.GoToAsync("//home");
+                    await Shell.Current.GoToAsync("//ranking");
             }
             catch (Exception ex)
             {

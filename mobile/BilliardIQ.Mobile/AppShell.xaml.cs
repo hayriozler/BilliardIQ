@@ -53,8 +53,6 @@ public partial class AppShell : Shell
         var current = _session.Current;
         var ready = current is { MustChangePassword: false, NeedsOrganization: false };
 
-        HomeContent.IsVisible = ready;
-        HomeContent.Title = _session.IsPlayer ? "Games" : "Home";
         GameContent.IsVisible = ready;
         AccountContent.IsVisible = ready;
         RankingContent.IsVisible = ready;

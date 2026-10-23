@@ -5,7 +5,7 @@ public sealed class AuthService(ApiClient api, SessionStore session)
     public const string LoginRoute = "//login";
     public const string OrganizationRoute = "//organization";
     public const string ChangePasswordRoute = "//changepassword";
-    public const string HomeRoute = "//home";
+    public const string HomeRoute = "//ranking";
 
     public static string RouteFor(ApiSession current) =>
         current.MustChangePassword ? ChangePasswordRoute
