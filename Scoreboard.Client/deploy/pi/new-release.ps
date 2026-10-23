@@ -37,4 +37,8 @@ finally {
     $archive.Dispose()
 }
 
-Write-Host "Created clean ZIP: $zipPath"
+Write-Host "Deployment package created successfully."
+Write-Host "Github release upload starting.."
+$tag = gh release list --limit 1 --json tagName --jq '.[0].tagName'
+Write-Host "Latest release: $tag"
+gh release upload $tag $zipPath --latest --generate-notes
