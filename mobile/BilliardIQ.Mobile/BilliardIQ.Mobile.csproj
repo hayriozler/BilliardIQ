@@ -69,7 +69,7 @@
 		<AndroidLibrary Include="Platforms\Android\libs\unityLibrary-debug.aar" Bind="false" Condition="Exists('Platforms\Android\libs\unityLibrary-debug.aar')" />
 		<AndroidJavaSource Include="Platforms\Android\BilliardUnityActivity.java" />
 		<!-- EmguCV Android native runtime: libopencv_world.so bundled via AAR -->
-		<PackageReference Include="Emgu.CV.runtime.maui.mini.android" Version="4.13.0.5924" />
+		<PackageReference Include="Emgu.CV.runtime.maui.mini.android" Version="5.0.0.6584" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -78,18 +78,18 @@
 
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Maui.Camera" Version="6.1.0" />
-		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.100" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.11" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.120" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.14" />
 		<PackageReference Include="Plugin.Maui.OCR" Version="1.1.1" />
-		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.100" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.120" />
 		<!-- ONNX Runtime: YOLOv8 ball detection + future on-device models (Android, iOS) -->
-		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.29.0" />
+		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.31.1" />
 		<!-- SkiaSharp: image decode/resize for ONNX preprocessing (transitively available, made explicit) -->
-		<PackageReference Include="SkiaSharp" Version="4.151.1" />
-		<PackageReference Include="QRCoder" Version="1.6.0" />
+		<PackageReference Include="SkiaSharp" Version="4.154.0" />
+		<PackageReference Include="QRCoder" Version="1.8.1" />
 		<!-- EmguCV: OpenCV .NET wrapper — HoughCircles + findContours for ball/corner detection -->
-		<PackageReference Include="Emgu.CV" Version="4.13.0.5924" />
+		<PackageReference Include="Emgu.CV" Version="5.0.0.6584" />
 		<PackageReference Include="SSH.NET" Version="2026.0.0" />
 		<PackageReference Include="Svg.Skia" Version="5.2.3" />
 	</ItemGroup>
