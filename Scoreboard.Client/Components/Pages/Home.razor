@@ -60,10 +60,6 @@ else
         <section class="player-panel @(Current.ActivePlayer == 1 ? "active-white" : "")" data-slot="1">
             <div class="player-name-bar">
                 <div class="player-name-content">
-                    @if (Current.ActivePlayer == 1)
-                    {
-                        <span class="ball white turn-ball" aria-hidden="true"></span>
-                    }
                     <span>@GetHeaderLabel(1)</span>
                     @if (GetImageSource(1) is { } image1)
                     {
@@ -85,7 +81,13 @@ else
                     <span>@teamName1</span>
                 </div>
             }
-            <div class="player-score">@Current.Player1Score</div>
+            <div class="score-wrap">
+                <div class="player-score">@Current.Player1Score</div>
+                @if (Current.ActivePlayer == 1)
+                {
+                    <span class="ball white score-ball" aria-hidden="true"></span>
+                }
+            </div>
             @if ((Current.IsHandicap || Current.ActivePlayer == 1) && PointsToGo(1) is int nog1)
             {
                 <div class="nog-indicator">@string.Format(L.T("PointsToGo"), nog1)</div>
@@ -113,10 +115,6 @@ else
         <section class="player-panel @(Current.ActivePlayer == 2 ? "active-yellow" : "")" data-slot="2">
             <div class="player-name-bar">
                 <div class="player-name-content">
-                    @if (Current.ActivePlayer == 2)
-                    {
-                        <span class="ball yellow turn-ball" aria-hidden="true"></span>
-                    }
                     <span>@GetHeaderLabel(2)</span>
                     @if (GetImageSource(2) is { } image2)
                     {
@@ -138,7 +136,13 @@ else
                     <span>@teamName2</span>
                 </div>
             }
-            <div class="player-score yellow">@Current.Player2Score</div>
+            <div class="score-wrap">
+                <div class="player-score yellow">@Current.Player2Score</div>
+                @if (Current.ActivePlayer == 2)
+                {
+                    <span class="ball yellow score-ball" aria-hidden="true"></span>
+                }
+            </div>
             @if ((Current.IsHandicap || Current.ActivePlayer == 2) && PointsToGo(2) is int nog2)
             {
                 <div class="nog-indicator">@string.Format(L.T("PointsToGo"), nog2)</div>
@@ -550,7 +554,7 @@ else
         {
             var saved = new ScoreboardState
             {
-                Inning = 0,
+                Inning = 1,
                 CurrentPoints = 0,
                 Player1Score = 0,   
                 Player2Score = 0,
@@ -1124,8 +1128,10 @@ else
 
     private void RecalculateAverages()
     {
-        Current.Player1Avg = Current.Inning > 0 ? (double)Current.Player1Score / Current.Inning : 0;
-        Current.Player2Avg = Current.Inning > 0 ? (double)Current.Player2Score / Current.Inning : 0;
+        var player1Turns = Current.ActivePlayer == 2 ? Current.Inning : Current.Inning - 1;
+        var player2Turns = Current.Inning - 1;
+        Current.Player1Avg = player1Turns > 0 ? (double)Current.Player1Score / player1Turns : 0;
+        Current.Player2Avg = player2Turns > 0 ? (double)Current.Player2Score / player2Turns : 0;
     }
 
     private void CommitCurrentPoints()
@@ -1137,13 +1143,13 @@ else
         {
             Current.Player1Score += points;
             Current.Player1HighRun = Math.Max(Current.Player1HighRun, points);
-            Current.Inning++;
             Current.ActivePlayer = 2;
         }
         else
         {
             Current.Player2Score += points;
             Current.Player2HighRun = Math.Max(Current.Player2HighRun, points);
+            Current.Inning++;
             Current.ActivePlayer = 1;
         }
 
@@ -1199,7 +1205,7 @@ else
             Player2Score = Current.Player2Score,
             Player2Avg = Current.Player2Avg,
             Player2HighRun = Current.Player2HighRun,
-            Inning = Current.Inning,
+            Inning = Math.Max(0, Current.ActivePlayer == 1 ? Current.Inning - 1 : Current.Inning),
             MatchTarget = Current.MatchTarget,
             IsHandicap = Current.IsHandicap,
             Player1Target = Current.IsHandicap ? Current.Player1Target : 0,
@@ -1272,7 +1278,7 @@ else
         Current.Player2Avg = 0;
         Current.Player1HighRun = 0;
         Current.Player2HighRun = 0;
-        Current.Inning = 0;
+        Current.Inning = 1;
         Current.CurrentPoints = 0;
         Current.ActivePlayer = 1;
         Current.Player1Id = DefaultPlayerId(1);

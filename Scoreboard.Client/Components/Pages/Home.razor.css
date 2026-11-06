@@ -321,18 +321,31 @@
     margin-right: 1rem;
 }
 
-.turn-ball {
-    width: clamp(1.6rem, 3.2vw, 2.6rem);
-    height: clamp(1.6rem, 3.2vw, 2.6rem);
-    animation: turn-ball-pulse 1.2s ease-in-out infinite;
+.score-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
 }
 
-@keyframes turn-ball-pulse {
+.score-wrap .player-score {
+    flex: 1;
+}
+
+.score-ball {
+    position: absolute;
+    top: 3vh;
+    right: 2.5vw;
+    width: clamp(3rem, 7vw, 6rem);
+    height: clamp(3rem, 7vw, 6rem);
+    animation: score-ball-blink 1s ease-in-out infinite;
+}
+
+@keyframes score-ball-blink {
     0%, 100% {
-        box-shadow: inset -2px -2px 3px rgba(0, 0, 0, 0.5), 0 0 4px rgba(255, 255, 255, 0.4);
+        opacity: 1;
     }
     50% {
-        box-shadow: inset -2px -2px 3px rgba(0, 0, 0, 0.5), 0 0 10px 3px rgba(255, 255, 255, 0.9);
+        opacity: 0.15;
     }
 }
 

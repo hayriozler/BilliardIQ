@@ -132,7 +132,7 @@ public partial class ScoreboardPageModel : BasePageModel
     // them on the Pi's generic "Oyuncu 1"/"Oyuncu 2" placeholders, so the next match isn't anonymous.
     private async Task ApplyDefaultPlayersIfIdleAsync()
     {
-        var noActiveMatch = Player1Score == 0 && Player2Score == 0 && Inning == 0;
+        var noActiveMatch = Player1Score == 0 && Player2Score == 0 && Inning <= 1;
         if (!noActiveMatch) return;
 
         if (_playerSession.FindById(1) is { } player1) await ApplyPlayerAsync(1, player1);
@@ -480,7 +480,7 @@ public partial class ScoreboardPageModel : BasePageModel
     public partial int Player2HighRun { get; set; }
 
     [ObservableProperty]
-    public partial int Inning { get; set; }
+    public partial int Inning { get; set; } = 1;
 
     [ObservableProperty]
     public partial int MatchTarget { get; set; } = 40;
