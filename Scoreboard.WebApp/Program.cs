@@ -30,6 +30,8 @@ builder.Services.AddDbContext<DataContext>(options =>
     }
 });
 
+builder.Services.AddAppHealthChecks();
+
 builder.Services.AddSingleton<Loc>();
 builder.Services.AddSingleton<LoginThrottle>();
 builder.Services.AddSingleton<SessionRevalidator>();
@@ -262,12 +264,16 @@ else
 if (app.Configuration.GetValue<bool>("Api:AllowHttp"))
 {
     app.UseWhen(
-        context => !context.Request.Path.StartsWithSegments("/api") && !context.Request.Path.StartsWithSegments("/Players"),
+        context => !context.Request.Path.StartsWithSegments("/api")
+            && !context.Request.Path.StartsWithSegments("/Players")
+            && !context.Request.Path.StartsWithSegments(HealthEndpoints.BasePath),
         branch => branch.UseHttpsRedirection());
 }
 else
 {
-    app.UseHttpsRedirection();
+    app.UseWhen(
+        context => !context.Request.Path.StartsWithSegments(HealthEndpoints.BasePath),
+        branch => branch.UseHttpsRedirection());
 }
 
 var cultures = Loc.Languages.Select(l => l.Code).ToArray();
@@ -295,6 +301,7 @@ app.UseRateLimiter();
 
 app.UseMiddleware<ClientIdMiddleware>();
 
+app.MapHealthEndpoints();
 app.MapClubsEndpoints();
 app.MapPlayersEndpoints();
 app.MapMatchStatsEndpoints();
