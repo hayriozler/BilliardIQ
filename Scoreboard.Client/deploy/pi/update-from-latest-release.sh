@@ -12,6 +12,11 @@ set -euo pipefail
 REPO="hayriozler/BilliardIQ"
 API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 
+if [ "$(id -u)" -eq 0 ]; then
+	echo "Do not run this script as root or with sudo. Run it as the normal user (admin)." >&2
+	exit 1
+fi
+
 read -r -p "Enter target folder (absolute path): " TARGET_DIR
 if [ -z "${TARGET_DIR}" ]; then
 	echo "Target folder is required." >&2
@@ -19,6 +24,13 @@ if [ -z "${TARGET_DIR}" ]; then
 fi
 
 mkdir -p "$TARGET_DIR"
+
+NOT_OWNED="$(find "$TARGET_DIR" ! -user "$(id -un)" 2>/dev/null | head -n 1 || true)"
+if [ -n "$NOT_OWNED" ]; then
+	echo "Not owned by $(id -un): $NOT_OWNED" >&2
+	echo "Fix once with: sudo chown -R $(id -un):$(id -gn) \"$TARGET_DIR\"" >&2
+	exit 1
+fi
 
 TMP_DIR="$(mktemp -d /tmp/billiardiq-release-XXXXXX)"
 RELEASE_JSON="${TMP_DIR}/latest-release.json"
