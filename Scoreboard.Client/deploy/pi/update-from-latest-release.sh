@@ -73,6 +73,11 @@ if [ "$ENTRY_COUNT" = "1" ] && [ -d "$FIRST_ENTRY" ]; then
 	SOURCE_DIR="$FIRST_ENTRY"
 fi
 
+SERVICE="billiardiq-scoreboard.service"
+
+echo "Stopping $SERVICE ..."
+sudo -n /usr/bin/systemctl stop "$SERVICE"
+
 echo "Copying files to $TARGET_DIR (excluding wwwroot/Db) ..."
 rsync -a \
 	--exclude='wwwroot/Db/' \
@@ -86,6 +91,9 @@ if [ ! -f "$LAUNCH_SCRIPT" ]; then
 fi
 
 chmod +x "$LAUNCH_SCRIPT"
+
+echo "Starting $SERVICE ..."
+sudo -n /usr/bin/systemctl start "$SERVICE"
 
 echo "Starting launch-kiosk.sh ..."
 nohup bash "$LAUNCH_SCRIPT" >/tmp/billiardiq-kiosk-launch.log 2>&1 &
