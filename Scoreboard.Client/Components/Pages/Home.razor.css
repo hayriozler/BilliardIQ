@@ -337,7 +337,7 @@
     right: 2.5vw;
     width: clamp(3rem, 7vw, 6rem);
     height: clamp(3rem, 7vw, 6rem);
-    animation: score-ball-blink 1s ease-in-out infinite;
+    animation: score-ball-blink 1.8s ease-in-out infinite;
 }
 
 @keyframes score-ball-blink {
