@@ -179,7 +179,9 @@
     height: 100%;
     width: 100%;
     background: #555;
-    transition: width 0.1s linear, background 0.2s ease;
+    transform-origin: left center;
+    will-change: transform;
+    transition: transform 0.1s linear, background 0.2s ease;
 }
 
 .shot-clock.active .shot-clock-bar {
@@ -337,7 +339,8 @@
     right: 2.5vw;
     width: clamp(3rem, 7vw, 6rem);
     height: clamp(3rem, 7vw, 6rem);
-    animation: score-ball-blink 2s ease-in-out infinite;
+    will-change: opacity;
+    animation: score-ball-blink 2s steps(8, end) infinite;
 }
 
 @keyframes score-ball-blink {

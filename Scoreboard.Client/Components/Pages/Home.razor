@@ -189,7 +189,7 @@ else
     </footer>
 
     <div class="shot-clock @(Current.ShotClockActive ? "active" : "") @(Current.ShotClockActive && Current.ShotClockRemaining <= 10 ? "urgent" : "")">
-        <div class="shot-clock-bar" style="width:@(ShotClockPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+        <div class="shot-clock-bar" style="transform:scaleX(@((ShotClockPercent / 100).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)))"></div>
     </div>
 
     @if (_notice is not null)
@@ -329,6 +329,7 @@ else
     private ElementReference board;
     private ElementReference _versionLanguageSelect;
     private readonly CancellationTokenSource _shotClockCts = new();
+    private readonly SemaphoreSlim _shotClockWake = new(0);
 
     private Player? _resolvedPlayer1;
     private Player? _resolvedPlayer2;
@@ -577,6 +578,7 @@ else
             Current= saved;
         }
         else Current = game;
+        WakeShotClock();
         ResolvePlayers();
         StateHasChanged();
     }
@@ -1096,7 +1098,11 @@ else
 
     private void StopShotClock() => Current.ShotClockActive = false;
 
-    private void StartShotClock() => Current.ShotClockActive = true;
+    private void StartShotClock()
+    {
+        Current.ShotClockActive = true;
+        WakeShotClock();
+    }
 
     private void ResetShotClock()
     {
@@ -1726,24 +1732,33 @@ else
         await board.FocusAsync();
     }
 
+    private void WakeShotClock()
+    {
+        if (_shotClockWake.CurrentCount == 0)
+        {
+            _shotClockWake.Release();
+        }
+    }
+
+    private TimeSpan UntilNextMinute()
+    {
+        var now = Clock.Now;
+        return TimeSpan.FromSeconds(60 - now.Second - now.Millisecond / 1000.0) + TimeSpan.FromMilliseconds(100);
+    }
+
     private async Task RunShotClockAsync(CancellationToken token)
     {
         try
         {
-            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
-            var ticks = 0;
-            var last = System.Diagnostics.Stopwatch.GetTimestamp();
-            while (await timer.WaitForNextTickAsync(token))
+            while (!token.IsCancellationRequested)
             {
-                var elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(last).TotalSeconds;
-                last = System.Diagnostics.Stopwatch.GetTimestamp();
-                try
+                if (Current.ShotClockActive)
                 {
-                    await InvokeAsync(() => ShotClockTick(elapsed, ++ticks % 30 == 0));
+                    await RunActiveShotClockAsync(token);
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException)
+                else if (!await _shotClockWake.WaitAsync(UntilNextMinute(), token))
                 {
-                    Logger.LogError(ex, "Shot clock tick failed.");
+                    await RefreshHeaderClockAsync();
                 }
             }
         }
@@ -1752,16 +1767,41 @@ else
         }
     }
 
-    private void ShotClockTick(double elapsedSeconds, bool refresh)
+    private async Task RunActiveShotClockAsync(CancellationToken token)
     {
-        if (SystemPower.IsShuttingDown)
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
+        var last = System.Diagnostics.Stopwatch.GetTimestamp();
+        while (Current.ShotClockActive && await timer.WaitForNextTickAsync(token))
         {
-            return;
+            var elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(last).TotalSeconds;
+            last = System.Diagnostics.Stopwatch.GetTimestamp();
+            try
+            {
+                await InvokeAsync(() => ShotClockTick(elapsed));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                Logger.LogError(ex, "Shot clock tick failed.");
+            }
         }
+    }
 
-        if (!Current.ShotClockActive)
+    private async Task RefreshHeaderClockAsync()
+    {
+        try
         {
-            if (refresh) StateHasChanged();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogError(ex, "Header clock refresh failed.");
+        }
+    }
+
+    private void ShotClockTick(double elapsedSeconds)
+    {
+        if (SystemPower.IsShuttingDown || !Current.ShotClockActive)
+        {
             return;
         }
 
