@@ -340,7 +340,7 @@
     width: clamp(3rem, 7vw, 6rem);
     height: clamp(3rem, 7vw, 6rem);
     will-change: opacity;
-    animation: score-ball-blink 2s steps(8, end) infinite;
+    animation: score-ball-blink 2s ease-in-out infinite;
 }
 
 @keyframes score-ball-blink {
