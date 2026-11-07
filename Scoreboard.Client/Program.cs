@@ -20,10 +20,11 @@ try
         builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
     }
 
-    step = "configuring logging";
+    step = "creating the logs folder";
     var logsFolder = Path.Combine(Directory.GetCurrentDirectory(), "logs");
-    TryCreateDirectory(logsFolder);
+    Directory.CreateDirectory(logsFolder);
 
+    step = "configuring logging";
     var logLevelSection = builder.Configuration.GetSection("Logging:LogLevel");
     var loggerConfig = new LoggerConfiguration()
         .MinimumLevel.Is(ParseLogLevel(logLevelSection["Default"]))
@@ -52,7 +53,7 @@ try
     var dbName = Path.Combine(folder, "scoreboard.db3");
 
     step = "creating the player photos folder";
-    TryCreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "PlayerSet"));
+    Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "PlayerSet"));
 
     step = "registering services";
     builder.Services.AddRazorComponents()
@@ -143,18 +144,6 @@ static bool IsReadableJson(string path)
     {
         Log.Error(ex, "{Path} cannot be read and is ignored; its settings are not applied", path);
         return false;
-    }
-}
-
-static void TryCreateDirectory(string path)
-{
-    try
-    {
-        Directory.CreateDirectory(path);
-    }
-    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-    {
-        Log.Error(ex, "Cannot create folder {Path} as user {User}; check its owner and permissions", path, Environment.UserName);
     }
 }
 
