@@ -48,26 +48,25 @@ public partial class RemotePullService(
             }
 
             var baseUrl = _options.BaseUrl.EndsWith('/') ? _options.BaseUrl : _options.BaseUrl + "/";
-            var http = httpClientFactory.CreateClient(nameof(RemotePullService));
-            http.BaseAddress = new Uri(baseUrl);
-            http.DefaultRequestHeaders.Add("X-Client-Id", _options.ClientId);
-            if (_options.TableNo > 0)
+            if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) || baseUri.Scheme is not ("http" or "https"))
             {
-                http.DefaultRequestHeaders.Add("X-Table-No", _options.TableNo.ToString());
+                LogPullInvalidBaseUrl(_options.BaseUrl);
+                return;
             }
 
-            http.DefaultRequestHeaders.Add("X-Client-Instance", await GetInstanceIdAsync(stoppingToken));
-
+            HttpClient? http = null;
             var interval = TimeSpan.FromSeconds(Math.Max(5, _options.PollSeconds));
             using var timer = new PeriodicTimer(interval);
             do
             {
                 try
                 {
+                    http ??= await CreateClientAsync(baseUri, stoppingToken);
                     await PullAsync(http, stoppingToken);
                 }
                 catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
                 {
+                    _resync = true;
                     LogPullTickFailed(ex);
                 }
             } while (await timer.WaitForNextTickAsync(stoppingToken));
@@ -79,6 +78,21 @@ public partial class RemotePullService(
         {
             LogPullStartFailed(ex);
         }
+    }
+
+    private async Task<HttpClient> CreateClientAsync(Uri baseUri, CancellationToken ct)
+    {
+        var instanceId = await GetInstanceIdAsync(ct);
+        var http = httpClientFactory.CreateClient(nameof(RemotePullService));
+        http.BaseAddress = baseUri;
+        http.DefaultRequestHeaders.Add("X-Client-Id", _options.ClientId);
+        if (_options.TableNo > 0)
+        {
+            http.DefaultRequestHeaders.Add("X-Table-No", _options.TableNo.ToString());
+        }
+
+        http.DefaultRequestHeaders.Add("X-Client-Instance", instanceId);
+        return http;
     }
 
     private async Task PullAsync(HttpClient http, CancellationToken ct)
@@ -594,6 +608,9 @@ public partial class RemotePullService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "RemotePull is enabled but RemoteSync:ClientId is empty - skipping remote data pull.")]
     private partial void LogPullNoClientId();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "RemotePull is enabled but RemoteSync:BaseUrl '{BaseUrl}' is not a valid http(s) URL - skipping remote data pull.")]
+    private partial void LogPullInvalidBaseUrl(string baseUrl);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Remote pull tick failed; will retry next interval.")]
     private partial void LogPullTickFailed(Exception ex);

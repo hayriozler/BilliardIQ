@@ -42,10 +42,7 @@ public partial class RemoteSyncService(
             }
             else
             {
-                http = httpClientFactory.CreateClient(nameof(RemoteSyncService));
-                http.BaseAddress = new Uri(_options.BaseUrl.EndsWith('/') ? _options.BaseUrl : _options.BaseUrl + "/");
-                http.DefaultRequestHeaders.Add("X-Client-Id", _options.ClientId);
-                http.DefaultRequestHeaders.Add("X-Table-No", _options.TableNo.ToString());
+                http = TryCreateClient();
             }
 
             var interval = TimeSpan.FromSeconds(Math.Max(5, http is null ? 300 : _options.PollSeconds));
@@ -68,6 +65,30 @@ public partial class RemoteSyncService(
         catch (Exception ex)
         {
             LogSyncStartFailed(ex);
+        }
+    }
+
+    private HttpClient? TryCreateClient()
+    {
+        var baseUrl = _options.BaseUrl.EndsWith('/') ? _options.BaseUrl : _options.BaseUrl + "/";
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) || baseUri.Scheme is not ("http" or "https"))
+        {
+            LogSyncInvalidBaseUrl(_options.BaseUrl);
+            return null;
+        }
+
+        try
+        {
+            var http = httpClientFactory.CreateClient(nameof(RemoteSyncService));
+            http.BaseAddress = baseUri;
+            http.DefaultRequestHeaders.Add("X-Client-Id", _options.ClientId);
+            http.DefaultRequestHeaders.Add("X-Table-No", _options.TableNo.ToString());
+            return http;
+        }
+        catch (FormatException ex)
+        {
+            LogSyncClientFailed(ex);
+            return null;
         }
     }
 
@@ -222,6 +243,12 @@ public partial class RemoteSyncService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "RemoteSync is enabled but RemoteSync:ClientId or RemoteSync:TableNo is not set - skipping match result push.")]
     private partial void LogSyncNoIdentity();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "RemoteSync is enabled but RemoteSync:BaseUrl '{BaseUrl}' is not a valid http(s) URL - skipping match result push.")]
+    private partial void LogSyncInvalidBaseUrl(string baseUrl);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "RemoteSync could not set up its HTTP client (check RemoteSync:ClientId) - skipping match result push.")]
+    private partial void LogSyncClientFailed(Exception ex);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Remote sync tick failed; will retry next interval.")]
     private partial void LogSyncTickFailed(Exception ex);
