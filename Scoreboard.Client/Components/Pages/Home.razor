@@ -821,22 +821,22 @@ else
         switch (key)
         {
             case { Length: 1 } when char.IsDigit(key[0]):
-                if (_targetBuffer.Length < 3)
+                if (_targetBuffer.Length < 2)
                 {
                     _targetBuffer += key;
                 }
 
                 break;
-            case "ArrowUp" or "+" or "=":
+            case "+" or "=":
                 NudgeTargetEntry(1);
                 break;
-            case "ArrowDown" or "-" or "_":
+            case "-" or "_":
                 NudgeTargetEntry(-1);
                 break;
-            case "ArrowLeft":
+            case "ArrowUp" or "ArrowLeft":
                 SwitchTargetEntrySlot(1);
                 break;
-            case "ArrowRight":
+            case "ArrowDown" or "ArrowRight":
                 SwitchTargetEntrySlot(2);
                 break;
             case "Escape":
@@ -1002,13 +1002,13 @@ else
     }
 
     private const int MinMatchTarget = 10;
-    private const int MaxMatchTarget = 100;
+    private const int MaxMatchTarget = 99;
     private int _matchInputKey;
 
     private void SetMatchTarget(int target) => Current.MatchTarget = Math.Clamp(target, MinMatchTarget, MaxMatchTarget);
 
     private const int MinHandicapTarget = 5;
-    private const int MaxHandicapTarget = 100;
+    private const int MaxHandicapTarget = 99;
 
     private void ToggleHandicap()
     {

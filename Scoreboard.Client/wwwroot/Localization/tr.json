@@ -37,5 +37,5 @@
   "Player2Default": "Oyuncu 2",
   "Language": "Dil",
   "HandicapShort": "HCP",
-  "TargetEntryHint": "Rakamları girin, Enter onaylar, . veya Del kapatır."
+  "TargetEntryHint": "Rakamları girin, ↑/↓ oyuncu değiştirir, Enter onaylar, . veya Del kapatır."
 }
