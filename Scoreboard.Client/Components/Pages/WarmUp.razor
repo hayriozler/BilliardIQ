@@ -188,9 +188,16 @@
 
     private async Task RequestFullscreenAsync()
     {
-        _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
-        await _kiosk.InvokeVoidAsync("requestFullscreen");
-        await board.FocusAsync();
+        try
+        {
+            _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
+            await _kiosk.InvokeVoidAsync("requestFullscreen");
+            await board.FocusAsync();
+        }
+        catch
+        {
+            await board.FocusAsync();
+        }
     }
 
     public async ValueTask DisposeAsync()

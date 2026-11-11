@@ -471,8 +471,12 @@ else
         if (_pickerScrollPending && _showPlayerPicker is not null)
         {
             _pickerScrollPending = false;
-            _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
-            await _kiosk.InvokeVoidAsync("scrollPickerActive");
+            try
+            {
+                _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
+                await _kiosk.InvokeVoidAsync("scrollPickerActive");
+            }
+            catch { }
         }
     }
 
@@ -580,7 +584,6 @@ else
         else Current = game;
         WakeShotClock();
         ResolvePlayers();
-        StateHasChanged();
     }
 
     private int DefaultPlayerId(int slot) =>
@@ -1720,16 +1723,23 @@ else
                 await _kiosk.InvokeVoidAsync("startFireworks", winner);
             }
         }
-        catch (Exception ex) when (ex is JSException or JSDisconnectedException or InvalidOperationException or TaskCanceledException)
+        catch
         {
         }
     }
 
     private async Task RequestFullscreenAsync()
     {
-        _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
-        await _kiosk.InvokeVoidAsync("requestFullscreen");
-        await board.FocusAsync();
+        try
+        {
+            _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
+            await _kiosk.InvokeVoidAsync("requestFullscreen");
+            await board.FocusAsync();
+        }
+        catch
+        {
+
+        }
     }
 
     private void WakeShotClock()

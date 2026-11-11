@@ -2,18 +2,18 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Scoreboard.WebApp.Components;
 using Scoreboard.WebApp.Data;
 using Scoreboard.WebApp.Endpoints;
 using Scoreboard.WebApp.Middlewares;
 using Scoreboard.WebApp.Security;
 using Scoreboard.WebApp.Services;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,7 +31,6 @@ builder.Services.AddDbContext<DataContext>(options =>
 });
 
 builder.Services.AddAppHealthChecks();
-
 builder.Services.AddSingleton<Loc>();
 builder.Services.AddSingleton<LoginThrottle>();
 builder.Services.AddSingleton<SessionRevalidator>();
