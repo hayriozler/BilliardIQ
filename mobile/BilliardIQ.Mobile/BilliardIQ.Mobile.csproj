@@ -23,7 +23,7 @@
 		<NoWarn>IL2026;CS0618;XA4301</NoWarn>
 		<!-- AOT compiler crashes on Windows with certain SDK versions (exit code -1073740791).
 		     Disabling AOT produces a working APK; startup is ~100ms slower but functionally identical. -->
-		<RunAOTCompilation Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">false</RunAOTCompilation>
+		<PublishReadyToRun Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">false</PublishReadyToRun>
 		<EmbedAssembliesIntoApk Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">true</EmbedAssembliesIntoApk>
 		<AndroidUseAssemblyStore Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">false</AndroidUseAssemblyStore>
 		<LangVersion>preview</LangVersion>
