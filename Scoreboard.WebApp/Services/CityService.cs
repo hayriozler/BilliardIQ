@@ -6,15 +6,14 @@ namespace Scoreboard.WebApp.Services;
 public class CityService(DataContext db)
 {
     public async Task<List<City>> ListAsync(int? countryId = null) =>
-        (await db.OrganizationCitySet
+        [.. (await db.OrganizationCitySet
             .AsNoTracking()
             .Include(x => x.City).ThenInclude(c => c.Country)
             .Where(x => x.DeletedAt == null && (countryId == null || x.City.CountryId == countryId))
             .Select(x => x.City)
             .ToListAsync())
         .Select(c => { CountryService.Localized(c.Country); return c; })
-        .OrderBy(c => c.Country.Name).ThenBy(c => c.Name)
-        .ToList();
+        .OrderBy(c => c.Country.Name).ThenBy(c => c.Name)];
 
     public async Task<List<City>> AvailableAsync(int countryId)
     {

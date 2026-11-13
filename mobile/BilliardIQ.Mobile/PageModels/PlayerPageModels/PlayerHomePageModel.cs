@@ -120,12 +120,12 @@ public partial class PlayerHomePageModel(ApiClient api, SessionStore session) : 
             Summary = stats.Summary;
 
             var ordered = stats.Matches.OrderByDescending(m => m.PlayedAt).ToList();
-            Matches = ordered.Select(ToItem).ToList();
+            Matches = [.. ordered.Select(ToItem)];
             HasMatches = Matches.Count > 0;
 
             var chronological = ordered.AsEnumerable().Reverse().ToList();
-            AverageDrawable.Values = chronological.Select(m => m.Average).ToList();
-            HighRunDrawable.Values = chronological.Select(m => (double)m.HighRun).ToList();
+            AverageDrawable.Values = [.. chronological.Select(m => m.Average)];
+            HighRunDrawable.Values = [.. chronological.Select(m => (double)m.HighRun)];
             HasTrend = chronological.Count >= 2;
             ChartUpdated?.Invoke();
         }

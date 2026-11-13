@@ -10,5 +10,6 @@
     <Deploy Solution="Debug|*" />
   </Project>
   <Project Path="Scoreboard.Client/Scoreboard.Client.csproj" />
+  <Project Path="Scoreboard.Common/Scoreboard.Common.csproj" />
   <Project Path="Scoreboard.WebApp/Scoreboard.WebApp.csproj" />
 </Solution>

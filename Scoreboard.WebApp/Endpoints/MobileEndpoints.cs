@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
 using Scoreboard.Common;
-using Scoreboard.WebApp.Data;
 using Scoreboard.WebApp.Security;
 using Scoreboard.WebApp.Services;
 

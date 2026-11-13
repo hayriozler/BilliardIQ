@@ -82,7 +82,7 @@ public static class MobileProfileEndpoints
 
         var avatars = app.MapGroup("/api/mobile/avatars").WithTags("MobileProfile");
 
-        avatars.MapGet("/count", () => Results.Ok(new { count = Scoreboard.Common.AvatarGenerator.Count }))
+        avatars.MapGet("/count", () => Results.Ok(new { count = Common.AvatarGenerator.Count }))
             .RequireAuthorization(JwtSettings.MobileAnyPolicy);
 
         return app;

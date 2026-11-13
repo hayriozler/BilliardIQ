@@ -157,7 +157,7 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
         return player;
     }
 
-    private const int MaxPhotoBytes = 5 * 1024 * 1024;
+    private const int _maxPhotoBytes = 5 * 1024 * 1024;
 
     private static string? DetectImageExtension(byte[] bytes) => bytes switch
     {
@@ -190,7 +190,7 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             return;
         }
 
-        if (photoBase64.Length > MaxPhotoBytes / 3 * 4 + 4)
+        if (photoBase64.Length > _maxPhotoBytes / 3 * 4 + 4)
         {
             throw new ArgumentException("Fotoğraf en fazla 5 MB olabilir.");
         }
@@ -205,7 +205,7 @@ public class PlayerService(DataContext db, IWebHostEnvironment env)
             throw new ArgumentException("Geçersiz fotoğraf verisi.");
         }
 
-        if (bytes.Length > MaxPhotoBytes)
+        if (bytes.Length > _maxPhotoBytes)
         {
             throw new ArgumentException("Fotoğraf en fazla 5 MB olabilir.");
         }

@@ -1,5 +1,5 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
 
 namespace Scoreboard.WebApp.Security;
 
@@ -70,9 +70,24 @@ public static class AuthClaims
         user.IsInRole(nameof(StaffRole.Owner)) || user.IsInRole(nameof(StaffRole.Manager));
 }
 
-public class TenantContext(AuthenticationStateProvider authState)
+public class TenantContext : IDisposable
 {
+    private readonly AuthenticationStateProvider _authState;
     private Tenant? _tenant;
+
+    public TenantContext(AuthenticationStateProvider authState)
+    {
+        this._authState = authState;
+        authState.AuthenticationStateChanged += OnAuthenticationStateChanged;
+    }
+
+    private void OnAuthenticationStateChanged(Task<AuthenticationState> task) => _tenant = null;
+
+    public void Dispose()
+    {
+        _authState.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        GC.SuppressFinalize(this);
+    }
 
     public async Task<Tenant> GetAsync()
     {
@@ -81,7 +96,7 @@ public class TenantContext(AuthenticationStateProvider authState)
             return _tenant;
         }
 
-        var user = (await authState.GetAuthenticationStateAsync()).User;
+        var user = (await _authState.GetAuthenticationStateAsync()).User;
         var staffId = user.FindFirst(AuthClaims.StaffMemberId) is not null ? user.GetStaffMemberId() : 0;
         return _tenant = new Tenant(user.GetOrganizationId(), staffId, user.GetUserId(), user.CanManage(), user.Identity?.Name ?? "", user.IsInRole(nameof(StaffRole.Owner)));
     }

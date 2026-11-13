@@ -51,11 +51,11 @@ public class TeamRepository(DatabaseExecutor dbExecutor) : BaseRepo
     {
         var rows = await dbExecutor.ReadDataAsync<TeamRow>("SELECT Id, RemoteId, Name FROM Teams ORDER BY Id");
 
-        return rows.Select(r => new ScoreboardTeam
+        return [.. rows.Select(r => new ScoreboardTeam
         {
             Id = r.Id,
             RemoteId = r.RemoteId == 0 ? null : r.RemoteId,
             Name = r.Name,
-        }).ToList();
+        })];
     }
 }

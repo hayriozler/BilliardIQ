@@ -55,9 +55,7 @@ public class PricingService(DataContext db)
 
         rule.Name = name;
         rule.DefaultHourlyRate = hourlyRate;
-        rule.TimeSlots = slotList
-            .Select(s => new PricingTimeSlot { DaysOfWeek = [.. s.DaysOfWeek], From = s.From, To = s.To, HourlyRate = s.HourlyRate })
-            .ToList();
+        rule.TimeSlots = [.. slotList.Select(s => new PricingTimeSlot { DaysOfWeek = [.. s.DaysOfWeek], From = s.From, To = s.To, HourlyRate = s.HourlyRate })];
         await db.SaveChangesAsync();
         return rule;
     }

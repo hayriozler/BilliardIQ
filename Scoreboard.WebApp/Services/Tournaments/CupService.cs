@@ -425,8 +425,7 @@ public class CupService(DataContext db)
     }
 
     private async Task<List<RuleBlockInput>> BlocksAsync(int cupId) =>
-        (await db.CupRuleBlockSet.Where(b => b.CupId == cupId).ToListAsync())
-            .Select(b => new RuleBlockInput(b.FromRound, b.ToRound, b.Mode, b.FixedTarget)).ToList();
+        [.. (await db.CupRuleBlockSet.Where(b => b.CupId == cupId).ToListAsync()).Select(b => new RuleBlockInput(b.FromRound, b.ToRound, b.Mode, b.FixedTarget))];
 
     private static Task CompleteIfDoneAsync(Cup cup, List<CupMatch> all)
     {

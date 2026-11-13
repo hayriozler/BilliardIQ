@@ -1,7 +1,6 @@
 @page "/account"
 @attribute [Authorize(Policy = AuthClaims.PlayerAccountPolicy)]
 @inject ScopedRunner Db
-@inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 
 <PageTitle>@L["Hesabım"] • BilliardIQ</PageTitle>
@@ -102,6 +101,8 @@ else
     private string? _error;
     private bool _saved;
     private bool _busy;
+    [CascadingParameter] private Task<AuthenticationState> AuthTask { get; set; } = default!;
+
     private bool _mustChange;
     private bool _removePhoto;
     private int _playerId;
@@ -117,7 +118,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        var user = (await AuthTask).User;
         _playerId = user.GetPlayerId();
         _userId = user.GetUserId();
         _mustChange = user.MustChangePassword();

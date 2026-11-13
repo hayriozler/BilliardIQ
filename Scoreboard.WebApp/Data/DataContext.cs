@@ -4,14 +4,9 @@ using Scoreboard.WebApp.Services;
 
 namespace Scoreboard.WebApp.Data;
 
-public class DataContext : DbContext
+public class DataContext(DbContextOptions<DataContext> options, IOrganizationService organizationService) : DbContext(options)
 {
-    private readonly int? _organizationId;
-
-    public DataContext(DbContextOptions<DataContext> options, IOrganizationService organizationService) : base(options)
-    {
-        _organizationId = organizationService.GetCurrentOrganizationId();
-    }
+    private readonly int? _organizationId = organizationService.GetCurrentOrganizationId();
 
     public int CurrentOrganizationId => _organizationId ?? throw new InvalidOperationException("No organization for this request.");
 
@@ -409,9 +404,9 @@ public class DataContext : DbContext
 
         using var transaction = Database.CurrentTransaction is null ? Database.BeginTransaction() : null;
         var result = base.SaveChanges(acceptAllChangesOnSuccess);
-        foreach (var change in ResolveChanges(pending))
+        foreach (var (OrganizationId, Entity, Id, Deleted) in ResolveChanges(pending))
         {
-            Database.ExecuteSqlInterpolated(EntityChangeSql.Upsert(change.OrganizationId, change.Entity, change.Id, change.Deleted));
+            Database.ExecuteSqlInterpolated(EntityChangeSql.Upsert(OrganizationId, Entity, Id, Deleted));
         }
 
         transaction?.Commit();
@@ -429,9 +424,9 @@ public class DataContext : DbContext
 
         await using var transaction = Database.CurrentTransaction is null ? await Database.BeginTransactionAsync(cancellationToken) : null;
         var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-        foreach (var change in ResolveChanges(pending))
+        foreach (var (OrganizationId, Entity, Id, Deleted) in ResolveChanges(pending))
         {
-            await Database.ExecuteSqlInterpolatedAsync(EntityChangeSql.Upsert(change.OrganizationId, change.Entity, change.Id, change.Deleted), cancellationToken);
+            await Database.ExecuteSqlInterpolatedAsync(EntityChangeSql.Upsert(OrganizationId, Entity, Id, Deleted), cancellationToken);
         }
 
         if (transaction is not null)
@@ -490,7 +485,7 @@ public class DataContext : DbContext
             }
         }
 
-        return resolved.Select(r => (r.Key.Item1, r.Key.Item2, r.Key.Item3, r.Value)).ToList();
+        return [.. resolved.Select(r => (r.Key.Item1, r.Key.Item2, r.Key.Item3, r.Value))];
     }
 
     private void StampAudit()

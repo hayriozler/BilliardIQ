@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - Scoreboard.WebApp/**
+      - Scoreboard.Common/**
       - docker-compose.prod.yml
       - .github/workflows/deploy.yml
   workflow_dispatch:
@@ -49,7 +50,7 @@ jobs:
       - name: Build & push webapp
         uses: docker/build-push-action@v5
         with:
-          context: Scoreboard.WebApp
+          context: .
           file: Scoreboard.WebApp/Dockerfile
           push: true
           tags: |

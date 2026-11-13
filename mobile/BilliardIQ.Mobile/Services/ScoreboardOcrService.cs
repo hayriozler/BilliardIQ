@@ -282,10 +282,9 @@ public partial class ScoreboardOcrService
     }
 
     private static List<int> AllInts(string text) =>
-        IntTokenRegex().Matches(text)
+        [.. IntTokenRegex().Matches(text)
             .Select(m => int.Parse(m.Value))
-            .Where(n => n is >= 0 and <= 999)
-            .ToList();
+            .Where(n => n is >= 0 and <= 999)];
 
     // 3-cushion targets: typically 15–60, always ≤ 99
     private static bool IsPlausibleTarget(int n) => n is >= 10 and <= 99;

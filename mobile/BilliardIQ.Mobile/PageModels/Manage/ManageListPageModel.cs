@@ -95,7 +95,7 @@ public partial class ManageListPageModel(ApiClient api, AvatarImageService avata
                 ManageKind.Tables => (await api.GetAsync<List<ManageTableDto>>("api/mobile/manage/tables")).Select(ToRow).ToList(),
                 ManageKind.Players => await Task.WhenAll((await api.GetAsync<List<ManagePlayerDto>>("api/mobile/manage/players")).Select(ToRowAsync)),
                 ManageKind.Teams => await Task.WhenAll((await api.GetAsync<List<ManageTeamDto>>("api/mobile/manage/teams")).Select(ToRowAsync)),
-                _ => (await api.GetAsync<List<ManageClubDto>>("api/mobile/manage/clubs")).Select(ToRow).ToList()
+                _ => [.. (await api.GetAsync<List<ManageClubDto>>("api/mobile/manage/clubs")).Select(ToRow)]
             };
         }
         catch (Exception ex) when (ApiErrorText.IsExpected(ex))

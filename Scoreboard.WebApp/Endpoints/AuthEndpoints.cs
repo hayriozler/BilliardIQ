@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Authentication;
-using System.Net;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Scoreboard.WebApp.Security;
 using Scoreboard.WebApp.Services;
+using System.Net;
 
 namespace Scoreboard.WebApp.Endpoints;
 
@@ -33,7 +33,7 @@ public static class AuthEndpoints
 
             if (memberships.Count > 1)
             {
-                context.Response.Cookies.Append(PickCookie, PickProtector(dataProtection).Protect(user.Id.ToString(), TimeSpan.FromMinutes(10)),
+                context.Response.Cookies.Append(_pickCookie, PickProtector(dataProtection).Protect(user.Id.ToString(), TimeSpan.FromMinutes(10)),
                     new CookieOptions { HttpOnly = true, IsEssential = true, Path = "/", SameSite = SameSiteMode.Lax, MaxAge = TimeSpan.FromMinutes(10) });
                 return Results.Redirect("/login/organization" + (IsLocal(returnUrl) ? $"?returnUrl={Uri.EscapeDataString(returnUrl!)}" : ""));
             }
@@ -82,7 +82,7 @@ public static class AuthEndpoints
                 return Results.Redirect("/login/organization");
             }
 
-            context.Response.Cookies.Delete(PickCookie);
+            context.Response.Cookies.Delete(_pickCookie);
             await SignInAsync(context, result);
             return Results.LocalRedirect(IsLocal(returnUrl) ? returnUrl! : "/");
         }).DisableAntiforgery().RequireRateLimiting(RateLimitPolicies.Credentials);
@@ -124,7 +124,7 @@ public static class AuthEndpoints
         return app;
     }
 
-    private const string PickCookie = "bq_pick";
+    private const string _pickCookie = "bq_pick";
 
     private static ITimeLimitedDataProtector PickProtector(IDataProtectionProvider provider) =>
         provider.CreateProtector("BilliardIQ.LoginOrganizationPicker").ToTimeLimitedDataProtector();
@@ -133,7 +133,7 @@ public static class AuthEndpoints
     {
         try
         {
-            return context.Request.Cookies[PickCookie] is { Length: > 0 } value && int.TryParse(PickProtector(provider).Unprotect(value), out var id) ? id : null;
+            return context.Request.Cookies[_pickCookie] is { Length: > 0 } value && int.TryParse(PickProtector(provider).Unprotect(value), out var id) ? id : null;
         }
         catch (System.Security.Cryptography.CryptographicException)
         {

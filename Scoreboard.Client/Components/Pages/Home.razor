@@ -27,7 +27,7 @@
 }
 else
 {
-<div @ref="board" class="board" tabindex="0" @onkeydown="HandleKeyDown" @onkeydown:preventDefault="PreventBoardKeyDefault" @onkeyup="HandleKeyUp" @onclick="RequestFullscreenAsync">
+<div @ref="_board" class="board" tabindex="0" @onkeydown="HandleKeyDown" @onkeydown:preventDefault="PreventBoardKeyDefault" @onkeyup="HandleKeyUp" @onclick="RequestFullscreenAsync">
 
     <header class="board-header">
         <div class="header-clock">@Clock.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)</div>
@@ -57,7 +57,7 @@ else
     </header>
 
     <main class="scores">
-        <section class="player-panel @(Current.ActivePlayer == 1 ? "active-white" : "")" data-slot="1">
+        <section class="player-panel @(_current.ActivePlayer == 1 ? "active-white" : "")" data-slot="1">
             <div class="player-name-bar">
                 <div class="player-name-content">
                     <span>@GetHeaderLabel(1)</span>
@@ -82,13 +82,13 @@ else
                 </div>
             }
             <div class="score-wrap">
-                <div class="player-score">@Current.Player1Score</div>
-                @if (Current.ActivePlayer == 1)
+                <div class="player-score">@_current.Player1Score</div>
+                @if (_current.ActivePlayer == 1)
                 {
                     <span class="ball white score-ball" aria-hidden="true"></span>
                 }
             </div>
-            @if ((Current.IsHandicap || Current.ActivePlayer == 1) && PointsToGo(1) is int nog1)
+            @if ((_current.IsHandicap || _current.ActivePlayer == 1) && PointsToGo(1) is int nog1)
             {
                 <div class="nog-indicator nog-p1">@string.Format(L.T("PointsToGo"), nog1)</div>
             }
@@ -96,23 +96,23 @@ else
 
         <section class="center-panel">
                 <div class="center-row">
-                    <span class="center-label current-points-label @(Current.ActivePlayer == 1 ? "active-player-white" : "active-player-yellow")">
-                        @Current.CurrentPoints
+                    <span class="center-label current-points-label @(_current.ActivePlayer == 1 ? "active-player-white" : "active-player-yellow")">
+                        @_current.CurrentPoints
                     </span>
                 </div>
             <div class="center-divider"></div>
             <div class="center-row">
                 <span class="center-label">@L.T("Inning")</span>
-                <span class="center-value inning">@Current.Inning</span>
+                <span class="center-value inning">@_current.Inning</span>
             </div>
             <div class="center-divider"></div>
             <div class="center-row">
                 <span class="center-label">@L.T("ShotClock")</span>
-                <span class="center-value @(Current.ShotClockActive && Current.ShotClockRemaining <= 10 ? "urgent" : "")">@ShotClockDisplaySeconds</span>
+                <span class="center-value @(_current.ShotClockActive && _current.ShotClockRemaining <= 10 ? "urgent" : "")">@ShotClockDisplaySeconds</span>
             </div>
         </section>
 
-        <section class="player-panel @(Current.ActivePlayer == 2 ? "active-yellow" : "")" data-slot="2">
+        <section class="player-panel @(_current.ActivePlayer == 2 ? "active-yellow" : "")" data-slot="2">
             <div class="player-name-bar">
                 <div class="player-name-content">
                     <span>@GetHeaderLabel(2)</span>
@@ -137,13 +137,13 @@ else
                 </div>
             }
             <div class="score-wrap">
-                <div class="player-score yellow">@Current.Player2Score</div>
-                @if (Current.ActivePlayer == 2)
+                <div class="player-score yellow">@_current.Player2Score</div>
+                @if (_current.ActivePlayer == 2)
                 {
                     <span class="ball yellow score-ball" aria-hidden="true"></span>
                 }
             </div>
-            @if ((Current.IsHandicap || Current.ActivePlayer == 2) && PointsToGo(2) is int nog2)
+            @if ((_current.IsHandicap || _current.ActivePlayer == 2) && PointsToGo(2) is int nog2)
             {
                 <div class="nog-indicator nog-p2">@string.Format(L.T("PointsToGo"), nog2)</div>
             }
@@ -154,41 +154,41 @@ else
         <div class="stat-group">
             <div class="stat">
                 <span class="stat-label">@L.T("Player1Avg")</span>
-                <span class="stat-value">@Current.Player1Avg.ToString("0.000")</span>
+                <span class="stat-value">@_current.Player1Avg.ToString("0.000")</span>
             </div>
             <div class="stat">
                 <span class="stat-label">@L.T("HighRun")</span>
-                <span class="stat-value">@Current.Player1HighRun</span>
+                <span class="stat-value">@_current.Player1HighRun</span>
             </div>
         </div>
         <div class="stat-group">
             <div class="stat">
-                <span class="stat-label">@L.T("Match")@if (Current.IsHandicap){<span class="hcp-badge">@L.T("HandicapShort")</span>}</span>
-                @if (Current.IsHandicap)
+                <span class="stat-label">@L.T("Match")@if (_current.IsHandicap){<span class="hcp-badge">@L.T("HandicapShort")</span>}</span>
+                @if (_current.IsHandicap)
                 {
                     <span class="stat-value current handicap-targets">
-                        <span>@Current.Player1Target</span><span class="handicap-divider"></span><span>@Current.Player2Target</span>
+                        <span>@_current.Player1Target</span><span class="handicap-divider"></span><span>@_current.Player2Target</span>
                     </span>
                 }
                 else
                 {
-                    <span class="stat-value current">@Current.MatchTarget</span>
+                    <span class="stat-value current">@_current.MatchTarget</span>
                 }
             </div>
         </div>
         <div class="stat-group">
             <div class="stat">
                 <span class="stat-label">@L.T("Player2Avg")</span>
-                <span class="stat-value">@Current.Player2Avg.ToString("0.000")</span>
+                <span class="stat-value">@_current.Player2Avg.ToString("0.000")</span>
             </div>
             <div class="stat">
                 <span class="stat-label">@L.T("HighRun")</span>
-                <span class="stat-value">@Current.Player2HighRun</span>
+                <span class="stat-value">@_current.Player2HighRun</span>
             </div>
         </div>
     </footer>
 
-    <div class="shot-clock @(Current.ShotClockActive ? "active" : "") @(Current.ShotClockActive && Current.ShotClockRemaining <= 10 ? "urgent" : "")">
+    <div class="shot-clock @(_current.ShotClockActive ? "active" : "") @(_current.ShotClockActive && _current.ShotClockRemaining <= 10 ? "urgent" : "")">
         <div class="shot-clock-bar" style="transform:scaleX(@((ShotClockPercent / 100).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)))"></div>
     </div>
 
@@ -326,7 +326,7 @@ else
         ? ""
         : version.Build > 0 ? $"v{version.Major}.{version.Minor}.{version.Build}" : $"v{version.Major}.{version.Minor}";
     private IJSObjectReference? _kiosk;
-    private ElementReference board;
+    private ElementReference _board;
     private ElementReference _versionLanguageSelect;
     private readonly CancellationTokenSource _shotClockCts = new();
     private readonly SemaphoreSlim _shotClockWake = new(0);
@@ -451,7 +451,7 @@ else
         DispatchAsync(slot == 1 ? ScoreboardCommand.SelectRosterPlayer1 : ScoreboardCommand.SelectRosterPlayer2, playerId);
     private bool _showWarmupPicker;
 
-    private ScoreboardState Current = new();
+    private ScoreboardState _current = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -463,7 +463,7 @@ else
         var dialogOpen = AnyDialogOpen;
         if ((firstRender || dialogOpen && !_dialogWasOpen) && !_boardOccupiedElsewhere)
         {
-            await board.FocusAsync();
+            await _board.FocusAsync();
         }
 
         _dialogWasOpen = dialogOpen;
@@ -579,9 +579,9 @@ else
             };
             DbContext.ScoreboardStateSet.Add(saved);
             await DbContext.SaveChangesAsync();
-            Current= saved;
+            _current= saved;
         }
-        else Current = game;
+        else _current = game;
         WakeShotClock();
         ResolvePlayers();
     }
@@ -595,19 +595,19 @@ else
 
     private void ResolvePlayers()
     {
-        _resolvedPlayer1 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == Current.Player1Id);
-        _resolvedPlayer2 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == Current.Player2Id);
+        _resolvedPlayer1 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == _current.Player1Id);
+        _resolvedPlayer2 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == _current.Player2Id);
 
         if (_resolvedPlayer1 is null)
         {
-            Current.Player1Id = DefaultPlayerId(1);
-            _resolvedPlayer1 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == Current.Player1Id);
+            _current.Player1Id = DefaultPlayerId(1);
+            _resolvedPlayer1 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == _current.Player1Id);
         }
 
         if (_resolvedPlayer2 is null)
         {
-            Current.Player2Id = DefaultPlayerId(2);
-            _resolvedPlayer2 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == Current.Player2Id);
+            _current.Player2Id = DefaultPlayerId(2);
+            _resolvedPlayer2 = DbContext.PlayerSet.AsNoTracking().FirstOrDefault(p => p.Id == _current.Player2Id);
         }
 
         _resolvedTeam1 = _resolvedPlayer1?.TeamId is int teamId1 ? DbContext.TeamSet.AsNoTracking().FirstOrDefault(t => t.Id == teamId1) : null;
@@ -639,7 +639,7 @@ else
             return PlayerDisplayNameResolver.Resolve(resolved, L);
         }
 
-        var manual = slot == 1 ? Current.Player1Name : Current.Player2Name;
+        var manual = slot == 1 ? _current.Player1Name : _current.Player2Name;
         return string.IsNullOrWhiteSpace(manual) ? L.T(slot == 1 ? "Player1Label" : "Player2Label") : manual;
     }
 
@@ -687,7 +687,7 @@ else
     {
         LoadRoster();
         _pickerBuffer = "";
-        var currentId = slot == 1 ? Current.Player1Id : Current.Player2Id;
+        var currentId = slot == 1 ? _current.Player1Id : _current.Player2Id;
         var currentIndex = _rosterPlayers.FindIndex(p => p.Id == currentId);
         _pickerIndex = Math.Max(currentIndex, 0);
         _pickerScrollPending = true;
@@ -795,8 +795,8 @@ else
     {
         _targetEntrySlot = 1;
         _targetBuffer = "";
-        _targetPlayer1Value = Current.IsHandicap ? Current.Player1Target : Current.MatchTarget;
-        _targetPlayer2Value = Current.IsHandicap ? Current.Player2Target : Current.MatchTarget;
+        _targetPlayer1Value = _current.IsHandicap ? _current.Player1Target : _current.MatchTarget;
+        _targetPlayer2Value = _current.IsHandicap ? _current.Player2Target : _current.MatchTarget;
         StateHasChanged();
     }
 
@@ -911,13 +911,13 @@ else
         }
 
         _targetPlayer2Value = clamped;
-        var player1Target = Math.Clamp(_targetPlayer1Value ?? Current.Player1Target, MinHandicapTarget, MaxHandicapTarget);
-        var player2Target = Math.Clamp(_targetPlayer2Value ?? Current.Player2Target, MinHandicapTarget, MaxHandicapTarget);
+        var player1Target = Math.Clamp(_targetPlayer1Value ?? _current.Player1Target, MinHandicapTarget, MaxHandicapTarget);
+        var player2Target = Math.Clamp(_targetPlayer2Value ?? _current.Player2Target, MinHandicapTarget, MaxHandicapTarget);
         var enableHandicap = player1Target != player2Target;
 
         if (enableHandicap)
         {
-            if (!Current.IsHandicap)
+            if (!_current.IsHandicap)
             {
                 await DispatchAsync(ScoreboardCommand.ToggleHandicap);
             }
@@ -928,7 +928,7 @@ else
         else
         {
             await DispatchAsync(ScoreboardCommand.SetMatchTarget, Math.Clamp(player1Target, MinMatchTarget, MaxMatchTarget));
-            if (Current.IsHandicap)
+            if (_current.IsHandicap)
             {
                 await DispatchAsync(ScoreboardCommand.ToggleHandicap);
             }
@@ -941,7 +941,7 @@ else
     }
 
     private bool IsTakenByOtherSide(int slot, int playerId) =>
-        playerId == (slot == 1 ? Current.Player2Id : Current.Player1Id);
+        playerId == (slot == 1 ? _current.Player2Id : _current.Player1Id);
 
     private void SelectRosterPlayer(int slot, int playerId)
     {
@@ -951,7 +951,7 @@ else
             return;
         }
 
-        if (slot == 1) Current.Player1Id = playerId; else Current.Player2Id = playerId;
+        if (slot == 1) _current.Player1Id = playerId; else _current.Player2Id = playerId;
         ResolvePlayers();
         _showPlayerPicker = null;
     }
@@ -972,7 +972,7 @@ else
 
     private void ClearRosterPlayer(int slot)
     {
-        if (slot == 1) Current.Player1Id = DefaultPlayerId(1); else Current.Player2Id = DefaultPlayerId(2);
+        if (slot == 1) _current.Player1Id = DefaultPlayerId(1); else _current.Player2Id = DefaultPlayerId(2);
         ResolvePlayers();
         _showPlayerPicker = null;
     }
@@ -996,11 +996,11 @@ else
 
         if (slot == 1)
         {
-            Current.Player1Name = name ?? "";
+            _current.Player1Name = name ?? "";
         }
         else
         {
-            Current.Player2Name = name ?? "";
+            _current.Player2Name = name ?? "";
         }
     }
 
@@ -1008,17 +1008,17 @@ else
     private const int MaxMatchTarget = 99;
     private int _matchInputKey;
 
-    private void SetMatchTarget(int target) => Current.MatchTarget = Math.Clamp(target, MinMatchTarget, MaxMatchTarget);
+    private void SetMatchTarget(int target) => _current.MatchTarget = Math.Clamp(target, MinMatchTarget, MaxMatchTarget);
 
     private const int MinHandicapTarget = 5;
     private const int MaxHandicapTarget = 99;
 
     private void ToggleHandicap()
     {
-        Current.IsHandicap = !Current.IsHandicap;
-        if (Current.IsHandicap && Current.Player1Target == 0 && Current.Player2Target == 0)
+        _current.IsHandicap = !_current.IsHandicap;
+        if (_current.IsHandicap && _current.Player1Target == 0 && _current.Player2Target == 0)
         {
-            Current.Player1Target = Current.Player2Target = Math.Clamp(Current.MatchTarget, MinHandicapTarget, MaxHandicapTarget);
+            _current.Player1Target = _current.Player2Target = Math.Clamp(_current.MatchTarget, MinHandicapTarget, MaxHandicapTarget);
         }
 
         _matchInputKey++;
@@ -1029,54 +1029,54 @@ else
         var clamped = Math.Clamp(target, MinHandicapTarget, MaxHandicapTarget);
         if (slot == 1)
         {
-            Current.Player1Target = clamped;
+            _current.Player1Target = clamped;
         }
         else
         {
-            Current.Player2Target = clamped;
+            _current.Player2Target = clamped;
         }
     }
 
     private int TargetOf(int slot) =>
-        Current.IsHandicap ? (slot == 1 ? Current.Player1Target : Current.Player2Target) : Current.MatchTarget;
+        _current.IsHandicap ? (slot == 1 ? _current.Player1Target : _current.Player2Target) : _current.MatchTarget;
 
-    private int ScoreOf(int slot) => slot == 1 ? Current.Player1Score : Current.Player2Score;
+    private int ScoreOf(int slot) => slot == 1 ? _current.Player1Score : _current.Player2Score;
 
     private bool ReachedTarget(int slot) => TargetOf(slot) > 0 && ScoreOf(slot) >= TargetOf(slot);
 
-    private bool TargetReached => Current.IsHandicap
+    private bool TargetReached => _current.IsHandicap
         ? ReachedTarget(1) || ReachedTarget(2)
-        : Current.MatchTarget > 0 && Math.Max(Current.Player1Score, Current.Player2Score) >= Current.MatchTarget;
+        : _current.MatchTarget > 0 && Math.Max(_current.Player1Score, _current.Player2Score) >= _current.MatchTarget;
 
     private double TargetProgress(int slot) => TargetOf(slot) > 0 ? (double)ScoreOf(slot) / TargetOf(slot) : 0;
 
     private bool _showMatchEnd;
 
-    private int MatchLeaderSlot => Current.IsHandicap
+    private int MatchLeaderSlot => _current.IsHandicap
         ? (ReachedTarget(1) && !ReachedTarget(2) ? 1 : ReachedTarget(2) && !ReachedTarget(1) ? 2 : TargetProgress(1) >= TargetProgress(2) ? 1 : 2)
-        : Current.Player1Score >= Current.Player2Score ? 1 : 2;
+        : _current.Player1Score >= _current.Player2Score ? 1 : 2;
 
     private int ExtendedTargetOf(int slot, int extraPoints) =>
         Math.Max(TargetOf(slot), ScoreOf(slot)) + extraPoints;
 
     private int ExtendedTarget(int extraPoints) =>
-        Math.Max(Current.MatchTarget, Math.Max(Current.Player1Score, Current.Player2Score)) + extraPoints;
+        Math.Max(_current.MatchTarget, Math.Max(_current.Player1Score, _current.Player2Score)) + extraPoints;
 
-    private string ExtendedLabel(int extraPoints) => Current.IsHandicap
+    private string ExtendedLabel(int extraPoints) => _current.IsHandicap
         ? $"{ExtendedTargetOf(1, extraPoints)} │ {ExtendedTargetOf(2, extraPoints)}"
         : ExtendedTarget(extraPoints).ToString();
 
     private void ExtendMatch(int extraPoints)
     {
-        if (Current.IsHandicap)
+        if (_current.IsHandicap)
         {
             var player1Target = ExtendedTargetOf(1, extraPoints);
-            Current.Player2Target = ExtendedTargetOf(2, extraPoints);
-            Current.Player1Target = player1Target;
+            _current.Player2Target = ExtendedTargetOf(2, extraPoints);
+            _current.Player1Target = player1Target;
         }
         else
         {
-            Current.MatchTarget = ExtendedTarget(extraPoints);
+            _current.MatchTarget = ExtendedTarget(extraPoints);
         }
 
         _showMatchEnd = false;
@@ -1084,7 +1084,7 @@ else
 
     private int DetermineWinner()
     {
-        if (Current.IsHandicap)
+        if (_current.IsHandicap)
         {
             if (ReachedTarget(1) != ReachedTarget(2))
             {
@@ -1094,23 +1094,23 @@ else
             return TargetProgress(1) > TargetProgress(2) ? 1 : TargetProgress(2) > TargetProgress(1) ? 2 : 0;
         }
 
-        return Current.Player1Score > Current.Player2Score ? 1
-            : Current.Player2Score > Current.Player1Score ? 2
+        return _current.Player1Score > _current.Player2Score ? 1
+            : _current.Player2Score > _current.Player1Score ? 2
             : 0;
     }
 
-    private void StopShotClock() => Current.ShotClockActive = false;
+    private void StopShotClock() => _current.ShotClockActive = false;
 
     private void StartShotClock()
     {
-        Current.ShotClockActive = true;
+        _current.ShotClockActive = true;
         WakeShotClock();
     }
 
     private void ResetShotClock()
     {
-        Current.ShotClockRemaining = Current.ShotClockSeconds;
-        Current.ShotClockActive = false;
+        _current.ShotClockRemaining = _current.ShotClockSeconds;
+        _current.ShotClockActive = false;
     }
 
     private void UpdateDefaultPlayers()
@@ -1129,43 +1129,43 @@ else
         return remaining is > 0 and <= PointsToGoThreshold ? remaining : null;
     }
 
-    private double ShotClockPercent => Current?.ShotClockSeconds > 0
-        ? Math.Clamp(Current.ShotClockRemaining / Current.ShotClockSeconds * 100, 0, 100)
+    private double ShotClockPercent => _current?.ShotClockSeconds > 0
+        ? Math.Clamp(_current.ShotClockRemaining / _current.ShotClockSeconds * 100, 0, 100)
         : 0;
 
-    private int ShotClockDisplaySeconds => (int)Math.Ceiling(Current?.ShotClockRemaining ?? 0);
+    private int ShotClockDisplaySeconds => (int)Math.Ceiling(_current?.ShotClockRemaining ?? 0);
 
     private void RecalculateAverages()
     {
-        var player1Turns = Current.ActivePlayer == 2 ? Current.Inning : Current.Inning - 1;
-        var player2Turns = Current.Inning - 1;
-        Current.Player1Avg = player1Turns > 0 ? (double)Current.Player1Score / player1Turns : 0;
-        Current.Player2Avg = player2Turns > 0 ? (double)Current.Player2Score / player2Turns : 0;
+        var player1Turns = _current.ActivePlayer == 2 ? _current.Inning : _current.Inning - 1;
+        var player2Turns = _current.Inning - 1;
+        _current.Player1Avg = player1Turns > 0 ? (double)_current.Player1Score / player1Turns : 0;
+        _current.Player2Avg = player2Turns > 0 ? (double)_current.Player2Score / player2Turns : 0;
     }
 
     private void CommitCurrentPoints()
     {
-        var points = Current.CurrentPoints;
-        var scoringSlot = Current.ActivePlayer;
+        var points = _current.CurrentPoints;
+        var scoringSlot = _current.ActivePlayer;
 
-        if (Current.ActivePlayer == 1)
+        if (_current.ActivePlayer == 1)
         {
-            Current.Player1Score += points;
-            Current.Player1HighRun = Math.Max(Current.Player1HighRun, points);
-            Current.ActivePlayer = 2;
+            _current.Player1Score += points;
+            _current.Player1HighRun = Math.Max(_current.Player1HighRun, points);
+            _current.ActivePlayer = 2;
         }
         else
         {
-            Current.Player2Score += points;
-            Current.Player2HighRun = Math.Max(Current.Player2HighRun, points);
-            Current.Inning++;
-            Current.ActivePlayer = 1;
+            _current.Player2Score += points;
+            _current.Player2HighRun = Math.Max(_current.Player2HighRun, points);
+            _current.Inning++;
+            _current.ActivePlayer = 1;
         }
 
-        Current.CurrentPoints = 0;
+        _current.CurrentPoints = 0;
         RecalculateAverages();
 
-        var historyPlayerId = scoringSlot == 1 ? Current.Player1Id : Current.Player2Id;
+        var historyPlayerId = scoringSlot == 1 ? _current.Player1Id : _current.Player2Id;
         var historyInning = DbContext.MatchHistorySet
             .Count(h => h.MatchResultId == null && h.Timestamp >= _gameStartedAt && h.PlayerId == historyPlayerId) + 1;
         DbContext.MatchHistorySet.Add(new MatchHistory
@@ -1175,13 +1175,13 @@ else
             PlayerSlot = scoringSlot,
             Inning = historyInning,
             Score = points,
-            TotalScore = scoringSlot == 1 ? Current.Player1Score : Current.Player2Score
+            TotalScore = scoringSlot == 1 ? _current.Player1Score : _current.Player2Score
         });
 
         if (!_gameEnded && TargetReached)
         {
             _showMatchEnd = true;
-            Current.ShotClockActive = false;
+            _current.ShotClockActive = false;
         }
     }
 
@@ -1204,21 +1204,21 @@ else
         var matchResult = new MatchResult
         {
             PlayedAt = DateTime.Now,
-            Player1Id = Current.Player1Id,
+            Player1Id = _current.Player1Id,
             Player1Name = GetDisplayName(1),
-            Player1Score = Current.Player1Score,
-            Player1Avg = Current.Player1Avg,
-            Player1HighRun = Current.Player1HighRun,
-            Player2Id = Current.Player2Id,
+            Player1Score = _current.Player1Score,
+            Player1Avg = _current.Player1Avg,
+            Player1HighRun = _current.Player1HighRun,
+            Player2Id = _current.Player2Id,
             Player2Name = GetDisplayName(2),
-            Player2Score = Current.Player2Score,
-            Player2Avg = Current.Player2Avg,
-            Player2HighRun = Current.Player2HighRun,
-            Inning = Math.Max(0, Current.ActivePlayer == 1 ? Current.Inning - 1 : Current.Inning),
-            MatchTarget = Current.MatchTarget,
-            IsHandicap = Current.IsHandicap,
-            Player1Target = Current.IsHandicap ? Current.Player1Target : 0,
-            Player2Target = Current.IsHandicap ? Current.Player2Target : 0,
+            Player2Score = _current.Player2Score,
+            Player2Avg = _current.Player2Avg,
+            Player2HighRun = _current.Player2HighRun,
+            Inning = Math.Max(0, _current.ActivePlayer == 1 ? _current.Inning - 1 : _current.Inning),
+            MatchTarget = _current.MatchTarget,
+            IsHandicap = _current.IsHandicap,
+            Player1Target = _current.IsHandicap ? _current.Player1Target : 0,
+            Player2Target = _current.IsHandicap ? _current.Player2Target : 0,
             Winner = winner,
             StartedAt = firstTurnAt ?? _gameStartedAt,
             EndedAt = DateTime.Now
@@ -1233,7 +1233,7 @@ else
             .ExecuteUpdate(s => s.SetProperty(h => h.MatchResultId, resultId));
         transaction.Commit();
 
-        Current.ShotClockActive = false;
+        _current.ShotClockActive = false;
         _showMatchEnd = false;
         _gameEnded = true;
         if (celebrate && winner != 0)
@@ -1254,7 +1254,7 @@ else
             return;
         }
 
-        if (!_gameEnded && (Current.Player1Score > 0 || Current.Player2Score > 0))
+        if (!_gameEnded && (_current.Player1Score > 0 || _current.Player2Score > 0))
         {
             _finishingGame = true;
             try
@@ -1281,24 +1281,24 @@ else
         _showMatchEnd = false;
         _ = SetFireworksAsync(0);
         _gameStartedAt = DateTime.Now;
-        Current.Player1Score = 0;
-        Current.Player2Score = 0;
-        Current.Player1Avg = 0;
-        Current.Player2Avg = 0;
-        Current.Player1HighRun = 0;
-        Current.Player2HighRun = 0;
-        Current.Inning = 1;
-        Current.CurrentPoints = 0;
-        Current.ActivePlayer = 1;
-        Current.Player1Id = DefaultPlayerId(1);
-        Current.Player2Id = DefaultPlayerId(2);
-        Current.Player1Name = "";
-        Current.Player2Name = "";
-        Current.IsHandicap = false;
-        Current.Player1Target = 0;
-        Current.Player2Target = 0;
-        Current.ShotClockActive = false;
-        Current.ShotClockRemaining = Current.ShotClockSeconds;
+        _current.Player1Score = 0;
+        _current.Player2Score = 0;
+        _current.Player1Avg = 0;
+        _current.Player2Avg = 0;
+        _current.Player1HighRun = 0;
+        _current.Player2HighRun = 0;
+        _current.Inning = 1;
+        _current.CurrentPoints = 0;
+        _current.ActivePlayer = 1;
+        _current.Player1Id = DefaultPlayerId(1);
+        _current.Player2Id = DefaultPlayerId(2);
+        _current.Player1Name = "";
+        _current.Player2Name = "";
+        _current.IsHandicap = false;
+        _current.Player1Target = 0;
+        _current.Player2Target = 0;
+        _current.ShotClockActive = false;
+        _current.ShotClockRemaining = _current.ShotClockSeconds;
         ResolvePlayers();
     }
 
@@ -1442,7 +1442,7 @@ else
 
         if (e.Key is "p" or "P" or "0" or "Insert")
         {
-            OpenPlayerPicker(Current.ActivePlayer);
+            OpenPlayerPicker(_current.ActivePlayer);
             return;
         }
 
@@ -1507,13 +1507,13 @@ else
         {
             SaveTargetBufferToCurrentSlot();
 
-            var player1Target = Math.Clamp(_targetPlayer1Value ?? (Current.IsHandicap ? Current.Player1Target : Current.MatchTarget), MinHandicapTarget, MaxHandicapTarget);
-            var player2Target = Math.Clamp(_targetPlayer2Value ?? (Current.IsHandicap ? Current.Player2Target : Current.MatchTarget), MinHandicapTarget, MaxHandicapTarget);
+            var player1Target = Math.Clamp(_targetPlayer1Value ?? (_current.IsHandicap ? _current.Player1Target : _current.MatchTarget), MinHandicapTarget, MaxHandicapTarget);
+            var player2Target = Math.Clamp(_targetPlayer2Value ?? (_current.IsHandicap ? _current.Player2Target : _current.MatchTarget), MinHandicapTarget, MaxHandicapTarget);
             var enableHandicap = player1Target != player2Target;
 
             if (enableHandicap)
             {
-                if (!Current.IsHandicap)
+                if (!_current.IsHandicap)
                 {
                     await DispatchAsync(ScoreboardCommand.ToggleHandicap);
                 }
@@ -1524,7 +1524,7 @@ else
             else
             {
                 await DispatchAsync(ScoreboardCommand.SetMatchTarget, Math.Clamp(player1Target, MinMatchTarget, MaxMatchTarget));
-                if (Current.IsHandicap)
+                if (_current.IsHandicap)
                 {
                     await DispatchAsync(ScoreboardCommand.ToggleHandicap);
                 }
@@ -1551,7 +1551,7 @@ else
         switch (command)
         {
             case ScoreboardCommand.ToggleShotClock:
-                if (Current.ShotClockActive) StopShotClock(); else StartShotClock();
+                if (_current.ShotClockActive) StopShotClock(); else StartShotClock();
                 break;
             case ScoreboardCommand.ResetShotClock:
                 ResetShotClock();
@@ -1563,10 +1563,10 @@ else
                 ChangeActivePlayer(2);
                 break;
             case ScoreboardCommand.IncrementPoints:
-                Current.CurrentPoints++;
+                _current.CurrentPoints++;
                 break;
             case ScoreboardCommand.DecrementPoints:
-                Current.CurrentPoints--;
+                _current.CurrentPoints--;
                 break;
             case ScoreboardCommand.CommitPoints:
                 CommitCurrentPoints();
@@ -1684,7 +1684,7 @@ else
         _matchInputKey++;
     }
 
-    private void ChangeActivePlayer(int player) => Current.ActivePlayer = player;
+    private void ChangeActivePlayer(int player) => _current.ActivePlayer = player;
 
     private void SwapPlayers()
     {
@@ -1693,12 +1693,12 @@ else
             return;
         }
 
-        (Current.Player1Id, Current.Player2Id) = (Current.Player2Id, Current.Player1Id);
-        (Current.Player1Name, Current.Player2Name) = (Current.Player2Name, Current.Player1Name);
-        (Current.Player1Score, Current.Player2Score) = (Current.Player2Score, Current.Player1Score);
-        (Current.Player1HighRun, Current.Player2HighRun) = (Current.Player2HighRun, Current.Player1HighRun);
-        (Current.Player1Target, Current.Player2Target) = (Current.Player2Target, Current.Player1Target);
-        Current.ActivePlayer = Current.ActivePlayer == 1 ? 2 : 1;
+        (_current.Player1Id, _current.Player2Id) = (_current.Player2Id, _current.Player1Id);
+        (_current.Player1Name, _current.Player2Name) = (_current.Player2Name, _current.Player1Name);
+        (_current.Player1Score, _current.Player2Score) = (_current.Player2Score, _current.Player1Score);
+        (_current.Player1HighRun, _current.Player2HighRun) = (_current.Player2HighRun, _current.Player1HighRun);
+        (_current.Player1Target, _current.Player2Target) = (_current.Player2Target, _current.Player1Target);
+        _current.ActivePlayer = _current.ActivePlayer == 1 ? 2 : 1;
         RecalculateAverages();
 
         foreach (var row in DbContext.MatchHistorySet.Where(h => h.MatchResultId == null && h.Timestamp >= _gameStartedAt))
@@ -1734,7 +1734,7 @@ else
         {
             _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
             await _kiosk.InvokeVoidAsync("requestFullscreen");
-            await board.FocusAsync();
+            await _board.FocusAsync();
         }
         catch
         {
@@ -1762,7 +1762,7 @@ else
         {
             while (!token.IsCancellationRequested)
             {
-                if (Current.ShotClockActive)
+                if (_current.ShotClockActive)
                 {
                     await RunActiveShotClockAsync(token);
                 }
@@ -1781,7 +1781,7 @@ else
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
         var last = System.Diagnostics.Stopwatch.GetTimestamp();
-        while (Current.ShotClockActive && await timer.WaitForNextTickAsync(token))
+        while (_current.ShotClockActive && await timer.WaitForNextTickAsync(token))
         {
             var elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(last).TotalSeconds;
             last = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -1810,16 +1810,16 @@ else
 
     private void ShotClockTick(double elapsedSeconds)
     {
-        if (SystemPower.IsShuttingDown || !Current.ShotClockActive)
+        if (SystemPower.IsShuttingDown || !_current.ShotClockActive)
         {
             return;
         }
 
-        Current.ShotClockRemaining = Math.Max(0, Current.ShotClockRemaining - elapsedSeconds);
-        if (Current.ShotClockRemaining <= 0)
+        _current.ShotClockRemaining = Math.Max(0, _current.ShotClockRemaining - elapsedSeconds);
+        if (_current.ShotClockRemaining <= 0)
         {
-            Current.ShotClockActive = false;
-            Current.ShotClockRemaining = Current.ShotClockSeconds;
+            _current.ShotClockActive = false;
+            _current.ShotClockRemaining = _current.ShotClockSeconds;
             DbContext.SaveChanges();
         }
 

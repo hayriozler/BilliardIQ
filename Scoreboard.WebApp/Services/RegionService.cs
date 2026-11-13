@@ -6,26 +6,24 @@ namespace Scoreboard.WebApp.Services;
 public class RegionService(DataContext db)
 {
     public async Task<List<Region>> ListAsync() =>
-        (await db.OrganizationRegionSet
+        [.. (await db.OrganizationRegionSet
             .AsNoTracking()
             .Include(x => x.Region).ThenInclude(r => r.Country)
             .Where(x => x.DeletedAt == null)
             .Select(x => x.Region)
             .ToListAsync())
         .Select(r => { CountryService.Localized(r.Country); return r; })
-        .OrderBy(r => r.Country.Name).ThenBy(r => r.Name)
-        .ToList();
+        .OrderBy(r => r.Country.Name).ThenBy(r => r.Name)];
 
     public async Task<List<Region>> AvailableAsync()
     {
         var selected = db.OrganizationRegionSet.Where(x => x.DeletedAt == null).Select(x => x.RegionId);
         var linkedCountries = db.OrganizationCountrySet.Where(x => x.DeletedAt == null).Select(x => x.CountryId);
-        return (await db.RegionSet.AsNoTracking().Include(r => r.Country)
+        return [.. (await db.RegionSet.AsNoTracking().Include(r => r.Country)
                 .Where(r => linkedCountries.Contains(r.CountryId) && !selected.Contains(r.Id))
                 .ToListAsync())
             .Select(r => { CountryService.Localized(r.Country); return r; })
-            .OrderBy(r => r.Country.Name).ThenBy(r => r.Name)
-            .ToList();
+            .OrderBy(r => r.Country.Name).ThenBy(r => r.Name)];
     }
 
     public async Task AddAsync(int regionId)

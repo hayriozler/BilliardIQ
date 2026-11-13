@@ -27,7 +27,7 @@ public class TableService(DataContext db)
             .Where(t => t.DeletedAt == null)
             .OrderBy(t => t.SortOrder).ThenBy(t => t.Number)
             .ToListAsync();
-        return tables.Select(t => new TableView(t, t.CurrentSession)).ToList();
+        return [.. tables.Select(t => new TableView(t, t.CurrentSession))];
     }
 
     // Last IP each table's scoreboard client reported while syncing (ClientSync.IpAddress), keyed by table id.
@@ -276,10 +276,7 @@ public class TableService(DataContext db)
             removedScoreboard = table.ScoreboardNo is not null;
             table.ScoreboardNo = null;
         }
-        else if (table.ScoreboardNo is null)
-        {
-            table.ScoreboardNo = await NextScoreboardNoAsync(number);
-        }
+        else table.ScoreboardNo ??= await NextScoreboardNoAsync(number);
 
         await db.SaveChangesAsync();
         if (removedScoreboard)
@@ -391,8 +388,6 @@ public class TableService(DataContext db)
         DefaultHourlyRate = rule.DefaultHourlyRate,
         PerPlayerSurcharge = rule.PerPlayerSurcharge,
         MemberDiscountPercent = rule.MemberDiscountPercent,
-        TimeSlots = rule.TimeSlots
-            .Select(s => new PricingTimeSlot { DaysOfWeek = [.. s.DaysOfWeek], From = s.From, To = s.To, HourlyRate = s.HourlyRate })
-            .ToList()
+        TimeSlots = [.. rule.TimeSlots.Select(s => new PricingTimeSlot { DaysOfWeek = [.. s.DaysOfWeek], From = s.From, To = s.To, HourlyRate = s.HourlyRate })]
     };
 }

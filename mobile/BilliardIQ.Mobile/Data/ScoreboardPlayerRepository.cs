@@ -72,7 +72,7 @@ public class ScoreboardPlayerRepository(DatabaseExecutor dbExecutor) : BaseRepo
         var rows = await dbExecutor.ReadDataAsync<ScoreboardPlayerRow>(
             "SELECT Id, RemoteId, NickName, Name, Photo, AvatarKey, TeamId, ShortcutNumber FROM ScoreboardPlayers ORDER BY Id");
 
-        return rows.Select(r => new ScoreboardPlayer
+        return [.. rows.Select(r => new ScoreboardPlayer
         {
             Id = r.Id,
             RemoteId = r.RemoteId == 0 ? null : r.RemoteId,
@@ -82,6 +82,6 @@ public class ScoreboardPlayerRepository(DatabaseExecutor dbExecutor) : BaseRepo
             AvatarKey = r.AvatarKey,
             TeamId = r.TeamId == 0 ? null : r.TeamId,
             ShortcutNumber = r.ShortcutNumber == 0 ? null : r.ShortcutNumber,
-        }).ToList();
+        })];
     }
 }

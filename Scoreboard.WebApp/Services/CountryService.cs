@@ -16,22 +16,20 @@ public class CountryService(DataContext db)
     }
 
     public async Task<List<Country>> ListAsync() =>
-        (await db.OrganizationCountrySet
+        [.. (await db.OrganizationCountrySet
             .AsNoTracking()
             .Where(x => x.DeletedAt == null)
             .Select(x => x.Country)
             .ToListAsync())
         .Select(Localized)
-        .OrderBy(c => c.Name)
-        .ToList();
+        .OrderBy(c => c.Name)];
 
     public async Task<List<Country>> AvailableAsync()
     {
         var selected = db.OrganizationCountrySet.Where(x => x.DeletedAt == null).Select(x => x.CountryId);
-        return (await db.CountrySet.AsNoTracking().Where(c => !selected.Contains(c.Id)).ToListAsync())
+        return [.. (await db.CountrySet.AsNoTracking().Where(c => !selected.Contains(c.Id)).ToListAsync())
             .Select(Localized)
-            .OrderBy(c => c.Name)
-            .ToList();
+            .OrderBy(c => c.Name)];
     }
 
     public async Task AddAsync(int countryId)

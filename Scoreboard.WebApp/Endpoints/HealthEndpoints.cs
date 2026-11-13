@@ -1,7 +1,7 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Scoreboard.WebApp.Data;
+using System.Text.Json;
 
 namespace Scoreboard.WebApp.Endpoints;
 
@@ -60,12 +60,12 @@ public static class HealthEndpoints
 
 public sealed class PostgresHealthCheck(IServiceScopeFactory scopeFactory, ILogger<PostgresHealthCheck> logger) : IHealthCheck
 {
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(3);
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(Timeout);
+        timeout.CancelAfter(_timeout);
         try
         {
             using var scope = scopeFactory.CreateScope();

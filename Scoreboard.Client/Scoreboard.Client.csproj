@@ -18,11 +18,6 @@
     <None Remove="publish-pi/**" />
   </ItemGroup>
 
-  <!-- The avatar artwork is shared with the panel (Scoreboard.WebApp) so both draw the same picture for an avatar id -->
-  <ItemGroup>
-    <EmbeddedResource Include="..\Scoreboard.WebApp\Avatars\animals.json" LogicalName="Avatars.animals.json" Link="Avatars\animals.json" />
-  </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
@@ -42,8 +37,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Scoreboard.WebApp\Common\AvatarGenerator.cs" Link="Common\AvatarGenerator.cs" />
     <Using Include="Scoreboard.Common" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Scoreboard.Common\Scoreboard.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

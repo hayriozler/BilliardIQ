@@ -1,6 +1,3 @@
-# Build context is the repository root (docker-compose.yml): the client links the shared avatar artwork
-# from Scoreboard.WebApp/Avatars, so that file must be inside the context.
-
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
 USER $APP_UID
@@ -12,9 +9,10 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+COPY ["Scoreboard.Common/Scoreboard.Common.csproj", "Scoreboard.Common/"]
 COPY ["Scoreboard.Client/Scoreboard.Client.csproj", "Scoreboard.Client/"]
-COPY ["Scoreboard.WebApp/Avatars/animals.json", "Scoreboard.WebApp/Avatars/"]
 RUN dotnet restore "Scoreboard.Client/Scoreboard.Client.csproj"
+COPY Scoreboard.Common/ Scoreboard.Common/
 COPY Scoreboard.Client/ Scoreboard.Client/
 WORKDIR "/src/Scoreboard.Client"
 RUN dotnet build "./Scoreboard.Client.csproj" -c $BUILD_CONFIGURATION -o /app/build

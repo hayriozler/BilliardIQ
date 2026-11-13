@@ -53,9 +53,7 @@ public class AuthService(DataContext db, ClientIdService clientIds, Organization
         if (!belongsToOrganization)
         {
             var organizations = await db.OrganizationSet.Where(o => o.IsActive && o.DeletedAt == null).OrderBy(o => o.Name).ToListAsync();
-            return organizations
-                .Select(o => new StaffMember { OrganizationId = o.Id, Organization = o, UserId = userId, Roles = [StaffRole.Owner] })
-                .ToList();
+            return [.. organizations.Select(o => new StaffMember { OrganizationId = o.Id, Organization = o, UserId = userId, Roles = [StaffRole.Owner] })];
         }
 
         return await db.StaffMemberSet

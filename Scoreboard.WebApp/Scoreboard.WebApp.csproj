@@ -8,7 +8,7 @@
     <UserSecretsId>a6bb0fbf-943c-416f-9ed8-b2f4f7ecfd7d</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
-    <DockerfileContext>.</DockerfileContext>
+    <DockerfileContext>..</DockerfileContext>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,7 +23,10 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Localization/*.json" LogicalName="Localization.%(Filename)%(Extension)" />
-    <EmbeddedResource Include="Avatars/animals.json" LogicalName="Avatars.animals.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Scoreboard.Common\Scoreboard.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

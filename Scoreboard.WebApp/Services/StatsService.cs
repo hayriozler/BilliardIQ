@@ -77,11 +77,10 @@ public class StatsService(DataContext db)
     {
         var players = await RosterPlayersAsync();
         var entries = await EntriesByPlayerAsync(since, until, includeBuckets: false);
-        return players
+        return [.. players
             .Select(p => new PlayerStatRow(p, Summarize(entries.GetValueOrDefault(p.Id) ?? [])))
             .OrderByDescending(r => r.Summary.Wins).ThenByDescending(r => r.Summary.Matches)
-            .ThenBy(r => r.Player.DisplayName)
-            .ToList();
+            .ThenBy(r => r.Player.DisplayName)];
     }
 
     public async Task<PlayerStatDetail?> PlayerAsync(int playerId, DateTimeOffset? since = null, DateTimeOffset? until = null)
@@ -106,7 +105,7 @@ public class StatsService(DataContext db)
         var entries = (await EntriesByPlayerAsync(since, until, includeBuckets: true, onlyPlayerId: playerId))
             .GetValueOrDefault(playerId) ?? [];
         return new PlayerStatDetail(player, Summarize(entries),
-            entries, entries.Where(e => e.IsHandicap).ToList());
+            entries, [.. entries.Where(e => e.IsHandicap)]);
     }
 
     public async Task<MatchStatDetail?> MatchAsync(int matchId)
@@ -154,15 +153,14 @@ public class StatsService(DataContext db)
     {
         var teams = await TeamsWithMembersAsync();
         var entries = await EntriesByPlayerAsync(since, until, includeBuckets: false);
-        return teams
+        return [.. teams
             .Select(t =>
             {
                 var memberIds = t.Members.Select(m => m.PlayerId).Distinct().ToList();
                 var teamEntries = memberIds.SelectMany(id => entries.GetValueOrDefault(id) ?? []).ToList();
                 return new TeamStatRow(t, memberIds.Count, Summarize(teamEntries));
             })
-            .OrderByDescending(r => r.Summary.Wins).ThenByDescending(r => r.Summary.Matches).ThenBy(r => r.Team.Name)
-            .ToList();
+            .OrderByDescending(r => r.Summary.Wins).ThenByDescending(r => r.Summary.Matches).ThenBy(r => r.Team.Name)];
     }
 
     public async Task<TeamStatDetail?> TeamAsync(int teamId, DateTimeOffset? since = null, DateTimeOffset? until = null)

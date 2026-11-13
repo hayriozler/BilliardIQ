@@ -1,7 +1,7 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.WebApp.Data;
 using Scoreboard.WebApp.Responses;
+using System.Text.Json;
 
 namespace Scoreboard.WebApp.Services;
 
@@ -88,7 +88,7 @@ public class ScoreboardDataService(DataContext db, ClubService clubs, PlayerServ
         if (keys.Count > 0)
         {
             await db.Database.ExecuteSqlInterpolatedAsync(EntityChangeSql.Remove(
-                state.OrganizationId, tableId, keys.Select(k => k.Entity).ToArray(), keys.Select(k => k.Id).ToArray(), keys.Select(k => k.Seq).ToArray()));
+                state.OrganizationId, tableId, [.. keys.Select(k => k.Entity)], [.. keys.Select(k => k.Id)], [.. keys.Select(k => k.Seq)]));
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -135,17 +135,17 @@ public class ScoreboardDataService(DataContext db, ClubService clubs, PlayerServ
     }
 
     private static List<int> IdsOf(List<EntityChange> rows, string entityType) =>
-        rows.Where(r => r.EntityName == entityType).Select(r => r.EntityId).ToList();
+        [.. rows.Where(r => r.EntityName == entityType).Select(r => r.EntityId)];
 
     private static ChangeGroupDto Changed(string entityType, IEnumerable<object> items) =>
-        new(entityType, ChangeState.Changed, items.ToList(), null);
+        new(entityType, ChangeState.Changed, [.. items], null);
 
     private static void AddGroups(List<ChangeGroupDto> groups, string entityType, List<int> requestedIds, IEnumerable<(int Id, object Dto)> alive)
     {
         var aliveList = alive.ToList();
         if (aliveList.Count > 0)
         {
-            groups.Add(new ChangeGroupDto(entityType, ChangeState.Changed, aliveList.Select(a => a.Dto).ToList(), null));
+            groups.Add(new ChangeGroupDto(entityType, ChangeState.Changed, [.. aliveList.Select(a => a.Dto)], null));
         }
 
         var aliveIds = aliveList.Select(a => a.Id).ToHashSet();
@@ -163,8 +163,8 @@ public class ScoreboardDataService(DataContext db, ClubService clubs, PlayerServ
 
     public static TeamDto ToDto(Team team) => new(
         team.Id, team.ClubId, team.Name, team.UpdatedAt,
-        team.Members.Select(m => new TeamPlayerDto(
-            m.Player.Id, m.Player.Nickname ?? m.Player.DisplayName, $"{m.Player.FirstName} {m.Player.LastName}".Trim())).ToList(),
+        [.. team.Members.Select(m => new TeamPlayerDto(
+            m.Player.Id, m.Player.Nickname ?? m.Player.DisplayName, $"{m.Player.FirstName} {m.Player.LastName}".Trim()))],
         team.AvatarId);
 
     public static PlayerDto ToDto(Player p, string language)

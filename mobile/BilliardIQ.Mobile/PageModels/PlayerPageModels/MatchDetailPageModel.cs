@@ -169,10 +169,10 @@ public partial class MatchDetailPageModel(ApiClient api) : BasePageModel, IQuery
         $"{side.Average:F3} / {side.HighRun}";
 
     private static List<float> InningValues(List<MatchHistoryEntry> history, int slot, List<int> innings) =>
-        innings.Select(i => (float)history.Where(h => h.Slot == slot && h.Inning == i).Sum(h => h.Score)).ToList();
+        [.. innings.Select(i => (float)history.Where(h => h.Slot == slot && h.Inning == i).Sum(h => h.Score))];
 
     private static List<MatchHistoryRow> BuildRows(List<MatchHistoryEntry> history) =>
-        history
+        [.. history
             .GroupBy(h => h.Inning)
             .OrderBy(g => g.Key)
             .Select(g =>
@@ -187,6 +187,5 @@ public partial class MatchDetailPageModel(ApiClient api) : BasePageModel, IQuery
                     p1 is null ? "" : p1.TotalScore.ToString(),
                     p2 is null ? "" : g.Where(h => h.Slot == 2).Sum(h => h.Score).ToString(),
                     p2 is null ? "" : p2.TotalScore.ToString());
-            })
-            .ToList();
+            })];
 }

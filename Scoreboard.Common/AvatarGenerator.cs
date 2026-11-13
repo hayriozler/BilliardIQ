@@ -22,15 +22,16 @@ public static class AvatarGenerator
 
     private static readonly List<Palette> _palettes;
     private static readonly List<Animal> _animals;
+    private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     static AvatarGenerator()
     {
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Avatars.animals.json")
             ?? throw new InvalidOperationException("Embedded avatar catalog 'Avatars.animals.json' is missing.");
-        var catalog = JsonSerializer.Deserialize<Catalog>(stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+        var catalog = JsonSerializer.Deserialize<Catalog>(stream, _jsonOptions)
             ?? throw new InvalidOperationException("Avatar catalog is empty.");
-        _palettes = catalog.Palettes.Select(p => new Palette(p.Bg, p.Bg2, p.C1, p.C2, p.C3)).ToList();
-        _animals = catalog.Animals.Select(a => new Animal(a.Name, a.Back, a.Half, a.Front)).ToList();
+        _palettes = [.. catalog.Palettes.Select(p => new Palette(p.Bg, p.Bg2, p.C1, p.C2, p.C3))];
+        _animals = [.. catalog.Animals.Select(a => new Animal(a.Name, a.Back, a.Half, a.Front))];
     }
 
     public static int Count => _animals.Count * _palettes.Count;

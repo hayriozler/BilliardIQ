@@ -7,7 +7,7 @@
 @using Microsoft.AspNetCore.Components.Web
 @using System.Globalization
 
-<div @ref="board" class="warmup" tabindex="0" @onkeydown="HandleKeyDown" @onclick="RequestFullscreenAsync">
+<div @ref="_board" class="warmup" tabindex="0" @onkeydown="HandleKeyDown" @onclick="RequestFullscreenAsync">
     <div class="warmup-label">@L.T("WarmUp")</div>
 
     <div class="hourglass-wrap">
@@ -16,7 +16,7 @@
                      style="transform: scale(@ElapsedFraction.ToString("0.###", CultureInfo.InvariantCulture)); transform-origin: 100px 280px;" />
             <polygon class="sand sand-top" points="20,20 180,20 100,150"
                      style="transform: scale(@RemainingFraction.ToString("0.###", CultureInfo.InvariantCulture)); transform-origin: 100px 150px;" />
-            @if (_running && SecondsRemaining > 0)
+            @if (_running && _secondsRemaining > 0)
             {
                 <circle class="sand-grain g1" cx="100" cy="150" r="2.6" />
                 <circle class="sand-grain g2" cx="100" cy="150" r="2.1" />
@@ -28,9 +28,9 @@
         </svg>
     </div>
 
-    <div class="digital-timer @(IsUrgent ? "urgent" : "") @(SecondsRemaining <= 0 ? "done" : "")">@DisplayTime</div>
+    <div class="digital-timer @(IsUrgent ? "urgent" : "") @(_secondsRemaining <= 0 ? "done" : "")">@DisplayTime</div>
 
-    @if (SecondsRemaining <= 0)
+    @if (_secondsRemaining <= 0)
     {
         <div class="time-up">@L.T("TimeUp")</div>
     }
@@ -43,24 +43,24 @@
 @code {
     [Parameter] public int Minutes { get; set; }
 
-    private ElementReference board;
+    private ElementReference _board;
     private IJSObjectReference? _kiosk;
     private readonly CancellationTokenSource _cts = new();
     private CancellationTokenSource? _autoReturnCts;
 
     private double TotalSeconds => Math.Max(1, Minutes) * 60d;
-    private double SecondsRemaining;
+    private double _secondsRemaining;
     private bool _running = true;
 
-    private double RemainingFraction => TotalSeconds > 0 ? Math.Clamp(SecondsRemaining / TotalSeconds, 0, 1) : 0;
+    private double RemainingFraction => TotalSeconds > 0 ? Math.Clamp(_secondsRemaining / TotalSeconds, 0, 1) : 0;
     private double ElapsedFraction => 1 - RemainingFraction;
-    private bool IsUrgent => SecondsRemaining <= 10 && SecondsRemaining > 0;
+    private bool IsUrgent => _secondsRemaining <= 10 && _secondsRemaining > 0;
 
     private string DisplayTime
     {
         get
         {
-            var total = (int)Math.Ceiling(SecondsRemaining);
+            var total = (int)Math.Ceiling(_secondsRemaining);
             var m = total / 60;
             var s = total % 60;
             return $"{m:00}:{s:00}";
@@ -69,7 +69,7 @@
 
     protected override void OnInitialized()
     {
-        SecondsRemaining = TotalSeconds;
+        _secondsRemaining = TotalSeconds;
         _ = RunTimerAsync(_cts.Token);
     }
 
@@ -77,7 +77,7 @@
     {
         if (firstRender)
         {
-            await board.FocusAsync();
+            await _board.FocusAsync();
         }
     }
 
@@ -88,11 +88,11 @@
             using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
             while (await timer.WaitForNextTickAsync(token))
             {
-                if (_running && SecondsRemaining > 0)
+                if (_running && _secondsRemaining > 0)
                 {
-                    var wasAboveZero = SecondsRemaining > 0;
-                    SecondsRemaining = Math.Max(0, SecondsRemaining - 0.1);
-                    if (wasAboveZero && SecondsRemaining <= 0)
+                    var wasAboveZero = _secondsRemaining > 0;
+                    _secondsRemaining = Math.Max(0, _secondsRemaining - 0.1);
+                    if (wasAboveZero && _secondsRemaining <= 0)
                     {
                         _running = false;
                         ScheduleAutoReturn();
@@ -136,14 +136,14 @@
     private void Reset()
     {
         CancelAutoReturn();
-        SecondsRemaining = TotalSeconds;
+        _secondsRemaining = TotalSeconds;
         _running = false;
     }
 
     private void Restart()
     {
         CancelAutoReturn();
-        SecondsRemaining = TotalSeconds;
+        _secondsRemaining = TotalSeconds;
         _running = true;
     }
 
@@ -192,11 +192,11 @@
         {
             _kiosk ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/kiosk.js");
             await _kiosk.InvokeVoidAsync("requestFullscreen");
-            await board.FocusAsync();
+            await _board.FocusAsync();
         }
         catch
         {
-            await board.FocusAsync();
+            await _board.FocusAsync();
         }
     }
 

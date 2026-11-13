@@ -20,8 +20,8 @@ services:
   zeymera.billiardiq.webapp:
     image: ${DOCKER_REGISTRY-}zeymerabilliardiqwebapp
     build:
-      context: Scoreboard.WebApp
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Scoreboard.WebApp/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy

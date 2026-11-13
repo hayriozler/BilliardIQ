@@ -144,7 +144,7 @@ public class TeamService(DataContext db, ClubService clubs)
 
     private static string DefaultShortName(string name)
     {
-        var letters = new string(name.Where(char.IsLetterOrDigit).Take(4).ToArray());
+        var letters = new string([.. name.Where(char.IsLetterOrDigit).Take(4)]);
         return letters.Length == 0 ? "TKM" : letters.ToUpperInvariant();
     }
 }

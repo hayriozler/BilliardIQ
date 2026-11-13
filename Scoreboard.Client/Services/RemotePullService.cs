@@ -570,17 +570,15 @@ public partial class RemotePullService(
     private record RemoteChanges(bool Full, List<RemoteChangeGroup> Changes)
     {
         public List<T> ItemsOf<T>(string entityType) =>
-            Changes
+            [.. Changes
                 .Where(g => g.EntityType == entityType && g.State == "changed" && g.Items is not null)
                 .SelectMany(g => g.Items!)
-                .Select(item => item.Deserialize<T>(_jsonOptions)!)
-                .ToList();
+                .Select(item => item.Deserialize<T>(_jsonOptions)!)];
 
         public HashSet<int> DeletedIdsOf(string entityType) =>
-            Changes
+            [.. Changes
                 .Where(g => g.EntityType == entityType && g.State == "deleted" && g.Ids is not null)
-                .SelectMany(g => g.Ids!)
-                .ToHashSet();
+                .SelectMany(g => g.Ids!)];
     }
 
     private record RemoteClub(int Id, string Name, string ShortName, string? City, string? PrimaryColor);

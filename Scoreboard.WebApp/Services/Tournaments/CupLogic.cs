@@ -64,7 +64,7 @@ public static class CupLogic
         while (order.Count < size)
         {
             var next = order.Count * 2;
-            order = order.SelectMany(s => new[] { s, next + 1 - s }).ToList();
+            order = [.. order.SelectMany(s => new[] { s, next + 1 - s })];
         }
 
         return order;
@@ -167,7 +167,7 @@ public static class CupLogic
             }
         }
 
-        return rows
+        return [.. rows
             .Select(kv => new CupStandingRow(
                 kv.Key, kv.Value.Played, kv.Value.Won, kv.Value.Lost, kv.Value.MatchPoints,
                 kv.Value.PointsFor, kv.Value.PointsAgainst, kv.Value.Innings,
@@ -175,8 +175,7 @@ public static class CupLogic
             .OrderByDescending(r => r.MatchPoints)
             .ThenByDescending(r => r.Average)
             .ThenByDescending(r => r.PointsFor - r.PointsAgainst)
-            .ThenBy(r => r.ParticipantId)
-            .ToList();
+            .ThenBy(r => r.ParticipantId)];
     }
 
     private sealed class Acc
