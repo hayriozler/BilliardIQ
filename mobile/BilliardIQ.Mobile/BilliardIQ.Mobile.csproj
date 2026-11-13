@@ -77,16 +77,16 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Maui.Camera" Version="6.1.0" />
-		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.120" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.14" />
+		<PackageReference Include="CommunityToolkit.Maui.Camera" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="11.0.0" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="11.0.10" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="11.0.0" />
 		<PackageReference Include="Plugin.Maui.OCR" Version="1.1.1" />
-		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.120" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.130" />
 		<!-- ONNX Runtime: YOLOv8 ball detection + future on-device models (Android, iOS) -->
 		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.31.1" />
 		<!-- SkiaSharp: image decode/resize for ONNX preprocessing (transitively available, made explicit) -->
-		<PackageReference Include="SkiaSharp" Version="4.154.0" />
+		<PackageReference Include="SkiaSharp" Version="4.156.0" />
 		<PackageReference Include="QRCoder" Version="1.8.1" />
 		<!-- EmguCV: OpenCV .NET wrapper — HoughCircles + findContours for ball/corner detection -->
 		<PackageReference Include="Emgu.CV" Version="5.0.0.6584" />
@@ -96,7 +96,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-		<PackageReference Include="CommunityToolkit.Maui" Version="15.0.1" />
+		<PackageReference Include="CommunityToolkit.Maui" Version="17.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
