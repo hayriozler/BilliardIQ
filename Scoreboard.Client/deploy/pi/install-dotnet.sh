@@ -8,7 +8,7 @@ set -euo pipefail
 # Run this ON the Pi as the app's service user (e.g. `admin`):
 #   bash install-dotnet.sh
 
-DOTNET_CHANNEL="10.0"
+DOTNET_CHANNEL="11.0"
 
 curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
 chmod +x /tmp/dotnet-install.sh

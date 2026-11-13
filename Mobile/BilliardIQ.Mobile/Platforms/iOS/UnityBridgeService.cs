@@ -12,7 +12,7 @@ public class UnityBridgeService : IUnityBridgeService
 {
     public void LaunchGame(string player1Name, string player2Name, int targetScore)
     {
-        var rootVc = UIApplication.SharedApplication.KeyWindow?.RootViewController
+        var rootVc = Platform.GetCurrentUIViewController()
             ?? throw new InvalidOperationException("No root view controller.");
 
         var data = JsonSerializer.Serialize(new { player1Name, player2Name, targetScore });
