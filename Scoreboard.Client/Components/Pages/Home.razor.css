@@ -371,11 +371,19 @@
 .nog-indicator {
     text-align: center;
     padding: 0.6vh 0 1.4vh;
-    font-size: clamp(1.1rem, 2.4vw, 2rem);
+    font-size: clamp(1.5rem, 3.4vw, 2.8rem);
     font-weight: 800;
     letter-spacing: 0.2em;
-    color: var(--red);
+    color: var(--yellow);
     animation: nog-pulse 1s ease-in-out infinite;
+}
+
+.nog-p1 {
+    color: var(--white);
+}
+
+.nog-p2 {
+    color: var(--yellow);
 }
 
 @keyframes nog-pulse {

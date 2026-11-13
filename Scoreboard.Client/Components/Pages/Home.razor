@@ -90,7 +90,7 @@ else
             </div>
             @if ((Current.IsHandicap || Current.ActivePlayer == 1) && PointsToGo(1) is int nog1)
             {
-                <div class="nog-indicator">@string.Format(L.T("PointsToGo"), nog1)</div>
+                <div class="nog-indicator nog-p1">@string.Format(L.T("PointsToGo"), nog1)</div>
             }
         </section>
 
@@ -145,7 +145,7 @@ else
             </div>
             @if ((Current.IsHandicap || Current.ActivePlayer == 2) && PointsToGo(2) is int nog2)
             {
-                <div class="nog-indicator">@string.Format(L.T("PointsToGo"), nog2)</div>
+                <div class="nog-indicator nog-p2">@string.Format(L.T("PointsToGo"), nog2)</div>
             }
         </section>
     </main>
